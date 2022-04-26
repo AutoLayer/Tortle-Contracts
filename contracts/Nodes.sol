@@ -305,19 +305,6 @@ contract Nodes is Initializable, ReentrancyGuard {
         decreaseBalance(user, address(token1), amount1f);
     }
 
-    function depositOnFarm(address user, string[] memory _arguments)
-        external
-        nonReentrant
-        onlyOwner
-    {
-        if (StringUtils.equal(_arguments[0], "depositOnFarmLp")) {
-            depositOnFarmLp(user, _arguments);
-        } else if (StringUtils.equal(_arguments[0], "depositOnFarmOneToken")) {
-            depositOnFarmOneToken(user, _arguments);
-        } else if (StringUtils.equal(_arguments[0], "depositOnFarmTokens")) {
-            depositOnFarmTokens(user, _arguments);
-        }
-    }
 
     function depositOnFarmLp(
         address user,
