@@ -95,7 +95,6 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
         _mint(msg.sender, shares);
         earn();
         incrementDeposits(_amount);
-        return shares;
     }
 
     function earn() public {
@@ -103,10 +102,10 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
         IStrategy(strategy).deposit();
     }
 
-    function withdraw(uint256 _shares) public nonReentrant {
+    function withdraw(uint256 _shares) public nonReentrant returns (uint256 r) {
         require(_shares > 0, 'please provide amount');
         uint256 tokenBalStart = token.balanceOf(address(this));
-        uint256 r = ((IStrategy(strategy).balanceOf() + tokenBalStart) * _shares) / totalSupply();
+        r = ((IStrategy(strategy).balanceOf() + tokenBalStart) * _shares) / totalSupply();
         _burn(msg.sender, _shares);
         if (tokenBalStart < r) {
             uint256 _withdraw = r - tokenBalStart;
