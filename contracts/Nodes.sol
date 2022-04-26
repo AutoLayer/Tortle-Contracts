@@ -305,7 +305,6 @@ contract Nodes is Initializable, ReentrancyGuard {
         decreaseBalance(user, address(token1), amount1f);
     }
 
-
     function depositOnFarmLp(
         address user,
         string[] memory _arguments,
@@ -412,7 +411,68 @@ contract Nodes is Initializable, ReentrancyGuard {
         decreaseBalance(user, address(token0), amount0f);
         decreaseBalance(user, address(token1), amount1f);
     }
-    
+
+    struct _wffot {
+        // withdraw from farm One Token
+        address lpToken;
+        address tortleVault;
+        address token0;
+        address token1;
+        address tokenDesired;
+        uint256 amountTokenDesiredMin;
+        uint256 amount;
+    }
+
+    function withdrawFromFarm(address user, string[] memory _arguments) external {
+        // For now it will only allow to withdraw one token, in the future this function will be renamed
+        _wffot memory args;
+        args.lpToken = StringUtils.parseAddr(_arguments[1]);
+        args.tortleVault = StringUtils.parseAddr(_arguments[2]);
+        args.token0 = StringUtils.parseAddr(_arguments[3]);
+        args.token1 = StringUtils.parseAddr(_arguments[4]);
+        args.tokenDesired = StringUtils.parseAddr(_arguments[5]);
+        args.amountTokenDesiredMin = StringUtils.safeParseInt(_arguments[6]);
+        args.amount = StringUtils.safeParseInt(_arguments[7]);
+
+        require(args.amount <= userTt[args.tortleVault][user], 'WithdrawFromFarm: Insufficient funds.');
+
+        uint256 lpAmount = ITortleVault(args.tortleVault).withdraw(args.amount);
+        userTt[args.tortleVault][user] -= args.amount;
+        IERC20(args.lpToken).transfer(args.lpToken, lpAmount);
+        (uint256 amount0, uint256 amount1) = IUniswapV2Pair(args.lpToken).burn(address(this));
+
+        require(amount0 >= minimumAmount, 'UniswapV2Router: INSUFFICIENT_A_AMOUNT');
+        require(amount1 >= minimumAmount, 'UniswapV2Router: INSUFFICIENT_B_AMOUNT');
+
+        uint256 swapAmount;
+        address swapToken;
+
+        if (args.token1 == args.tokenDesired) {
+            swapToken = args.token0;
+            swapAmount = amount0;
+            setBalances(user, args.tokenDesired, amount1);
+        } else {
+            swapToken = args.token1;
+            swapAmount = amount1;
+            setBalances(user, args.tokenDesired, amount0);
+        }
+
+        address[] memory path = new address[](2);
+        path[0] = swapToken;
+        path[1] = args.tokenDesired;
+
+        _approve(swapToken, address(router), swapAmount);
+
+        uint256[] memory swapedAmounts = router.swapExactTokensForTokens(
+            swapAmount,
+            args.amountTokenDesiredMin,
+            path,
+            address(this),
+            block.timestamp
+        );
+
+        setBalances(user, path[1], swapedAmounts[1]);
+    }
 
     function _addLiquidity(
         address token0,
