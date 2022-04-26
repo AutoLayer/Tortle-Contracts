@@ -478,20 +478,17 @@ contract Nodes is Initializable, ReentrancyGuard {
         address token1,
         uint256 amount0,
         uint256 amount1
-    ) internal returns (uint256) {
+    )
+        internal
+        returns (
+            uint256 amount0f,
+            uint256 amount1f,
+            uint256 lpBal
+        )
+    {
         _approve(token0, address(router), amount0);
         _approve(token1, address(router), amount1);
-        (, , uint256 lpBal) = router.addLiquidity(
-            token0,
-            token1,
-            amount0,
-            amount1,
-            0,
-            0,
-            address(this),
-            block.timestamp
-        );
-        return lpBal;
+        (amount0f, amount1f, lpBal) = router.addLiquidity(token0, token1, amount0, amount1, 0, 0, address(this), block.timestamp);
     }
 
     function _approve(
