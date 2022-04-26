@@ -465,5 +465,73 @@ describe('Lp, Farms and autocompound integration tests', function () {
         expect(balance).to.equal(expectedBalance)
       })
     })
+    describe('Withdraw One Token from Farm', async () => {
+      const tokenAmount = '100000'
+      const lpAmount = '10000'
+      const ttToWithdraw = '5000'
+      let tokenDesired
+      beforeEach(async () => {
+        let tokenDesired = link.address
+        await addLiquidity(
+          uniswapRouter,
+          [link.address, dai.address],
+          [tokenAmount, tokenAmount],
+          [0, 0],
+          tortleUser.getAddress(),
+        )
+        const _args1 = [lpContract.address, lpAmount]
+        const _args2 = ['depositOnFarmLp(address,string[],uint256[])', lpContract.address, TortleVault.address, lpAmount]
+        const addFundsForTokens = {
+          id: 1,
+          functionName: 'addFundsForTokens',
+          user: tortleUser.getAddress(),
+          arguments: _args1,
+          hasNext: true,
+        }
+        const depositOnLp = {
+          id: 2,
+          functionName: 'depositOnFarm',
+          user: tortleUser.getAddress(),
+          arguments: _args2,
+          hasNext: false,
+        }
+        await Batch.batchFunctions([addFundsForTokens, depositOnLp])
+
+        //Withdraw
+        const _args3 = [
+          'withdrawFromFarmOneToken',
+          lpContract.address,
+          TortleVault.address,
+          link.address,
+          dai.address,
+          tokenDesired,
+          1,
+          ttToWithdraw,
+        ]
+        const withdrawFromFarm = {
+          id: 1,
+          functionName: 'withdrawFromFarm',
+          user: tortleUser.getAddress(),
+          arguments: _args3,
+          hasNext: false,
+        }
+        const balance0 = await Nodes.getBalance(tortleUser.getAddress(), link.address)
+        const balance1 = await Nodes.getBalance(tortleUser.getAddress(), dai.address)
+        await Batch.batchFunctions([withdrawFromFarm])
+      })
+
+      // Tt user balance is correct
+      // token user balance correct
+      it('Tokens are correct', async () => {
+        const balance0 = await Nodes.getBalance(tortleUser.getAddress(), link.address)
+        const balance1 = await Nodes.getBalance(tortleUser.getAddress(), dai.address)
+        expect(STR(balance0)).equal('9967')
+        expect(STR(balance1)).equal('0')
+      })
+      it('User Tt balance is correct ', async () => {
+        const ttBalance = await Nodes.userTt(TortleVault.address, tortleUser.getAddress())
+        expect(ttBalance).equal('4990')
+      })
+    })
   })
 })
