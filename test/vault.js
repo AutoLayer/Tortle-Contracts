@@ -332,15 +332,9 @@ describe('Lp, Farms and autocompound integration tests', function () {
     describe('Deposit Lp to Farm', async () => {
       const lpAmount = '5000'
       beforeEach(async () => {
-        await addLiquidity(
-          uniswapRouter,
-          [link.address, dai.address],
-          [lpAmount, lpAmount],
-          [0, 0],
-          tortleUser.getAddress(),
-        )
+        await addLiquidity(uniswapRouter, [link.address, dai.address], [lpAmount, lpAmount], [0, 0], tortleUser.getAddress())
         const _args1 = [lpContract.address, lpAmount]
-        const _args2 = ['depositOnFarmLp', lpContract.address, TortleVault.address, lpAmount]
+        const _args2 = ['depositOnFarmLp(address,string[],uint256[])', lpContract.address, TortleVault.address, lpAmount]
         const addFundsForTokens = {
           id: 1,
           functionName: 'addFundsForTokens',
