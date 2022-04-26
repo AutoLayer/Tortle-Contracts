@@ -345,10 +345,15 @@ describe('Lp, Farms and autocompound integration tests', function () {
         }
         await Batch.batchFunctions([addFundsForTokens, depositOnLp])
       })
-      it('Lp balance is correct', async () => {
+      it('Masterchef Lp balance is correct', async () => {
         const expectedBalance = 5000
         let userInfo = await masterChef.userInfo(0, TortleFarmingStrategy.address)
         expect(userInfo.amount).equal(expectedBalance)
+      })
+      it('User Lp Balance is correct', async () => {
+        const expectedBalance = 0
+        const balance = await Nodes.getBalance(tortleUser.getAddress(), lpContract.address)
+        expect(balance).to.equal(expectedBalance)
       })
       it('User Tt tracking is correct', async () => {
         const expectedBalance = 4995
@@ -389,6 +394,13 @@ describe('Lp, Farms and autocompound integration tests', function () {
         const expectedBalance = 1995
         let userInfo = await masterChef.userInfo(0, TortleFarmingStrategy.address)
         expect(userInfo.amount).equal(expectedBalance)
+      })
+      it('User Tokens Balance is correct', async () => {
+        const expectedBalance = 0
+        const balance0 = await Nodes.getBalance(tortleUser.getAddress(), link.address)
+        const balance1 = await Nodes.getBalance(tortleUser.getAddress(), dai.address)
+        expect(balance0).to.equal(expectedBalance)
+        expect(balance1).to.equal(expectedBalance)
       })
       it('User Tt tracking is correct', async () => {
         const expectedBalance = 1993
@@ -439,6 +451,13 @@ describe('Lp, Farms and autocompound integration tests', function () {
         const expectedBalance = 4000
         let userInfo = await masterChef.userInfo(0, TortleFarmingStrategy.address)
         expect(userInfo.amount).equal(expectedBalance)
+      })
+      it('User Tokens Balance is correct', async () => {
+        const expectedBalance = 0
+        const balance0 = await Nodes.getBalance(tortleUser.getAddress(), link.address)
+        const balance1 = await Nodes.getBalance(tortleUser.getAddress(), dai.address)
+        expect(balance0).to.equal(expectedBalance)
+        expect(balance1).to.equal(expectedBalance)
       })
       it('User Tt tracking is correct', async () => {
         const expectedBalance = 3996
