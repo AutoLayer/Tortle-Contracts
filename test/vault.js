@@ -56,13 +56,7 @@ describe('Lp, Farms and autocompound integration tests', function () {
     await link.connect(deployer).approve(uniswapRouter.address, '5000000000000000000000000000')
     await dai.connect(deployer).approve(uniswapRouter.address, '5000000000000000000000000000')
 
-    await addLiquidity(
-      uniswapRouter,
-      [link.address, dai.address],
-      [liquidity, liquidity],
-      [0, 0],
-      deployer.getAddress(),
-    )
+    await addLiquidity(uniswapRouter, [link.address, dai.address], [liquidity, liquidity], [0, 0], deployer.getAddress())
 
     const lpToken = await uniswapFactory.getPair(link.address, dai.address)
     await masterChef.add(allocPoint, lpToken)
@@ -365,15 +359,16 @@ describe('Lp, Farms and autocompound integration tests', function () {
     describe('Deposit One Token to Farm', async () => {
       const amount = '4000'
       beforeEach(async () => {
-        await addLiquidity(
-          uniswapRouter,
-          [link.address, dai.address],
-          [amount, amount],
-          [0, 0],
-          tortleUser.getAddress(),
-        )
+        await addLiquidity(uniswapRouter, [link.address, dai.address], [amount, amount], [0, 0], tortleUser.getAddress())
         const _args1 = [link.address, amount]
-        const _args2 = ['depositOnFarmOneToken', lpContract.address, TortleVault.address, link.address, amount, 0]
+        const _args2 = [
+          'depositOnFarmOneToken(address,string[],uint256[])',
+          lpContract.address,
+          TortleVault.address,
+          link.address,
+          amount,
+          0,
+        ]
         const addFundsForTokens = {
           id: 1,
           functionName: 'addFundsForTokens',
@@ -404,18 +399,12 @@ describe('Lp, Farms and autocompound integration tests', function () {
     describe('Deposit Tokens to Farm', async () => {
       const amount = '4000'
       beforeEach(async () => {
-        await addLiquidity(
-          uniswapRouter,
-          [link.address, dai.address],
-          [amount, amount],
-          [0, 0],
-          tortleUser.getAddress(),
-        )
+        await addLiquidity(uniswapRouter, [link.address, dai.address], [amount, amount], [0, 0], tortleUser.getAddress())
 
         const _args1 = [link.address, amount]
         const _args2 = [dai.address, amount]
         const _args3 = [
-          'depositOnFarmTokens',
+          'depositOnFarmTokens(address,string[],uint256[])',
           lpContract.address,
           TortleVault.address,
           link.address,

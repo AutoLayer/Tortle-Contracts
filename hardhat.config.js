@@ -28,7 +28,7 @@ module.exports = {
       { version: '0.5.0' },
     ],
   },
-  defaultNetwork: 'localhost',
+  defaultNetwork: 'hardhat',
   networks: {
     hardhat: {
       allowUnlimitedContractSize: true,
