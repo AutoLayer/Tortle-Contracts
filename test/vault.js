@@ -316,6 +316,13 @@ describe('Lp, Farms and autocompound integration tests', function () {
         const balance = await lpContract.balanceOf(Nodes.address)
         expect(balance).to.equal(expectedBalance)
       })
+      it('User Tokens Balance is correct', async () => {
+        const expectedBalance = 0
+        const balance0 = await Nodes.getBalance(tortleUser.getAddress(), link.address)
+        const balance1 = await Nodes.getBalance(tortleUser.getAddress(), dai.address)
+        expect(balance0).to.equal(expectedBalance)
+        expect(balance1).to.equal(expectedBalance)
+      })
       it('User lp tracking is correct', async () => {
         const expectedBalance = 1000000
         const balance = await Nodes.userLp(lpContract.address, tortleUser.getAddress())
