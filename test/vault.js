@@ -270,6 +270,7 @@ describe('Lp, Farms and autocompound integration tests', function () {
       await Nodes.initializeConstructor(Batch.address, Nodes_.address, Batch.address, uniswapRouter.address)
       await link.connect(deployer).transfer(tortleUser.getAddress(), amount)
       await dai.connect(deployer).transfer(tortleUser.getAddress(), amount)
+
       await link.connect(tortleUser).approve(Nodes.address, '5000000000000000000000000000')
       await dai.connect(tortleUser).approve(Nodes.address, '5000000000000000000000000000')
       await lpContract.connect(tortleUser).approve(Nodes.address, '5000000000000000000000000000')
@@ -458,6 +459,44 @@ describe('Lp, Farms and autocompound integration tests', function () {
       it('User Tt balance is correct ', async () => {
         const ttBalance = await Nodes.userTt(TortleVault.address, tortleUser.getAddress())
         expect(ttBalance).equal('4990')
+      })
+    })
+    describe('Withdraw One Token from Lp', async () => {
+      const tokenAmount = '10000'
+      const lpToWithdraw = '5000'
+      let tokenDesired
+      beforeEach(async () => {
+        const _args1 = [link.address, tokenAmount]
+        const _args2 = [dai.address, tokenAmount]
+        const _args3 = [lpContract.address, link.address, dai.address, tokenAmount, tokenAmount]
+        const addFundsForTokens1 = createNode(1, 'addFundsForTokens', tortleUser.getAddress(), _args1, true)
+        const addFundsForTokens2 = createNode(2, 'addFundsForTokens', tortleUser.getAddress(), _args2, true)
+        const depositOnLp = createNode(3, 'depositOnLp', tortleUser.getAddress(), _args3, false)
+        await Batch.batchFunctions([addFundsForTokens1, addFundsForTokens2, depositOnLp])
+
+        tokenDesired = link.address
+        const _args = [
+          'withdrawFromLp',
+          lpContract.address,
+          TortleVault.address,
+          link.address,
+          dai.address,
+          tokenDesired,
+          1,
+          lpToWithdraw,
+        ]
+        const WithdrawFromLp = createNode(1, 'withdrawFromLp', tortleUser.getAddress(), _args, false)
+        await Batch.batchFunctions([WithdrawFromLp])
+      })
+      it('Tokens are correct', async () => {
+        const balanceTokenDesired = await Nodes.getBalance(tortleUser.getAddress(), tokenDesired)
+        const balance1 = await Nodes.getBalance(tortleUser.getAddress(), dai.address)
+        expect(STR(balanceTokenDesired)).equal('9965')
+        expect(STR(balance1)).equal('0')
+      })
+      it('User Lp balance is correct ', async () => {
+        const lpBalance = await Nodes.userLp(lpContract.address, tortleUser.getAddress())
+        expect(lpBalance).equal('5000')
       })
     })
   })
