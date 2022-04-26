@@ -386,28 +386,33 @@ contract Nodes is Initializable, ReentrancyGuard {
         setBalances(user, path[1], swapedAmounts[1] - amount1f);
     }
 
-    function depositOnFarmTokens(address user, string[] memory _arguments)
-        internal
-    {
+    function depositOnFarmTokens(
+        address user,
+        string[] memory _arguments,
+        uint256[] memory auxStack
+    ) external nonReentrant onlyOwner returns (uint8 result) {
         address lpToken = StringUtils.parseAddr(_arguments[1]);
         address tortleVault = StringUtils.parseAddr(_arguments[2]);
         address token0 = StringUtils.parseAddr(_arguments[3]);
         address token1 = StringUtils.parseAddr(_arguments[4]);
         uint256 amount0 = StringUtils.safeParseInt(_arguments[5]);
         uint256 amount1 = StringUtils.safeParseInt(_arguments[6]);
-        require(
-            amount0 <= getBalance(user, IERC20(token0)),
-            "DepositOnLp: Insufficient token0 funds."
-        );
-        require(
-            amount1 <= getBalance(user, IERC20(token1)),
-            "DepositOnLp: Insufficient token1 funds."
-        );
-        uint256 lpBal = _addLiquidity(token0, token1, amount0, amount1);
+
+        if (auxStack.length > 0) {
+            amount0 = auxStack[auxStack.length - 2];
+            amount1 = auxStack[auxStack.length - 1];
+            result = 2;
+        }
+
+        require(amount0 <= getBalance(user, IERC20(token0)), 'DepositOnLp: Insufficient token0 funds.');
+        require(amount1 <= getBalance(user, IERC20(token1)), 'DepositOnLp: Insufficient token1 funds.');
+        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = _addLiquidity(token0, token1, amount0, amount1);
         _approve(lpToken, tortleVault, lpBal);
-        uint256 ttShares = ITortleVault(tortleVault).deposit(lpBal);
-        userTt[tortleVault][user] += ttShares;
+        userTt[tortleVault][user] += ITortleVault(tortleVault).deposit(lpBal);
+        decreaseBalance(user, address(token0), amount0f);
+        decreaseBalance(user, address(token1), amount1f);
     }
+    
 
     function _addLiquidity(
         address token0,
