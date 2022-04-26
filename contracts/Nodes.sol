@@ -329,44 +329,32 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amountOutMin;
     }
 
-    function depositOnFarmOneToken(address user, string[] memory _arguments)
-        internal
-    {
+    function depositOnFarmOneToken(
+        address user,
+        string[] memory _arguments,
+        uint256[] memory auxStack
+    ) external nonReentrant onlyOwner returns (uint8) {
         _dofot memory args;
         args.lpToken = StringUtils.parseAddr(_arguments[1]);
         args.tortleVault = StringUtils.parseAddr(_arguments[2]);
         args.token = StringUtils.parseAddr(_arguments[3]);
         args.amount = StringUtils.safeParseInt(_arguments[4]);
         args.amountOutMin = StringUtils.safeParseInt(_arguments[5]);
-        require(
-            args.amount >= minimumAmount,
-            "Tortle: Insignificant input amount"
-        );
-        require(
-            args.amount <= getBalance(user, IERC20(args.token)),
-            "depositOnFarmOneToken: Insufficient token funds."
-        );
+        require(args.amount >= minimumAmount, 'Tortle: Insignificant input amount');
+        require(args.amount <= getBalance(user, IERC20(args.token)), 'depositOnFarmOneToken: Insufficient token funds.');
 
-        IUniswapV2Pair lpContract = IUniswapV2Pair(args.lpToken);
-        (uint256 reserveA, uint256 reserveB, ) = lpContract.getReserves();
-        require(
-            reserveA > minimumAmount && reserveB > minimumAmount,
-            "Tortle: Liquidity lpContract reserves too low"
-        );
-        bool isInputA = lpContract.token0() == args.token;
-        require(
-            isInputA || lpContract.token1() == args.token,
-            "Tortle: Input token not present in liquidity lpContract"
-        );
+        (uint256 reserveA, uint256 reserveB, ) = IUniswapV2Pair(args.lpToken).getReserves();
+        require(reserveA > minimumAmount && reserveB > minimumAmount, 'Tortle: Liquidity lp reserves too low');
 
         address[] memory path = new address[](2);
         path[0] = args.token;
-        path[1] = isInputA ? lpContract.token1() : lpContract.token0();
 
         uint256 swapAmountIn;
-        if (isInputA) {
+        if (IUniswapV2Pair(args.lpToken).token0() == args.token) {
+            path[1] = IUniswapV2Pair(args.lpToken).token1();
             swapAmountIn = _getSwapAmount(args.amount, reserveA, reserveB);
         } else {
+            path[1] = IUniswapV2Pair(args.lpToken).token0();
             swapAmountIn = _getSwapAmount(args.amount, reserveB, reserveA);
         }
 
@@ -379,8 +367,7 @@ contract Nodes is Initializable, ReentrancyGuard {
             block.timestamp
         );
         _approve(path[1], address(router), swapedAmounts[1]);
-
-        (, , uint256 lpBal) = router.addLiquidity(
+        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = router.addLiquidity(
             path[0],
             path[1],
             args.amount - swapedAmounts[0],
@@ -390,11 +377,13 @@ contract Nodes is Initializable, ReentrancyGuard {
             address(this),
             block.timestamp
         );
+
         // this approve could be made once if we always trust and allow our own vaults (which is the actual case)
         _approve(args.lpToken, args.tortleVault, lpBal);
 
-        uint256 ttShares = ITortleVault(args.tortleVault).deposit(lpBal);
-        userTt[args.tortleVault][user] += ttShares;
+        userTt[args.tortleVault][user] += ITortleVault(args.tortleVault).deposit(lpBal);
+        decreaseBalance(user, path[0], swapedAmounts[0] + amount0f);
+        setBalances(user, path[1], swapedAmounts[1] - amount1f);
     }
 
     function depositOnFarmTokens(address user, string[] memory _arguments)
