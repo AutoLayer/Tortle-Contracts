@@ -176,8 +176,14 @@ contract Batch {
                     amount0,
                     amount1
                 );
-            } else if (StringUtils.equal(_functionName, "depositOnFarm")) {
-                nodes.depositOnFarm(_user, _arguments);
+            } else if (StringUtils.equal(_functionName, 'depositOnFarm')) {
+                (, bytes memory data) = address(nodes).call(abi.encodeWithSignature(_arguments[0], _user, _arguments, auxStack));
+
+                uint8 result = abi.decode(data, (uint8));
+                while (result != 0) {
+                    auxStack.pop();
+                    result--;
+                }
             } else {
                 revert();
             }
