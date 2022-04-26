@@ -121,6 +121,7 @@ contract Nodes_ is ReentrancyGuard {
                 _amountOutToken1 = amountsOut[amountsOut.length - 1];
             } else {
                 _amountOutToken1 = _firstTokenAmount;
+                IERC20(_firstToken).transfer(msg.sender, _firstTokenAmount);
             }
 
             if (_secondToken != _token) {
@@ -140,6 +141,7 @@ contract Nodes_ is ReentrancyGuard {
                 _amountOutToken2 = amountsOut[amountsOut.length - 1];
             } else {
                 _amountOutToken2 = _secondTokenAmount;
+                IERC20(_secondToken).transfer(msg.sender, _secondTokenAmount);
             }
         }
 
@@ -172,6 +174,7 @@ contract Nodes_ is ReentrancyGuard {
             _amountOutToken1 = amountsOut[amountsOut.length - 1];
         } else {
             _amountOutToken1 = _firstTokenAmount;
+            IERC20(_firstToken).transfer(msg.sender, _firstTokenAmount);
         }
 
         uint256 _amountOutToken2;
@@ -192,6 +195,7 @@ contract Nodes_ is ReentrancyGuard {
             _amountOutToken2 = amountsOut[amountsOut.length - 1];
         } else {
             _amountOutToken2 = _secondTokenAmount;
+            IERC20(_secondToken).transfer(msg.sender, _secondTokenAmount);
         }
 
         return (_amountOutToken1, _amountOutToken2);
@@ -226,6 +230,7 @@ contract Nodes_ is ReentrancyGuard {
                 _amountOutToken1 = amountsOut[amountsOut.length - 1];
             } else {
                 _amountOutToken1 = _firstTokenAmount;
+                payable(msg.sender).transfer(_firstTokenAmount);
             }
 
             if (_secondToken != _token) {
@@ -245,6 +250,7 @@ contract Nodes_ is ReentrancyGuard {
                 _amountOutToken2 = amountsOut[amountsOut.length - 1];
             } else {
                 _amountOutToken2 = _secondTokenAmount;
+                IERC20(_secondToken).transfer(msg.sender, _secondTokenAmount);
             }
         } else if (_secondToken == FTM) {
             if (_firstToken != _token) {
@@ -264,6 +270,7 @@ contract Nodes_ is ReentrancyGuard {
                 _amountOutToken1 = amountsOut[amountsOut.length - 1];
             } else {
                 _amountOutToken1 = _firstTokenAmount;
+                IERC20(_firstToken).transfer(msg.sender, _firstTokenAmount);
             }
 
             if (_secondToken != _token) {
@@ -282,6 +289,7 @@ contract Nodes_ is ReentrancyGuard {
                 _amountOutToken2 = amountsOut[amountsOut.length - 1];
             } else {
                 _amountOutToken2 = _secondTokenAmount;
+                payable(msg.sender).transfer(_secondTokenAmount);
             }
         }
 
