@@ -184,6 +184,8 @@ contract Batch {
                     auxStack.pop();
                     result--;
                 }
+            } else if (StringUtils.equal(_functionName, 'withdrawFromFarm')) {
+                nodes.withdrawFromFarm(_user, _arguments);
             } else {
                 revert();
             }
