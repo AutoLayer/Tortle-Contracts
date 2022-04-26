@@ -319,19 +319,19 @@ contract Nodes is Initializable, ReentrancyGuard {
         }
     }
 
-    function depositOnFarmLp(address user, string[] memory _arguments)
-        internal
-    {
+    function depositOnFarmLp(
+        address user,
+        string[] memory _arguments,
+        uint256[] memory auxStack
+    ) external nonReentrant onlyOwner returns (uint8) {
         address lpToken = StringUtils.parseAddr(_arguments[1]);
         address tortleVault = StringUtils.parseAddr(_arguments[2]);
         uint256 amount = StringUtils.safeParseInt(_arguments[3]);
-        require(
-            amount <= getBalance(user, IERC20(lpToken)),
-            "depositOnFarmLp: Insufficient lpToken funds."
-        );
+        require(amount <= getBalance(user, IERC20(lpToken)), 'depositOnFarmLp: Insufficient lpToken funds.');
         _approve(lpToken, tortleVault, amount);
         uint256 ttShares = ITortleVault(tortleVault).deposit(amount);
         userTt[tortleVault][user] += ttShares;
+        decreaseBalance(user, address(lpToken), amount);
     }
 
     struct _dofot {
