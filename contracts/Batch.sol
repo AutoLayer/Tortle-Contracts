@@ -159,14 +159,22 @@ contract Batch {
                 uint256 amount = nodes.sendToWallet(_user, IERC20(_token), _amount);
 
                 emit SendToWallet(_id, _token, amount);
-            } else if (StringUtils.equal(_functionName, "depositOnLp")) {
+            } else if (StringUtils.equal(_functionName, 'depositOnLp')) {
+                uint256 amount0 = StringUtils.safeParseInt(_arguments[3]);
+                uint256 amount1 = StringUtils.safeParseInt(_arguments[4]);
+                if (auxStack.length > 0) {
+                    amount0 = auxStack[auxStack.length - 2];
+                    amount1 = auxStack[auxStack.length - 1];
+                    auxStack.pop();
+                    auxStack.pop();
+                }
                 nodes.depositOnLp(
                     _user,
                     StringUtils.parseAddr(_arguments[0]),
                     StringUtils.parseAddr(_arguments[1]),
                     StringUtils.parseAddr(_arguments[2]),
-                    StringUtils.safeParseInt(_arguments[3]),
-                    StringUtils.safeParseInt(_arguments[4])
+                    amount0,
+                    amount1
                 );
             } else if (StringUtils.equal(_functionName, "depositOnFarm")) {
                 nodes.depositOnFarm(_user, _arguments);
