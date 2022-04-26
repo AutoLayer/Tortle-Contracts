@@ -2,15 +2,15 @@
 
 pragma solidity ^0.8.6;
 
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import '@openzeppelin/contracts/proxy/utils/Initializable.sol';
 
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
-import "@uniswap/lib/contracts/libraries/Babylonian.sol";
-import "./lib/AddressToUintIterableMap.sol";
-import "./lib/StringUtils.sol";
-import "./interfaces/ITortleVault.sol";
-import "./Nodes_.sol";
-import "./Batch.sol";
+import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
+import '@uniswap/lib/contracts/libraries/Babylonian.sol';
+import './lib/AddressToUintIterableMap.sol';
+import './lib/StringUtils.sol';
+import './interfaces/ITortleVault.sol';
+import './Nodes_.sol';
+import './Batch.sol';
 
 contract Nodes is Initializable, ReentrancyGuard {
     using AddressToUintIterableMap for AddressToUintIterableMap.Map;
@@ -39,12 +39,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     }
 
     event AddFunds(address tokenInput, uint256 amount);
-    event Swap(
-        address tokenInput,
-        uint256 amountIn,
-        address tokenOutput,
-        uint256 amountOut
-    );
+    event Swap(address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
     event Split(uint256 amountOutToken1, uint256 amountOutToken2);
     event Liquidate(address tokenOutput, uint256 amountOut);
     event SendToWallet(address tokenOutput, uint256 amountOut);
@@ -64,10 +59,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     }
 
     modifier onlyOwner() {
-        require(
-            msg.sender == owner || msg.sender == address(batch),
-            "You must be the owner."
-        );
+        require(msg.sender == owner || msg.sender == address(batch), 'You must be the owner.');
         _;
     }
 
@@ -86,12 +78,12 @@ contract Nodes is Initializable, ReentrancyGuard {
         IERC20 _token,
         uint256 _amount
     ) public nonReentrant returns (uint256 amount) {
-        require(_amount > 0, "Insufficient Balance.");
+        require(_amount > 0, 'Insufficient Balance.');
 
         uint256 balanceBefore = _token.balanceOf(address(this));
         _token.transferFrom(_user, address(this), _amount); // Send tokens from investor account to contract account.
         uint256 balanceAfter = _token.balanceOf(address(this));
-        require(balanceAfter > balanceBefore, "Transfer Error"); // Checks that the balance of the contract has increased.
+        require(balanceAfter > balanceBefore, 'Transfer Error'); // Checks that the balance of the contract has increased.
 
         setBalances(_user, address(_token), _amount);
 
@@ -103,13 +95,8 @@ contract Nodes is Initializable, ReentrancyGuard {
      * @notice Function that allows to add funds to the contract to execute the recipes.
      * @param _user Address of the user who will deposit the tokens.
      */
-    function addFundsForFTM(address _user)
-        public
-        payable
-        nonReentrant
-        returns (address token, uint256 amount)
-    {
-        require(msg.value > 0, "Insufficient Balance.");
+    function addFundsForFTM(address _user) public payable nonReentrant returns (address token, uint256 amount) {
+        require(msg.value > 0, 'Insufficient Balance.');
 
         setBalances(_user, FTM, msg.value);
 
@@ -122,11 +109,7 @@ contract Nodes is Initializable, ReentrancyGuard {
      * @param _user Address of the user who will deposit the tokens.
      * @param _token Contract of the token from which the balance is to be obtained.
      */
-    function getBalance(address _user, IERC20 _token)
-        public
-        view
-        returns (uint256)
-    {
+    function getBalance(address _user, IERC20 _token) public view returns (uint256) {
         return balance[_user].get(address(_token));
     }
 
@@ -169,7 +152,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 _amountOutMinSecond = _splitStruct.amountOutMinSecond;
 
         uint256 _userBalance = getBalance(user, IERC20(token));
-        require(amount <= _userBalance, "Insufficient Balance.");
+        require(amount <= _userBalance, 'Insufficient Balance.');
 
         if (token == FTM) {
             payable(address(nodes_)).transfer(amount);
@@ -212,7 +195,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 _amountOutMin
     ) public nonReentrant onlyOwner returns (uint256 amountOut) {
         uint256 _userBalance = getBalance(_user, _token);
-        require(_amount <= _userBalance, "Insufficient Balance.");
+        require(_amount <= _userBalance, 'Insufficient Balance.');
 
         if (address(_token) == FTM) {
             payable(address(nodes_)).transfer(_amount);
@@ -220,12 +203,7 @@ contract Nodes is Initializable, ReentrancyGuard {
             _token.transfer(address(nodes_), _amount);
         }
 
-        uint256 _amountOut = nodes_.swapTokens(
-            _token,
-            _amount,
-            _newToken,
-            _amountOutMin
-        );
+        uint256 _amountOut = nodes_.swapTokens(_token, _amount, _newToken, _amountOutMin);
 
         setBalances(_user, _newToken, _amountOut);
 
@@ -253,7 +231,7 @@ contract Nodes is Initializable, ReentrancyGuard {
             address tokenInput = address(_tokens[_i]);
             uint256 amountInput = _amounts[_i];
             uint256 userBalance = getBalance(_user, IERC20(tokenInput));
-            require(userBalance >= amountInput, "Insufficient Balance.");
+            require(userBalance >= amountInput, 'Insufficient Balance.');
 
             uint256 _amountOut;
             if (tokenInput != _tokenOutput) {
@@ -265,9 +243,7 @@ contract Nodes is Initializable, ReentrancyGuard {
                     path[0] = FTM;
                     path[1] = _tokenOutput;
 
-                    amountsOut = router.swapExactETHForTokens{
-                        value: amountInput
-                    }(0, path, address(this), block.timestamp);
+                    amountsOut = router.swapExactETHForTokens{value: amountInput}(0, path, address(this), block.timestamp);
 
                     _amountOut = amountsOut[amountsOut.length - 1];
                 } else if (_tokenOutput == FTM) {
@@ -275,13 +251,7 @@ contract Nodes is Initializable, ReentrancyGuard {
                     path[0] = tokenInput;
                     path[1] = FTM;
 
-                    amountsOut = router.swapExactTokensForETH(
-                        amountInput,
-                        0,
-                        path,
-                        address(this),
-                        block.timestamp
-                    );
+                    amountsOut = router.swapExactTokensForETH(amountInput, 0, path, address(this), block.timestamp);
 
                     _amountOut = amountsOut[amountsOut.length - 1];
                 } else {
@@ -290,13 +260,7 @@ contract Nodes is Initializable, ReentrancyGuard {
                     path[1] = FTM;
                     path[2] = _tokenOutput;
 
-                    amountsOut = router.swapExactTokensForTokens(
-                        amountInput,
-                        0,
-                        path,
-                        address(this),
-                        block.timestamp
-                    );
+                    amountsOut = router.swapExactTokensForTokens(amountInput, 0, path, address(this), block.timestamp);
 
                     _amountOut = amountsOut[amountsOut.length - 1];
                 }
@@ -506,23 +470,9 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 reserveB
     ) private view returns (uint256 swapAmount) {
         uint256 halfInvestment = investmentA / 2;
-        uint256 nominator = router.getAmountOut(
-            halfInvestment,
-            reserveA,
-            reserveB
-        );
-        uint256 denominator = router.quote(
-            halfInvestment,
-            reserveA + halfInvestment,
-            reserveB - nominator
-        );
-        swapAmount =
-            investmentA -
-            (
-                Babylonian.sqrt(
-                    (halfInvestment * halfInvestment * nominator) / denominator
-                )
-            );
+        uint256 nominator = router.getAmountOut(halfInvestment, reserveA, reserveB);
+        uint256 denominator = router.quote(halfInvestment, reserveA + halfInvestment, reserveB - nominator);
+        swapAmount = investmentA - (Babylonian.sqrt((halfInvestment * halfInvestment * nominator) / denominator));
     }
 
     function setBalances(
@@ -541,7 +491,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 _amount
     ) private {
         uint256 _userBalance = getBalance(_user, IERC20(_token));
-        require(_userBalance >= _amount, "Insufficient Balance.");
+        require(_userBalance >= _amount, 'Insufficient Balance.');
 
         _userBalance -= _amount;
         balance[_user].set(address(_token), _userBalance);
@@ -559,7 +509,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 _amount
     ) public nonReentrant onlyOwner returns (uint256 amount) {
         uint256 _userBalance = getBalance(_user, _token);
-        require(_userBalance >= _amount, "Insufficient balance.");
+        require(_userBalance >= _amount, 'Insufficient balance.');
 
         if (address(_token) == FTM) {
             payable(_user).transfer(_amount);
@@ -578,29 +528,18 @@ contract Nodes is Initializable, ReentrancyGuard {
      * @param _tokens Array of the tokens to be withdrawn.
      * @param _amounts Array of the amounts to be withdrawn.
      */
-    function recoverAll(IERC20[] memory _tokens, uint256[] memory _amounts)
-        public
-        nonReentrant
-    {
-        require(_tokens.length > 0, "Enter some address.");
+    function recoverAll(IERC20[] memory _tokens, uint256[] memory _amounts) public nonReentrant {
+        require(_tokens.length > 0, 'Enter some address.');
 
         for (uint256 _i = 0; _i < _tokens.length; _i++) {
             IERC20 _tokenAddress = _tokens[_i];
 
             for (uint256 _x = 0; _x < balance[msg.sender].size(); _x++) {
-                address _tokenUserAddress = balance[msg.sender].getKeyAtIndex(
-                    _x
-                );
+                address _tokenUserAddress = balance[msg.sender].getKeyAtIndex(_x);
 
                 if (address(_tokenAddress) == _tokenUserAddress) {
-                    uint256 _userBalance = getBalance(
-                        msg.sender,
-                        _tokenAddress
-                    );
-                    require(
-                        _userBalance >= _amounts[_i],
-                        "Insufficient balance."
-                    );
+                    uint256 _userBalance = getBalance(msg.sender, _tokenAddress);
+                    require(_userBalance >= _amounts[_i], 'Insufficient balance.');
 
                     if (address(_tokenAddress) == FTM) {
                         payable(msg.sender).transfer(_amounts[_i]);
@@ -608,11 +547,7 @@ contract Nodes is Initializable, ReentrancyGuard {
                         _tokenAddress.transfer(msg.sender, _amounts[_i]);
                     }
 
-                    decreaseBalance(
-                        msg.sender,
-                        address(_tokenAddress),
-                        _amounts[_i]
-                    );
+                    decreaseBalance(msg.sender, address(_tokenAddress), _amounts[_i]);
 
                     emit RecoverAll(address(_tokenAddress), _amounts[_i]);
                 }
