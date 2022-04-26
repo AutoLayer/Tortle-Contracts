@@ -423,7 +423,22 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amount;
     }
 
-    function withdrawFromFarm(address user, string[] memory _arguments) external {
+    function WithdrawFromLp(address user, string[] memory _arguments) external nonReentrant onlyOwner {
+        _wffot memory args;
+        args.lpToken = StringUtils.parseAddr(_arguments[1]);
+        args.tortleVault = StringUtils.parseAddr(_arguments[2]);
+        args.token0 = StringUtils.parseAddr(_arguments[3]);
+        args.token1 = StringUtils.parseAddr(_arguments[4]);
+        args.tokenDesired = StringUtils.parseAddr(_arguments[5]);
+        args.amountTokenDesiredMin = StringUtils.safeParseInt(_arguments[6]);
+        args.amount = StringUtils.safeParseInt(_arguments[7]);
+
+        require(args.amount <= userLp[args.lpToken][user], 'WithdrawFromLp: Insufficient funds.');
+        userLp[args.lpToken][user] -= args.amount;
+        _withdrawLpAndSwap(user, args, args.amount);
+    }
+
+    function withdrawFromFarm(address user, string[] memory _arguments) external nonReentrant onlyOwner {
         // For now it will only allow to withdraw one token, in the future this function will be renamed
         _wffot memory args;
         args.lpToken = StringUtils.parseAddr(_arguments[1]);
@@ -438,6 +453,14 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         uint256 lpAmount = ITortleVault(args.tortleVault).withdraw(args.amount);
         userTt[args.tortleVault][user] -= args.amount;
+        _withdrawLpAndSwap(user, args, lpAmount);
+    }
+
+    function _withdrawLpAndSwap(
+        address user,
+        _wffot memory args,
+        uint256 lpAmount
+    ) internal {
         IERC20(args.lpToken).transfer(args.lpToken, lpAmount);
         (uint256 amount0, uint256 amount1) = IUniswapV2Pair(args.lpToken).burn(address(this));
 

@@ -186,6 +186,8 @@ contract Batch {
                 }
             } else if (StringUtils.equal(_functionName, 'withdrawFromFarm')) {
                 nodes.withdrawFromFarm(_user, _arguments);
+            } else if (StringUtils.equal(_functionName, 'withdrawFromLp')) {
+                nodes.WithdrawFromLp(_user, _arguments);
             } else {
                 revert();
             }
