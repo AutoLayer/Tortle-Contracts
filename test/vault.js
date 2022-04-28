@@ -394,7 +394,7 @@ describe('Lp, Farms and autocompound integration tests', function () {
         await Batch.batchFunctions([addFundsForTokens1, addFundsForTokens2, depositOnLp])
       })
       it('Lp balance is correct', async () => {
-        const expectedBalance = 4000
+        const expectedBalance = 2000
         let userInfo = await masterChef.userInfo(0, TortleFarmingStrategy.address)
         expect(userInfo.amount).equal(expectedBalance)
       })
@@ -411,6 +411,52 @@ describe('Lp, Farms and autocompound integration tests', function () {
         expect(balance).to.equal(expectedBalance)
       })
     })
+    describe('Deposit Tokens from Split Recipe', async () => {
+      const amount = '4000'
+
+      beforeEach(async () => {
+        const _args1 = [link.address, amount]
+        const _args2 = [
+          link.address, // InputToken
+          amount, //InputAmount
+          link.address, //token0
+          dai.address, //token1
+          '5000', // percentage, 50%
+          '0', // amountOutMinFirst
+          '0', // amountOutMinSecond
+          'y', // firstHasNext
+          'y', // secondHasNext
+        ]
+        const _args3 = [
+          'depositOnFarmTokens(address,string[],uint256[])',
+          lpContract.address,
+          TortleVault.address,
+          link.address,
+          dai.address,
+          1,
+          1,
+        ]
+        const addFundsForTokens = createNode(1, `addFundsForTokens${_params}`, tortleUser.getAddress(), _args1, true)
+        const split = createNode(2, `split${_params}`, tortleUser.getAddress(), _args2, true)
+        const depositOnLp = createNode(3, `depositOnFarm${_params}`, tortleUser.getAddress(), _args3, false)
+        await Batch.batchFunctions([addFundsForTokens, split, depositOnLp])
+      })
+
+      it('Lp balance is correct', async () => {
+        const expectedBalance = 1992
+        let userInfo = await masterChef.userInfo(0, TortleFarmingStrategy.address)
+        expect(userInfo.amount).equal(expectedBalance)
+      })
+
+      it('User Tokens Balance is correct', async () => {
+        const expectedBalance = 8
+        const balance0 = await Nodes.getBalance(tortleUser.getAddress(), link.address)
+        const balance1 = await Nodes.getBalance(tortleUser.getAddress(), dai.address)
+        expect(balance0).to.equal(expectedBalance)
+        expect(balance1).to.equal(0)
+      })
+      it('User Tt tracking is correct', async () => {
+        const expectedBalance = 1990
         const balance = await Nodes.userTt(TortleVault.address, tortleUser.getAddress())
         expect(balance).to.equal(expectedBalance)
       })
