@@ -380,7 +380,6 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         // this approve could be made once if we always trust and allow our own vaults (which is the actual case)
         _approve(args.lpToken, args.tortleVault, lpBal);
-
         userTt[args.tortleVault][user] += ITortleVault(args.tortleVault).deposit(lpBal);
         decreaseBalance(user, path[0], swapedAmounts[0] + amount0f);
         setBalances(user, path[1], swapedAmounts[1] - amount1f);
@@ -424,10 +423,14 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amount;
     }
 
-    function WithdrawFromLp(address user, string[] memory _arguments) external nonReentrant onlyOwner {
+    function withdrawFromLp(address user, string[] memory _arguments)
+        external
+        nonReentrant
+        onlyOwner
+        returns (uint256 amountTokenDesired)
+    {
         _wffot memory args;
         args.lpToken = StringUtils.parseAddr(_arguments[1]);
-        args.tortleVault = StringUtils.parseAddr(_arguments[2]);
         args.token0 = StringUtils.parseAddr(_arguments[3]);
         args.token1 = StringUtils.parseAddr(_arguments[4]);
         args.tokenDesired = StringUtils.parseAddr(_arguments[5]);
@@ -436,10 +439,15 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         require(args.amount <= userLp[args.lpToken][user], 'WithdrawFromLp: Insufficient funds.');
         userLp[args.lpToken][user] -= args.amount;
-        _withdrawLpAndSwap(user, args, args.amount);
+        amountTokenDesired = _withdrawLpAndSwap(user, args, args.amount);
     }
 
-    function withdrawFromFarm(address user, string[] memory _arguments) external nonReentrant onlyOwner {
+    function withdrawFromFarm(address user, string[] memory _arguments)
+        external
+        nonReentrant
+        onlyOwner
+        returns (uint256 amountTokenDesired)
+    {
         // For now it will only allow to withdraw one token, in the future this function will be renamed
         _wffot memory args;
         args.lpToken = StringUtils.parseAddr(_arguments[1]);
@@ -452,9 +460,9 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         require(args.amount <= userTt[args.tortleVault][user], 'WithdrawFromFarm: Insufficient funds.');
 
-        uint256 lpAmount = ITortleVault(args.tortleVault).withdraw(args.amount);
+        uint256 amountLp = ITortleVault(args.tortleVault).withdraw(args.amount);
         userTt[args.tortleVault][user] -= args.amount;
-        _withdrawLpAndSwap(user, args, lpAmount);
+        amountTokenDesired = _withdrawLpAndSwap(user, args, amountLp);
     }
 
     function _withdrawLpAndSwap(
