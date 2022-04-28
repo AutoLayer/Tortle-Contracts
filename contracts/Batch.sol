@@ -144,7 +144,7 @@ contract Batch {
             result[0]--;
         }
 
-        emit lpDeposited(StringUtils.parseAddr(args.arguments[2]), result[1]); // ttVault address and ttAmount
+        emit ttDeposited(StringUtils.parseAddr(args.arguments[2]), result[1]); // ttVault address and ttAmount
         if (args.hasNext) {
             auxStack.push(result[1]);
         }
