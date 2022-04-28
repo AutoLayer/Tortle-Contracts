@@ -89,7 +89,7 @@ describe('Batch Contract', function () {
         await tortle.connect(otherUser).approve(nodes.address, '50000000000000000000000')
     });
 
-    it('Basic Test', async () => {
+    it('AddFunds and SendToWallet', async () => {
         const _args1 = [link.address, "1000000000000000000"]
         const _args2 = [link.address, "0"]
         const addFundsForTokens = createNode(1, `addFundsForTokens${_params}`, otherUser.getAddress(), _args1, true)
@@ -352,6 +352,44 @@ describe('Batch Contract', function () {
             assert.equal(receipt.events[17].args.tokenOutput, link.address);
             assert.equal(receipt.events[17].args.amountOut, amountOutToken1.toString());
         });
+
+        it('Split from ftm to ftm/token', async () => {
+            const _args1 = [
+                wftm.address, // InputToken
+                '1000000000000000000', //InputAmount
+                wftm.address, //token0
+                dai.address, //token1
+                '5000', // percentage, 50%
+                '0', // amountOutMinFirst
+                '0', // amountOutMinSecond
+                'y', // firstHasNext
+                'y', // secondHasNext
+            ]
+            const _args2 = [dai.address, "0"]
+            const _args3 = [wftm.address, "0"]
+            const split = createNode(1, `split${_params}`, otherUser.getAddress(), _args1, true)
+            const sendToWallet1 = createNode(2, `sendToWallet${_params}`, otherUser.getAddress(), _args2, false)
+            const sendToWallet2 = createNode(3, `sendToWallet${_params}`, otherUser.getAddress(), _args3, false)
+
+            await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: "1000000000000000000" });
+            const result = await batch.connect(deployer).batchFunctions([split, sendToWallet1, sendToWallet2]);
+            
+            let receipt = await result.wait()
+            
+            // split
+            assert.equal(receipt.events[6].args.tokenInput, wftm.address);
+            assert.equal(receipt.events[6].args.amountIn, "1000000000000000000");
+            const amountOutToken1 = receipt.events[6].args.amountOutToken1
+            const amountOutToken2 = receipt.events[6].args.amountOutToken2
+            
+            // sendToWallet second token
+            assert.equal(receipt.events[9].args.tokenOutput, dai.address);
+            assert.equal(receipt.events[9].args.amountOut, amountOutToken2.toString());
+
+            // sendToWallet first token
+            assert.equal(receipt.events[11].args.tokenOutput, wftm.address);
+            assert.equal(receipt.events[11].args.amountOut, amountOutToken1.toString());
+        });
     });
     
     describe('Liquidate', async() => { 
@@ -373,7 +411,287 @@ describe('Batch Contract', function () {
             assert.equal(receipt.events[15].args.tokensInput[0], link.address);
             assert.equal(receipt.events[15].args.amountsIn[0], "1000000000000000000");
             assert.equal(receipt.events[15].args.tokenOutput, dai.address);
-        });  
+        });
+        
+        it('Liquidate from token to ftm', async () => {
+            const _args1 = [link.address, '1000000000000000000']
+            const _args2 = [link.address, '0', wftm.address]
+            const addFundsForTokens = createNode(1, `addFundsForTokens${_params}`, otherUser.getAddress(), _args1, true)
+            const liquidate = createNode(2, `liquidate${_params}`, otherUser.getAddress(), _args2, false)
+
+            const result = await batch.connect(deployer).batchFunctions([addFundsForTokens, liquidate]);
+            
+            let receipt = await result.wait()
+            
+            // addFunds
+            assert.equal(receipt.events[3].args.tokenInput, link.address);
+            assert.equal(receipt.events[3].args.amount, "1000000000000000000");
+            
+            // liquidate
+            assert.equal(receipt.events[12].args.tokensInput[0], link.address);
+            assert.equal(receipt.events[12].args.amountsIn[0], "1000000000000000000");
+            assert.equal(receipt.events[12].args.tokenOutput, wftm.address);
+        }); 
+
+        it('Liquidate from ftm to token', async () => {
+            const _args1 = [wftm.address, '1000000000000000000', dai.address]
+            const liquidate = createNode(1, `liquidate${_params}`, otherUser.getAddress(), _args1, false)
+
+            await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: "1000000000000000000" });
+            const result = await batch.connect(deployer).batchFunctions([liquidate]);
+            
+            let receipt = await result.wait()
+            
+            // liquidate
+            assert.equal(receipt.events[8].args.tokensInput[0], wftm.address);
+            assert.equal(receipt.events[8].args.amountsIn[0], "1000000000000000000");
+            assert.equal(receipt.events[8].args.tokenOutput, dai.address);
+        }); 
     });
     
+    describe('Testing Recipes', async() => { 
+        it('AddFunds-Split-(1->Liquidate)-(2->Liquidate)', async () => {
+            const _args1 = [link.address, '1000000000000000000']
+            const _args2 = [link.address, '0', dai.address, wftm.address, '5000', '0', '0', 'y', 'y']
+            const _args3 = [wftm.address, '0', tortle.address]
+            const _args4 = [dai.address, '0', link.address]
+            const addFundsForTokens = createNode(1, `addFundsForTokens${_params}`, otherUser.getAddress(), _args1, true)
+            const split = createNode(2, `split${_params}`, otherUser.getAddress(), _args2, true)
+            const liquidate1 = createNode(3, `liquidate${_params}`, otherUser.getAddress(), _args3, false)
+            const liquidate2 = createNode(4, `liquidate${_params}`, otherUser.getAddress(), _args4, false)
+
+            const result = await batch.connect(deployer).batchFunctions([addFundsForTokens, split, liquidate1, liquidate2]);
+            
+            let receipt = await result.wait()
+            
+            // addFunds
+            assert.equal(receipt.events[3].args.tokenInput, link.address);
+            assert.equal(receipt.events[3].args.amount, "1000000000000000000");
+
+            // split
+            assert.equal(receipt.events[21].args.tokenInput, link.address);
+            assert.equal(receipt.events[21].args.amountIn, "1000000000000000000");
+            const amountOutToken1 = receipt.events[21].args.amountOutToken1
+            const amountOutToken2 = receipt.events[21].args.amountOutToken2
+
+            // liquidate1
+            assert.equal(receipt.events[30].args.tokensInput[0], wftm.address);
+            assert.equal(receipt.events[30].args.amountsIn[0], amountOutToken2.toString());
+            assert.equal(receipt.events[30].args.tokenOutput, tortle.address);
+
+            // liquidate2
+            assert.equal(receipt.events[42].args.tokensInput[0], dai.address);
+            assert.equal(receipt.events[42].args.amountsIn[0], amountOutToken1.toString());
+            assert.equal(receipt.events[42].args.tokenOutput, link.address);
+        });
+
+        it('AddFunds-Swap-Split-(1->Swap-SendToWallet)-(2->Liquidate)', async () => {
+            const _args1 = [link.address, '1000000000000000000']
+            const _args2 = [link.address, '0', dai.address, '0']
+            const _args3 = [dai.address, '0', tortle.address, wftm.address, '5000', '0', '0', 'y', 'y']
+            const _args4 = [wftm.address, '1000000000000000000', link.address, '0']
+            const _args5 = [link.address, "0"]
+            const _args6 = [tortle.address, '0', dai.address]
+            const addFundsForTokens = createNode(1, `addFundsForTokens${_params}`, otherUser.getAddress(), _args1, true)
+            const swapTokens1 = createNode(2, `swapTokens${_params}`, otherUser.getAddress(), _args2, true)
+            const split = createNode(3, `split${_params}`, otherUser.getAddress(), _args3, true)
+            const swapTokens2 = createNode(4, `swapTokens${_params}`, otherUser.getAddress(), _args4, true)
+            const sendToWallet = createNode(5, `sendToWallet${_params}`, otherUser.getAddress(), _args5, false)
+            const liquidate = createNode(6, `liquidate${_params}`, otherUser.getAddress(), _args6, false)
+
+            const result = await batch.connect(deployer).batchFunctions([addFundsForTokens, swapTokens1, split, swapTokens2, sendToWallet, liquidate]);
+            
+            let receipt = await result.wait()
+            
+            // addFunds
+            assert.equal(receipt.events[3].args.tokenInput, link.address);
+            assert.equal(receipt.events[3].args.amount, "1000000000000000000");
+            
+            // swapTokens1
+            assert.equal(receipt.events[15].args.tokenInput, link.address);
+            assert.equal(receipt.events[15].args.amountIn, "1000000000000000000");
+            assert.equal(receipt.events[15].args.tokenOutput, dai.address);
+            const amountOutSwap1 = receipt.events[15].args.amountOut
+
+            // split
+            assert.equal(receipt.events[33].args.tokenInput, dai.address);
+            assert.equal(receipt.events[33].args.amountIn, amountOutSwap1.toString());
+            const amountOutToken1 = receipt.events[33].args.amountOutToken1
+            const amountOutToken2 = receipt.events[33].args.amountOutToken2
+
+            // swapTokens2
+            assert.equal(receipt.events[40].args.tokenInput, wftm.address);
+            assert.equal(receipt.events[40].args.amountIn, amountOutToken2.toString());
+            assert.equal(receipt.events[40].args.tokenOutput, link.address);
+            const amountOutSwap2 = receipt.events[40].args.amountOut
+
+            // sendToWallet
+            assert.equal(receipt.events[43].args.tokenOutput, link.address);
+            assert.equal(receipt.events[43].args.amountOut, amountOutSwap2.toString());
+
+            // liquidate
+            assert.equal(receipt.events[55].args.tokensInput[0], tortle.address);
+            assert.equal(receipt.events[55].args.amountsIn[0], amountOutToken1.toString());
+            assert.equal(receipt.events[55].args.tokenOutput, dai.address);
+        });
+
+        it('AddFunds-Swap-Split-(1->Swap-SendToWallet)-(2->Split-(2.1->Swap-SendToWallet)-(2.2->Liquidate))', async () => {
+            const _args1 = [link.address, '1000000000000000000']
+            const _args2 = [link.address, '0', dai.address, '0']
+            const _args3 = [dai.address, '0', tortle.address, wftm.address, '5000', '0', '0', 'y', 'y']
+            const _args4 = [wftm.address, '1000000000000000000', link.address, '0']
+            const _args5 = [link.address, "0"]
+            const _args6 = [tortle.address, '0', dai.address, link.address, '5000', '0', '0', 'y', 'y']
+            const _args7 = [link.address, '0', wftm.address, '0']
+            const _args8 = [wftm.address, "0"]
+            const _args9 = [dai.address, '0', tortle.address]
+            const addFundsForTokens = createNode(1, `addFundsForTokens${_params}`, otherUser.getAddress(), _args1, true)
+            const swapTokens1 = createNode(2, `swapTokens${_params}`, otherUser.getAddress(), _args2, true)
+            const split1 = createNode(3, `split${_params}`, otherUser.getAddress(), _args3, true)
+            const swapTokens2 = createNode(4, `swapTokens${_params}`, otherUser.getAddress(), _args4, true)
+            const sendToWallet1 = createNode(5, `sendToWallet${_params}`, otherUser.getAddress(), _args5, false)
+            const split2 = createNode(6, `split${_params}`, otherUser.getAddress(), _args6, true)
+            const swapTokens3 = createNode(7, `swapTokens${_params}`, otherUser.getAddress(), _args7, true)
+            const sendToWallet2 = createNode(8, `sendToWallet${_params}`, otherUser.getAddress(), _args8, false)
+            const liquidate = createNode(9, `liquidate${_params}`, otherUser.getAddress(), _args9, false)
+
+            const result = await batch.connect(deployer).batchFunctions([addFundsForTokens, swapTokens1, split1, swapTokens2, sendToWallet1, split2, swapTokens3, sendToWallet2, liquidate]);
+            
+            let receipt = await result.wait()
+            
+            // addFunds
+            assert.equal(receipt.events[3].args.tokenInput, link.address);
+            assert.equal(receipt.events[3].args.amount, "1000000000000000000");
+            
+            // swapTokens1
+            assert.equal(receipt.events[15].args.tokenInput, link.address);
+            assert.equal(receipt.events[15].args.amountIn, "1000000000000000000");
+            assert.equal(receipt.events[15].args.tokenOutput, dai.address);
+            const amountOutSwap1 = receipt.events[15].args.amountOut
+
+            // split1
+            assert.equal(receipt.events[33].args.tokenInput, dai.address);
+            assert.equal(receipt.events[33].args.amountIn, amountOutSwap1.toString());
+            const amountOutToken1 = receipt.events[33].args.amountOutToken1
+            const amountOutToken2 = receipt.events[33].args.amountOutToken2
+
+            // swapTokens2
+            assert.equal(receipt.events[40].args.tokenInput, wftm.address);
+            assert.equal(receipt.events[40].args.amountIn, amountOutToken2.toString());
+            assert.equal(receipt.events[40].args.tokenOutput, link.address);
+            const amountOutSwap2 = receipt.events[40].args.amountOut
+
+            // sendToWallet1
+            assert.equal(receipt.events[43].args.tokenOutput, link.address);
+            assert.equal(receipt.events[43].args.amountOut, amountOutSwap2.toString());
+
+            // split2
+            assert.equal(receipt.events[63].args.tokenInput, tortle.address);
+            assert.equal(receipt.events[63].args.amountIn, amountOutToken1.toString());
+            const amountOutToken1Split2 = receipt.events[63].args.amountOutToken1
+            const amountOutToken2Split2 = receipt.events[63].args.amountOutToken2
+
+            // swapTokens3
+            assert.equal(receipt.events[73].args.tokenInput, link.address);
+            assert.equal(receipt.events[73].args.amountIn, amountOutToken2Split2.toString());
+            assert.equal(receipt.events[73].args.tokenOutput, wftm.address);
+            const amountOutSwap3 = receipt.events[73].args.amountOut
+
+            // sendToWallet2
+            assert.equal(receipt.events[75].args.tokenOutput, wftm.address);
+            assert.equal(receipt.events[75].args.amountOut, amountOutSwap3.toString());
+
+            // liquidate
+            assert.equal(receipt.events[87].args.tokensInput[0], dai.address);
+            assert.equal(receipt.events[87].args.amountsIn[0], amountOutToken1Split2.toString());
+            assert.equal(receipt.events[87].args.tokenOutput, tortle.address);
+        });
+
+        it('AddFunds-Swap-Split-(1->Swap-SendToWallet)-(2->Split-(2.1->Swap-SendToWallet)-(2.2->Split-(3.1->Liquidate)-(3.2->Liquidate)))', async () => {
+            const _args1 = [link.address, '1000000000000000000']
+            const _args2 = [link.address, '0', dai.address, '0']
+            const _args3 = [dai.address, '0', tortle.address, wftm.address, '5000', '0', '0', 'y', 'y']
+            const _args4 = [wftm.address, '1000000000000000000', link.address, '0']
+            const _args5 = [link.address, "0"]
+            const _args6 = [tortle.address, '0', dai.address, link.address, '5000', '0', '0', 'y', 'y']
+            const _args7 = [link.address, '0', wftm.address, '0']
+            const _args8 = [wftm.address, "0"]
+            const _args9 = [dai.address, '0', tortle.address, link.address, '5000', '0', '0', 'y', 'y']
+            const _args10 = [link.address, '0', wftm.address]
+            const _args11 = [tortle.address, '0', wftm.address]
+            const addFundsForTokens = createNode(1, `addFundsForTokens${_params}`, otherUser.getAddress(), _args1, true)
+            const swapTokens1 = createNode(2, `swapTokens${_params}`, otherUser.getAddress(), _args2, true)
+            const split1 = createNode(3, `split${_params}`, otherUser.getAddress(), _args3, true)
+            const swapTokens2 = createNode(4, `swapTokens${_params}`, otherUser.getAddress(), _args4, true)
+            const sendToWallet1 = createNode(5, `sendToWallet${_params}`, otherUser.getAddress(), _args5, false)
+            const split2 = createNode(6, `split${_params}`, otherUser.getAddress(), _args6, true)
+            const swapTokens3 = createNode(7, `swapTokens${_params}`, otherUser.getAddress(), _args7, true)
+            const sendToWallet2 = createNode(8, `sendToWallet${_params}`, otherUser.getAddress(), _args8, false)
+            const split3 = createNode(6, `split${_params}`, otherUser.getAddress(), _args9, true)
+            const liquidate1 = createNode(9, `liquidate${_params}`, otherUser.getAddress(), _args10, false)
+            const liquidate2 = createNode(9, `liquidate${_params}`, otherUser.getAddress(), _args11, false)
+
+            const result = await batch.connect(deployer).batchFunctions([addFundsForTokens, swapTokens1, split1, swapTokens2, sendToWallet1, split2, swapTokens3, sendToWallet2, split3, liquidate1, liquidate2]);
+            
+            let receipt = await result.wait()
+            
+            // addFunds
+            assert.equal(receipt.events[3].args.tokenInput, link.address);
+            assert.equal(receipt.events[3].args.amount, "1000000000000000000");
+            
+            // swapTokens1
+            assert.equal(receipt.events[15].args.tokenInput, link.address);
+            assert.equal(receipt.events[15].args.amountIn, "1000000000000000000");
+            assert.equal(receipt.events[15].args.tokenOutput, dai.address);
+            const amountOutSwap1 = receipt.events[15].args.amountOut
+
+            // split1
+            assert.equal(receipt.events[33].args.tokenInput, dai.address);
+            assert.equal(receipt.events[33].args.amountIn, amountOutSwap1.toString());
+            const amountOutToken1 = receipt.events[33].args.amountOutToken1
+            const amountOutToken2 = receipt.events[33].args.amountOutToken2
+
+            // swapTokens2
+            assert.equal(receipt.events[40].args.tokenInput, wftm.address);
+            assert.equal(receipt.events[40].args.amountIn, amountOutToken2.toString());
+            assert.equal(receipt.events[40].args.tokenOutput, link.address);
+            const amountOutSwap2 = receipt.events[40].args.amountOut
+
+            // sendToWallet1
+            assert.equal(receipt.events[43].args.tokenOutput, link.address);
+            assert.equal(receipt.events[43].args.amountOut, amountOutSwap2.toString());
+
+            // split2
+            assert.equal(receipt.events[63].args.tokenInput, tortle.address);
+            assert.equal(receipt.events[63].args.amountIn, amountOutToken1.toString());
+            const amountOutToken1Split2 = receipt.events[63].args.amountOutToken1
+            const amountOutToken2Split2 = receipt.events[63].args.amountOutToken2
+
+            // swapTokens3
+            assert.equal(receipt.events[73].args.tokenInput, link.address);
+            assert.equal(receipt.events[73].args.amountIn, amountOutToken2Split2.toString());
+            assert.equal(receipt.events[73].args.tokenOutput, wftm.address);
+            const amountOutSwap3 = receipt.events[73].args.amountOut
+
+            // sendToWallet2
+            assert.equal(receipt.events[75].args.tokenOutput, wftm.address);
+            assert.equal(receipt.events[75].args.amountOut, amountOutSwap3.toString());
+
+            // split3
+            assert.equal(receipt.events[95].args.tokenInput, dai.address);
+            assert.equal(receipt.events[95].args.amountIn, amountOutToken1Split2.toString());
+            const amountOutToken1Split3 = receipt.events[95].args.amountOutToken1
+            const amountOutToken2Split3 = receipt.events[95].args.amountOutToken2
+
+            // liquidate
+            assert.equal(receipt.events[104].args.tokensInput[0], link.address);
+            assert.equal(receipt.events[104].args.amountsIn[0], amountOutToken2Split3.toString());
+            assert.equal(receipt.events[104].args.tokenOutput, wftm.address);
+
+            // liquidate
+            assert.equal(receipt.events[113].args.tokensInput[0], tortle.address);
+            assert.equal(receipt.events[113].args.amountsIn[0], amountOutToken1Split3.toString());
+            assert.equal(receipt.events[113].args.tokenOutput, wftm.address);
+        });
+    });
 });
