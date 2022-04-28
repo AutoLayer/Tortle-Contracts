@@ -460,9 +460,9 @@ contract Nodes is Initializable, ReentrancyGuard {
     function _withdrawLpAndSwap(
         address user,
         _wffot memory args,
-        uint256 lpAmount
-    ) internal {
-        IERC20(args.lpToken).transfer(args.lpToken, lpAmount);
+        uint256 amountLp
+    ) internal returns (uint256 amountTokenDesired) {
+        IERC20(args.lpToken).transfer(args.lpToken, amountLp);
         (uint256 amount0, uint256 amount1) = IUniswapV2Pair(args.lpToken).burn(address(this));
 
         require(amount0 >= minimumAmount, 'UniswapV2Router: INSUFFICIENT_A_AMOUNT');
@@ -474,11 +474,11 @@ contract Nodes is Initializable, ReentrancyGuard {
         if (args.token1 == args.tokenDesired) {
             swapToken = args.token0;
             swapAmount = amount0;
-            setBalances(user, args.tokenDesired, amount1);
+            amountTokenDesired += amount1;
         } else {
             swapToken = args.token1;
             swapAmount = amount1;
-            setBalances(user, args.tokenDesired, amount0);
+            amountTokenDesired += amount0;
         }
 
         address[] memory path = new address[](2);
@@ -494,8 +494,8 @@ contract Nodes is Initializable, ReentrancyGuard {
             address(this),
             block.timestamp
         );
-
-        setBalances(user, path[1], swapedAmounts[1]);
+        amountTokenDesired += swapedAmounts[1];
+        setBalances(user, args.tokenDesired, amountTokenDesired);
     }
 
     function _addLiquidity(
@@ -508,12 +508,12 @@ contract Nodes is Initializable, ReentrancyGuard {
         returns (
             uint256 amount0f,
             uint256 amount1f,
-            uint256 lpBal
+            uint256 lpRes
         )
     {
         _approve(token0, address(router), amount0);
         _approve(token1, address(router), amount1);
-        (amount0f, amount1f, lpBal) = router.addLiquidity(token0, token1, amount0, amount1, 0, 0, address(this), block.timestamp);
+        (amount0f, amount1f, lpRes) = router.addLiquidity(token0, token1, amount0, amount1, 0, 0, address(this), block.timestamp);
     }
 
     function _approve(
