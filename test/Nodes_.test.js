@@ -132,6 +132,32 @@ describe('Nodes_ Contract', function () {
             assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
         });
 
+        it('Split token to sameToken/ftm', async () => {
+            const balanceBeforeToken1 = await link.balanceOf(otherUser.getAddress())
+            const balanceBeforeToken2 = await otherUser.getBalance()
+
+            await link.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
+            await nodes_.connect(otherUser).split(link.address, "2000000000000000000", link.address, wftm.address, "5000", "0", "0")
+        
+            const balanceAfterToken1 = await link.balanceOf(otherUser.getAddress())
+            const balanceAfterToken2 = await otherUser.getBalance()
+            assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
+            assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
+        });
+
+        it('Split token to ftm/sameToken', async () => {
+            const balanceBeforeToken1 = await otherUser.getBalance()
+            const balanceBeforeToken2 = await link.balanceOf(otherUser.getAddress())
+
+            await link.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
+            await nodes_.connect(otherUser).split(link.address, "2000000000000000000", link.address, wftm.address, "5000", "0", "0")
+        
+            const balanceAfterToken1 = await otherUser.getBalance()
+            const balanceAfterToken2 = await link.balanceOf(otherUser.getAddress())
+            assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
+            assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
+        });
+
         it('Split ftm to token/token', async () => {
             const balanceBeforeToken1 = await link.balanceOf(otherUser.getAddress())
             const balanceBeforeToken2 = await dai.balanceOf(otherUser.getAddress())
@@ -144,6 +170,38 @@ describe('Nodes_ Contract', function () {
         
             const balanceAfterToken1 = await link.balanceOf(otherUser.getAddress())
             const balanceAfterToken2 = await dai.balanceOf(otherUser.getAddress())
+            assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
+            assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
+        });
+
+        it('Split ftm to ftm/token', async () => {
+            const balanceBeforeToken1 = await otherUser.getBalance()
+            const balanceBeforeToken2 = await dai.balanceOf(otherUser.getAddress())
+
+            await otherUser.sendTransaction({
+                to: nodes_.address,
+                value: ethers.utils.parseEther("1") // 1 ether
+            })
+            await nodes_.connect(otherUser).split(wftm.address, "1000000000000000000", wftm.address, dai.address, "5000", "0", "0")
+        
+            const balanceAfterToken1 = await otherUser.getBalance()
+            const balanceAfterToken2 = await dai.balanceOf(otherUser.getAddress())
+            assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
+            assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
+        });
+
+        it('Split ftm to token/ftm', async () => {
+            const balanceBeforeToken1 = await dai.balanceOf(otherUser.getAddress())
+            const balanceBeforeToken2 = await otherUser.getBalance()
+
+            await otherUser.sendTransaction({
+                to: nodes_.address,
+                value: ethers.utils.parseEther("1") // 1 ether
+            })
+            await nodes_.connect(otherUser).split(wftm.address, "1000000000000000000", dai.address, wftm.address, "5000", "0", "0")
+        
+            const balanceAfterToken1 = await dai.balanceOf(otherUser.getAddress())
+            const balanceAfterToken2 = await otherUser.getBalance()
             assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
             assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
         });
