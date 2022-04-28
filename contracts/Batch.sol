@@ -226,5 +226,21 @@ contract Batch {
         emit Liquidate(args.id, _tokens, _amounts, _tokenOutput, amountOut);
     }
 
+    function sendToWallet(Function memory args) public onlySelf {
+        address _token = StringUtils.parseAddr(args.arguments[0]);
+        uint256 _amount;
+
+        if (auxStack.length > 0) {
+            _amount = auxStack[auxStack.length - 1];
+            auxStack.pop();
+        } else {
+            _amount = StringUtils.safeParseInt(args.arguments[1]);
+        }
+
+        uint256 amount = nodes.sendToWallet(args.user, IERC20(_token), _amount);
+
+        emit SendToWallet(args.id, _token, amount);
+    }
+
     receive() external payable {}
 }
