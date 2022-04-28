@@ -27,7 +27,6 @@ contract Batch {
     event SwapTokens(string id, address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
     event Liquidate(string id, IERC20[] tokensInput, uint256[] amountsIn, address tokenOutput, uint256 amountOut);
     event SendToWallet(string id, address tokenOutput, uint256 amountOut);
-    event ComboTrigger(string id, uint256 amount);
     event lpDeposited(address lpToken, uint256 amount);
     event lpWithdrawed(address lpToken, uint256 amountLp, address tokenDesired, uint256 amountTokenDesired);
     event ttWithdrawed(address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired);
@@ -128,6 +127,9 @@ contract Batch {
             amount1
         );
         emit lpDeposited(lpToken, lpRes);
+        if (args.hasNext) {
+            auxStack.push(lpRes);
+        }
     }
 
     function depositOnFarm(Function memory args) public onlySelf {
