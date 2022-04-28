@@ -391,33 +391,43 @@ contract Nodes is Initializable, ReentrancyGuard {
         userTt[args.tortleVault][user] += ITortleVault(args.tortleVault).deposit(lpBal);
         decreaseBalance(user, path[0], swapedAmounts[0] + amount0f);
         setBalances(user, path[1], swapedAmounts[1] - amount1f);
+    struct _doft {
+        address lpToken;
+        address tortleVault;
+        address token0;
+        address token1;
+        uint256 amount0;
+        uint256 amount1;
     }
 
     function depositOnFarmTokens(
         address user,
         string[] memory _arguments,
         uint256[] memory auxStack
-    ) external nonReentrant onlyOwner returns (uint8 result) {
-        address lpToken = StringUtils.parseAddr(_arguments[1]);
-        address tortleVault = StringUtils.parseAddr(_arguments[2]);
-        address token0 = StringUtils.parseAddr(_arguments[3]);
-        address token1 = StringUtils.parseAddr(_arguments[4]);
-        uint256 amount0 = StringUtils.safeParseInt(_arguments[5]);
-        uint256 amount1 = StringUtils.safeParseInt(_arguments[6]);
+    ) external nonReentrant onlyOwner returns (uint256[] memory result) {
+        _doft memory args;
+        args.lpToken = StringUtils.parseAddr(_arguments[1]);
+        args.tortleVault = StringUtils.parseAddr(_arguments[2]);
+        args.token0 = StringUtils.parseAddr(_arguments[3]);
+        args.token1 = StringUtils.parseAddr(_arguments[4]);
+        args.amount0 = StringUtils.safeParseInt(_arguments[5]);
+        args.amount1 = StringUtils.safeParseInt(_arguments[6]);
 
         if (auxStack.length > 0) {
-            amount0 = auxStack[auxStack.length - 2];
-            amount1 = auxStack[auxStack.length - 1];
-            result = 2;
+            args.amount0 = auxStack[auxStack.length - 2];
+            args.amount1 = auxStack[auxStack.length - 1];
+            result[0] = 2;
         }
 
-        require(amount0 <= getBalance(user, IERC20(token0)), 'DepositOnLp: Insufficient token0 funds.');
-        require(amount1 <= getBalance(user, IERC20(token1)), 'DepositOnLp: Insufficient token1 funds.');
-        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = _addLiquidity(token0, token1, amount0, amount1);
-        _approve(lpToken, tortleVault, lpBal);
-        userTt[tortleVault][user] += ITortleVault(tortleVault).deposit(lpBal);
-        decreaseBalance(user, address(token0), amount0f);
-        decreaseBalance(user, address(token1), amount1f);
+        require(args.amount0 <= getBalance(user, IERC20(args.token0)), 'DepositOnLp: Insufficient token0 funds.');
+        require(args.amount1 <= getBalance(user, IERC20(args.token1)), 'DepositOnLp: Insufficient token1 funds.');
+        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = _addLiquidity(args.token0, args.token1, args.amount0, args.amount1);
+        _approve(args.lpToken, args.tortleVault, lpBal);
+        uint256 ttAmount = ITortleVault(args.tortleVault).deposit(lpBal);
+        userTt[args.tortleVault][user] += ttAmount;
+        decreaseBalance(user, address(args.token0), amount0f);
+        decreaseBalance(user, address(args.token1), amount1f);
+        result[1] = ttAmount;
     }
 
     struct _wffot {
