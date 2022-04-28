@@ -42,6 +42,11 @@ contract Batch {
         nodes = _nodes;
     }
 
+    modifier onlySelf() {
+        require(msg.sender == address(this), 'This function is internal');
+        _;
+    }
+
     function batchFunctions(Function[] memory _functions) public onlyOwner {
         for (uint256 i = 0; i < _functions.length; i++) {
             string memory _id = _functions[i].id;
