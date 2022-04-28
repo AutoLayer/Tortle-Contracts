@@ -74,10 +74,15 @@ contract Batch {
     }
 
     function withdrawFromFarm(Function memory args) public onlySelf {
+        uint256 amount = StringUtils.safeParseInt(args.arguments[7]);
+        if (auxStack.length > 0) {
+            amount = auxStack[auxStack.length - 1];
+            auxStack.pop();
+        }
         uint256 amountTokenDesired = nodes.withdrawFromFarm(args.user, args.arguments);
         emit ttWithdrawed(
             StringUtils.parseAddr(args.arguments[2]),
-            StringUtils.safeParseInt(args.arguments[7]),
+            amount,
             StringUtils.parseAddr(args.arguments[5]),
             amountTokenDesired
         );
@@ -87,10 +92,15 @@ contract Batch {
     }
 
     function withdrawFromLp(Function memory args) public onlySelf {
+        uint256 amount = StringUtils.safeParseInt(args.arguments[7]);
+        if (auxStack.length > 0) {
+            amount = auxStack[auxStack.length - 1];
+            auxStack.pop();
+        }
         uint256 amountTokenDesired = nodes.withdrawFromLp(args.user, args.arguments);
         emit lpWithdrawed(
             StringUtils.parseAddr(args.arguments[1]),
-            StringUtils.safeParseInt(args.arguments[7]),
+            amount,
             StringUtils.parseAddr(args.arguments[5]),
             amountTokenDesired
         );
