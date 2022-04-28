@@ -28,6 +28,7 @@ contract Batch {
     event Liquidate(string id, IERC20[] tokensInput, uint256[] amountsIn, address tokenOutput, uint256 amountOut);
     event SendToWallet(string id, address tokenOutput, uint256 amountOut);
     event ComboTrigger(string id, uint256 amount);
+    event ttWithdrawed(address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired);
 
     constructor(address _owner) {
         owner = _owner;
@@ -70,6 +71,15 @@ contract Batch {
         emit AddFundsForFTM(args.id, amount);
     }
 
+    function withdrawFromFarm(Function memory args) public onlySelf {
+        uint256 amountTokenDesired = nodes.withdrawFromFarm(args.user, args.arguments);
+        emit ttWithdrawed(
+            StringUtils.parseAddr(args.arguments[2]),
+            StringUtils.safeParseInt(args.arguments[7]),
+            StringUtils.parseAddr(args.arguments[5]),
+            amountTokenDesired
+        );
+    }
     function depositOnFarm(Function memory args) public onlySelf {
         (, bytes memory data) = address(nodes).call(
             abi.encodeWithSignature(args.arguments[0], args.user, args.arguments, auxStack)
