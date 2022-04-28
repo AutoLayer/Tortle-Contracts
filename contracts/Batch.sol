@@ -28,6 +28,8 @@ contract Batch {
     event Liquidate(string id, IERC20[] tokensInput, uint256[] amountsIn, address tokenOutput, uint256 amountOut);
     event SendToWallet(string id, address tokenOutput, uint256 amountOut);
     event ComboTrigger(string id, uint256 amount);
+    event lpDeposited(address lpToken, uint256 amount);
+    event lpWithdrawed(address lpToken, uint256 amountLp, address tokenDesired, uint256 amountTokenDesired);
     event ttWithdrawed(address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired);
 
     constructor(address _owner) {
@@ -80,6 +82,38 @@ contract Batch {
             amountTokenDesired
         );
     }
+
+    function withdrawFromLp(Function memory args) public onlySelf {
+        uint256 amountTokenDesired = nodes.withdrawFromLp(args.user, args.arguments);
+        emit lpWithdrawed(
+            StringUtils.parseAddr(args.arguments[1]),
+            StringUtils.safeParseInt(args.arguments[7]),
+            StringUtils.parseAddr(args.arguments[5]),
+            amountTokenDesired
+        );
+    }
+
+    function depositOnLp(Function memory args) public onlySelf {
+        uint256 amount0 = StringUtils.safeParseInt(args.arguments[3]);
+        uint256 amount1 = StringUtils.safeParseInt(args.arguments[4]);
+        address lpToken = StringUtils.parseAddr(args.arguments[0]);
+        if (auxStack.length > 0) {
+            amount0 = auxStack[auxStack.length - 2];
+            amount1 = auxStack[auxStack.length - 1];
+            auxStack.pop();
+            auxStack.pop();
+        }
+        uint256 lpRes = nodes.depositOnLp(
+            args.user,
+            lpToken,
+            StringUtils.parseAddr(args.arguments[1]),
+            StringUtils.parseAddr(args.arguments[2]),
+            amount0,
+            amount1
+        );
+        emit lpDeposited(lpToken, lpRes);
+    }
+
     function depositOnFarm(Function memory args) public onlySelf {
         (, bytes memory data) = address(nodes).call(
             abi.encodeWithSignature(args.arguments[0], args.user, args.arguments, auxStack)
