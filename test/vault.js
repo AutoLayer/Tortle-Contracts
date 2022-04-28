@@ -1,6 +1,6 @@
 const { expect, assert } = require('chai')
 const { ethers } = require('hardhat')
-const { addLiquidity, beefIn, beefOut, createNode } = require('./helpers')
+const { addLiquidity, beefIn, beefOut, createNode, addLiquidityETH } = require('./helpers')
 const { STR, WEI, sqrt, BN } = require('./utils')
 
 const _erc20 = require('../artifacts/@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json')
@@ -277,6 +277,9 @@ describe('Lp, Farms and autocompound integration tests', function () {
 
       await link.connect(deployer).approve(uniswapRouter.address, '5000000000000000000000000000')
       await dai.connect(deployer).approve(uniswapRouter.address, '5000000000000000000000000000')
+
+      await addLiquidityETH(uniswapRouter, dai.address, '10000000000000', 0, 0, deployer.getAddress())
+      await addLiquidityETH(uniswapRouter, link.address, '10000000000000', 0, 0, deployer.getAddress())
     })
     describe('deposit on Lp', async () => {
       beforeEach(async () => {
