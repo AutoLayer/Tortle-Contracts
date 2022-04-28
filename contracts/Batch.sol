@@ -28,6 +28,7 @@ contract Batch {
     event Liquidate(string id, IERC20[] tokensInput, uint256[] amountsIn, address tokenOutput, uint256 amountOut);
     event SendToWallet(string id, address tokenOutput, uint256 amountOut);
     event lpDeposited(address lpToken, uint256 amount);
+    event ttDeposited(address ttVault, uint256 amount);
     event lpWithdrawed(address lpToken, uint256 amountLp, address tokenDesired, uint256 amountTokenDesired);
     event ttWithdrawed(address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired);
 
@@ -137,10 +138,15 @@ contract Batch {
             abi.encodeWithSignature(args.arguments[0], args.user, args.arguments, auxStack)
         );
 
-        uint8 result = abi.decode(data, (uint8));
-        while (result != 0) {
+        uint256[] memory result = abi.decode(data, (uint256[]));
+        while (result[0] != 0) {
             auxStack.pop();
-            result--;
+            result[0]--;
+        }
+
+        emit lpDeposited(StringUtils.parseAddr(args.arguments[2]), result[1]); // ttVault address and ttAmount
+        if (args.hasNext) {
+            auxStack.push(result[1]);
         }
     }
 

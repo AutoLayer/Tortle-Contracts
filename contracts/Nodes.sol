@@ -314,6 +314,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         address lpToken = StringUtils.parseAddr(_arguments[1]);
         address tortleVault = StringUtils.parseAddr(_arguments[2]);
         uint256 amount = StringUtils.safeParseInt(_arguments[3]);
+        result = new uint256[](2);
         if (auxStack.length > 0) {
             amount = auxStack[auxStack.length - 1];
             result[0] = 1;
@@ -346,6 +347,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         args.token = StringUtils.parseAddr(_arguments[3]);
         args.amount = StringUtils.safeParseInt(_arguments[4]);
         args.amountOutMin = StringUtils.safeParseInt(_arguments[5]);
+        result = new uint256[](2);
         if (auxStack.length > 0) {
             args.amount = auxStack[auxStack.length - 1];
             result[0] = 1;
@@ -418,13 +420,12 @@ contract Nodes is Initializable, ReentrancyGuard {
         args.token1 = StringUtils.parseAddr(_arguments[4]);
         args.amount0 = StringUtils.safeParseInt(_arguments[5]);
         args.amount1 = StringUtils.safeParseInt(_arguments[6]);
-
+        result = new uint256[](2);
         if (auxStack.length > 0) {
             args.amount0 = auxStack[auxStack.length - 2];
             args.amount1 = auxStack[auxStack.length - 1];
             result[0] = 2;
         }
-
         require(args.amount0 <= getBalance(user, IERC20(args.token0)), 'DepositOnLp: Insufficient token0 funds.');
         require(args.amount1 <= getBalance(user, IERC20(args.token1)), 'DepositOnLp: Insufficient token1 funds.');
         (uint256 amount0f, uint256 amount1f, uint256 lpBal) = _addLiquidity(args.token0, args.token1, args.amount0, args.amount1);
