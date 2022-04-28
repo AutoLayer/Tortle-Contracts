@@ -331,13 +331,14 @@ contract Nodes is Initializable, ReentrancyGuard {
         address token;
         uint256 amount;
         uint256 amountOutMin;
+        uint256 ttAmount; // output
     }
 
     function depositOnFarmOneToken(
         address user,
         string[] memory _arguments,
         uint256[] memory auxStack
-    ) external nonReentrant onlyOwner returns (uint8 result) {
+    ) external nonReentrant onlyOwner returns (uint256[] memory result) {
         _dofot memory args;
         args.lpToken = StringUtils.parseAddr(_arguments[1]);
         args.tortleVault = StringUtils.parseAddr(_arguments[2]);
@@ -346,7 +347,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         args.amountOutMin = StringUtils.safeParseInt(_arguments[5]);
         if (auxStack.length > 0) {
             args.amount = auxStack[auxStack.length - 1];
-            result = 1;
+            result[0] = 1;
         }
         require(args.amount >= minimumAmount, 'Tortle: Insignificant input amount');
         require(args.amount <= getBalance(user, IERC20(args.token)), 'depositOnFarmOneToken: Insufficient token funds.');
@@ -388,9 +389,13 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         // this approve could be made once if we always trust and allow our own vaults (which is the actual case)
         _approve(args.lpToken, args.tortleVault, lpBal);
-        userTt[args.tortleVault][user] += ITortleVault(args.tortleVault).deposit(lpBal);
+        args.ttAmount = ITortleVault(args.tortleVault).deposit(lpBal);
+        userTt[args.tortleVault][user] += args.ttAmount;
         decreaseBalance(user, path[0], swapedAmounts[0] + amount0f);
         setBalances(user, path[1], swapedAmounts[1] - amount1f);
+        result[1] = args.ttAmount;
+    }
+
     struct _doft {
         address lpToken;
         address tortleVault;
