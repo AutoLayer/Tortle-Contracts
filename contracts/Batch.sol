@@ -81,6 +81,9 @@ contract Batch {
             StringUtils.parseAddr(args.arguments[5]),
             amountTokenDesired
         );
+        if (args.hasNext) {
+            auxStack.push(amountTokenDesired);
+        }
     }
 
     function withdrawFromLp(Function memory args) public onlySelf {
@@ -91,6 +94,9 @@ contract Batch {
             StringUtils.parseAddr(args.arguments[5]),
             amountTokenDesired
         );
+        if (args.hasNext) {
+            auxStack.push(amountTokenDesired);
+        }
     }
 
     function depositOnLp(Function memory args) public onlySelf {
