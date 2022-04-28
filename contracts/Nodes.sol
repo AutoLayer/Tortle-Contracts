@@ -296,13 +296,14 @@ contract Nodes is Initializable, ReentrancyGuard {
         address token1,
         uint256 amount0,
         uint256 amount1
-    ) external nonReentrant onlyOwner {
+    ) external nonReentrant onlyOwner returns (uint256) {
         require(amount0 <= getBalance(user, IERC20(token0)), 'DepositOnLp: Insufficient token0 funds.');
         require(amount1 <= getBalance(user, IERC20(token1)), 'DepositOnLp: Insufficient token1 funds.');
-        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = _addLiquidity(token0, token1, amount0, amount1);
-        userLp[lpToken][user] += lpBal;
+        (uint256 amount0f, uint256 amount1f, uint256 lpRes) = _addLiquidity(token0, token1, amount0, amount1);
+        userLp[lpToken][user] += lpRes;
         decreaseBalance(user, address(token0), amount0f);
         decreaseBalance(user, address(token1), amount1f);
+        return lpRes;
     }
 
     function depositOnFarmLp(
