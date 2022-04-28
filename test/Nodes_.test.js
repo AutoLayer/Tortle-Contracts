@@ -1,53 +1,151 @@
-const Nodes_ = artifacts.require("Nodes_");
+const { assert } = require('chai')
+const { ethers } = require('hardhat')
+const { addLiquidityETH } = require('./helpers')
 
-require('chai')
-  .use(require('chai-as-promised'))
-  .should()
+describe('Nodes_ Contract', function () {
+    let accounts
+    let deployer
+    let otherUser
+    let wftm
+    let dai
+    let link
+    let tortle
+    let nodes_
+    let uniswapFactory
+    let uniswapRouter
 
-contract('Nodes_', ([owner, investor, investor2]) => {
-    let nodes_;
+    beforeEach(async() => {
+        accounts = await ethers.getSigners()
+        deployer = accounts[0]
+        otherUser = accounts[1]
 
-    before(async () => {
-        // Load Contract
-        nodes_ = await Nodes_.at("0x08E2cf178147e5411acEd6AF50492594891FF9c7");
-    });
+        wftm = await (await (await hre.ethers.getContractFactory('WrappedFtm')).deploy()).deployed()
 
-    describe('Correct Address', async () => {
-        it('Nodes_ has correct address', async () => {
-            const address = await nodes_.address;
-            assert.equal(address, "0x08E2cf178147e5411acEd6AF50492594891FF9c7");
-        });
+        dai = await (
+        await (await hre.ethers.getContractFactory('WERC10')).deploy('Dai Stablecoin', 'DAI', 18, deployer.getAddress())
+        ).deployed()
+
+        link = await (
+        await (await hre.ethers.getContractFactory('WERC10')).deploy('ChainLink', 'LINK', 18, deployer.getAddress())
+        ).deployed()
+
+        tortle = await (
+        await (await hre.ethers.getContractFactory('WERC10')).deploy('Tortle', 'TRTL', 18, deployer.getAddress())
+        ).deployed()
+        
+        uniswapFactory = await (
+        await (await hre.ethers.getContractFactory('UniswapV2Factory')).deploy(deployer.getAddress())
+        ).deployed()
+        
+        uniswapRouter = await (
+        await (await hre.ethers.getContractFactory('UniswapV2Router02')).deploy(uniswapFactory.address, wftm.address)
+        ).deployed()
+
+        const liquidity = "1000000000000000000000"
+        await link.connect(deployer).approve(uniswapRouter.address, '5000000000000000000000000000')
+        await dai.connect(deployer).approve(uniswapRouter.address, '5000000000000000000000000000')
+        await tortle.connect(deployer).approve(uniswapRouter.address, '5000000000000000000000000000')
+        await addLiquidityETH(uniswapRouter, link.address, liquidity, 0, 0, deployer.getAddress())
+        await addLiquidityETH(uniswapRouter, dai.address, liquidity, 0, 0, deployer.getAddress())
+        await addLiquidityETH(uniswapRouter, tortle.address, liquidity, 0, 0, deployer.getAddress())
+        
+        const _Nodes_ = await hre.ethers.getContractFactory('Nodes_')
+        nodes_ = await (await _Nodes_.deploy(deployer.getAddress(), uniswapRouter.address)).deployed()
+        
+        await link.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000')
+        await dai.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000') 
+        await tortle.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000')
     });
 
     describe('Swaps', async () => {
         it('Swap token/token', async () => {
-            await nodes_.swapTokens("0x56Cc705FEf0De22B9a814A2E2Ef2B77f781d6D48", "2000000000000000000", "0xd7e70A8908acbB7A22A9968f5990DDbb13630fE1", "0", {from: investor})
+            const balanceBefore = await dai.balanceOf(otherUser.getAddress())
+
+            await link.connect(otherUser).transfer(nodes_.address, '2000000000000000000')
+            await nodes_.connect(otherUser).swapTokens(link.address, "2000000000000000000", dai.address, "0")
+
+            const balanceAfter = await dai.balanceOf(otherUser.getAddress())
+            assert.notEqual(balanceBefore, balanceAfter)
         });
 
         it('Swap ftm/token', async () => {
-            await nodes_.swapTokens("0xf1277d1ed8ad466beddf92ef448a132661956621", "500000000000000000", "0xd7e70A8908acbB7A22A9968f5990DDbb13630fE1", "0", {from: investor})
+            const balanceBefore = await tortle.balanceOf(otherUser.getAddress())
+
+            await otherUser.sendTransaction({
+                to: nodes_.address,
+                value: ethers.utils.parseEther("1") // 1 ether
+            })
+            await nodes_.connect(otherUser).swapTokens(wftm.address, "1000000000000000000", tortle.address, "0")
+
+            const balanceAfter = await tortle.balanceOf(otherUser.getAddress())
+            assert.notEqual(balanceBefore, balanceAfter)
         });
 
         it('Swap token/ftm', async () => {
-            await nodes_.swapTokens("0x56Cc705FEf0De22B9a814A2E2Ef2B77f781d6D48", "2000000000000000000", "0xf1277d1ed8ad466beddf92ef448a132661956621", "0", {from: investor})
+            const balanceBefore = await otherUser.getBalance()
+
+            await link.connect(otherUser).transfer(nodes_.address, '2000000000000000000')
+            await nodes_.connect(otherUser).swapTokens(link.address, "2000000000000000000", wftm.address, "0")
+            
+            const balanceAfter = await otherUser.getBalance()
+            assert.notEqual(balanceBefore, balanceAfter)
         });
     });
 
     describe('Splits', async () => {
         it('Split token to token/token', async () => {
-            await nodes_.split("0x56Cc705FEf0De22B9a814A2E2Ef2B77f781d6D48", "2000000000000000000", "0xd7e70A8908acbB7A22A9968f5990DDbb13630fE1", "0x94F72e1eD800de29C12622DfB77e62b18650cFAc", "5000", "0", "0", {from: investor})
+            const balanceBeforeToken1 = await dai.balanceOf(otherUser.getAddress())
+            const balanceBeforeToken2 = await tortle.balanceOf(otherUser.getAddress())
+
+            await link.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
+            await nodes_.connect(otherUser).split(link.address, "2000000000000000000", dai.address, tortle.address, "5000", "0", "0")
+        
+            const balanceAfterToken1 = await dai.balanceOf(otherUser.getAddress())
+            const balanceAfterToken2 = await tortle.balanceOf(otherUser.getAddress())
+            assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
+            assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
         });
         
         it('Split token to token/ftm', async () => {
-            await nodes_.split("0x56Cc705FEf0De22B9a814A2E2Ef2B77f781d6D48", "2000000000000000000", "0xd7e70A8908acbB7A22A9968f5990DDbb13630fE1", "0xf1277d1ed8ad466beddf92ef448a132661956621", "5000", "0", "0", {from: investor})
+            const balanceBeforeToken1 = await dai.balanceOf(otherUser.getAddress())
+            const balanceBeforeToken2 = await otherUser.getBalance()
+
+            await link.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
+            await nodes_.connect(otherUser).split(link.address, "2000000000000000000", dai.address, wftm.address, "5000", "0", "0")
+        
+            const balanceAfterToken1 = await dai.balanceOf(otherUser.getAddress())
+            const balanceAfterToken2 = await otherUser.getBalance()
+            assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
+            assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
         });
 
         it('Split token to ftm/token', async () => {
-            await nodes_.split("0x56Cc705FEf0De22B9a814A2E2Ef2B77f781d6D48", "2000000000000000000", "0xf1277d1ed8ad466beddf92ef448a132661956621", "0x94F72e1eD800de29C12622DfB77e62b18650cFAc", "5000", "0", "0", {from: investor})
+            const balanceBeforeToken1 = await otherUser.getBalance()
+            const balanceBeforeToken2 = await dai.balanceOf(otherUser.getAddress())
+
+            await link.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
+            await nodes_.connect(otherUser).split(link.address, "2000000000000000000", wftm.address, dai.address, "5000", "0", "0")
+        
+            const balanceAfterToken1 = await otherUser.getBalance()
+            const balanceAfterToken2 = await dai.balanceOf(otherUser.getAddress())
+            assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
+            assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
         });
 
         it('Split ftm to token/token', async () => {
-            await nodes_.split("0xf1277d1ed8ad466beddf92ef448a132661956621", "2000000000000000000", "0xd7e70A8908acbB7A22A9968f5990DDbb13630fE1", "0x94F72e1eD800de29C12622DfB77e62b18650cFAc", "5000", "0", "0", {from: investor})
+            const balanceBeforeToken1 = await link.balanceOf(otherUser.getAddress())
+            const balanceBeforeToken2 = await dai.balanceOf(otherUser.getAddress())
+
+            await otherUser.sendTransaction({
+                to: nodes_.address,
+                value: ethers.utils.parseEther("1") // 1 ether
+            })
+            await nodes_.connect(otherUser).split(wftm.address, "1000000000000000000", link.address, dai.address, "5000", "0", "0")
+        
+            const balanceAfterToken1 = await link.balanceOf(otherUser.getAddress())
+            const balanceAfterToken2 = await dai.balanceOf(otherUser.getAddress())
+            assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
+            assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
         });
     });
 });
