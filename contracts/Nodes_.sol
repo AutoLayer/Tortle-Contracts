@@ -174,7 +174,7 @@ contract Nodes_ is ReentrancyGuard {
             _amountOutToken1 = amountsOut[amountsOut.length - 1];
         } else {
             _amountOutToken1 = _firstTokenAmount;
-            IERC20(_firstToken).transfer(msg.sender, _firstTokenAmount);
+            payable(msg.sender).transfer(_firstTokenAmount);
         }
 
         uint256 _amountOutToken2;
@@ -195,7 +195,7 @@ contract Nodes_ is ReentrancyGuard {
             _amountOutToken2 = amountsOut[amountsOut.length - 1];
         } else {
             _amountOutToken2 = _secondTokenAmount;
-            IERC20(_secondToken).transfer(msg.sender, _secondTokenAmount);
+            payable(msg.sender).transfer(_secondTokenAmount);
         }
 
         return (_amountOutToken1, _amountOutToken2);
