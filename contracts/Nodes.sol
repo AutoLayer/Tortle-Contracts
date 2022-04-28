@@ -310,10 +310,14 @@ contract Nodes is Initializable, ReentrancyGuard {
         address user,
         string[] memory _arguments,
         uint256[] memory auxStack
-    ) external nonReentrant onlyOwner returns (uint8) {
+    ) external nonReentrant onlyOwner returns (uint8 result) {
         address lpToken = StringUtils.parseAddr(_arguments[1]);
         address tortleVault = StringUtils.parseAddr(_arguments[2]);
         uint256 amount = StringUtils.safeParseInt(_arguments[3]);
+        if (auxStack.length > 0) {
+            amount = auxStack[auxStack.length - 1];
+            result = 1;
+        }
         require(amount <= getBalance(user, IERC20(lpToken)), 'depositOnFarmLp: Insufficient lpToken funds.');
         _approve(lpToken, tortleVault, amount);
         uint256 ttShares = ITortleVault(tortleVault).deposit(amount);
@@ -333,13 +337,17 @@ contract Nodes is Initializable, ReentrancyGuard {
         address user,
         string[] memory _arguments,
         uint256[] memory auxStack
-    ) external nonReentrant onlyOwner returns (uint8) {
+    ) external nonReentrant onlyOwner returns (uint8 result) {
         _dofot memory args;
         args.lpToken = StringUtils.parseAddr(_arguments[1]);
         args.tortleVault = StringUtils.parseAddr(_arguments[2]);
         args.token = StringUtils.parseAddr(_arguments[3]);
         args.amount = StringUtils.safeParseInt(_arguments[4]);
         args.amountOutMin = StringUtils.safeParseInt(_arguments[5]);
+        if (auxStack.length > 0) {
+            args.amount = auxStack[auxStack.length - 1];
+            result = 1;
+        }
         require(args.amount >= minimumAmount, 'Tortle: Insignificant input amount');
         require(args.amount <= getBalance(user, IERC20(args.token)), 'depositOnFarmOneToken: Insufficient token funds.');
 
