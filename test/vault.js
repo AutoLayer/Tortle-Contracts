@@ -1,6 +1,6 @@
 const { expect, assert } = require('chai')
 const { ethers } = require('hardhat')
-const { addLiquidity, beefIn, beefOut, createNode } = require('./helpers')
+const { addLiquidity, beefIn, beefOut, createNode, addLiquidityETH } = require('./helpers')
 const { STR, WEI, sqrt, BN } = require('./utils')
 
 const _erc20 = require('../artifacts/@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json')
@@ -235,6 +235,7 @@ describe('Lp, Farms and autocompound integration tests', function () {
     let tortleUser
     let Batch
     let Nodes
+    const _params = '((string,string,address,string[],bool))'
     const amount = '1000000'
     beforeEach(async () => {
       tortleUser = accounts[10]
@@ -277,15 +278,18 @@ describe('Lp, Farms and autocompound integration tests', function () {
 
       await link.connect(deployer).approve(uniswapRouter.address, '5000000000000000000000000000')
       await dai.connect(deployer).approve(uniswapRouter.address, '5000000000000000000000000000')
+
+      await addLiquidityETH(uniswapRouter, dai.address, '10000000000000', 0, 0, deployer.getAddress())
+      await addLiquidityETH(uniswapRouter, link.address, '10000000000000', 0, 0, deployer.getAddress())
     })
     describe('deposit on Lp', async () => {
       beforeEach(async () => {
         const _args1 = [link.address, amount]
         const _args2 = [dai.address, amount]
         const _args3 = [lpContract.address, link.address, dai.address, amount, amount]
-        const addFundsForTokens1 = createNode(1, 'addFundsForTokens', tortleUser.getAddress(), _args1, true)
-        const addFundsForTokens2 = createNode(2, 'addFundsForTokens', tortleUser.getAddress(), _args2, true)
-        const depositOnLp = createNode(3, 'depositOnLp', tortleUser.getAddress(), _args3, false)
+        const addFundsForTokens1 = createNode(1, `addFundsForTokens${_params}`, tortleUser.getAddress(), _args1, true)
+        const addFundsForTokens2 = createNode(2, `addFundsForTokens${_params}`, tortleUser.getAddress(), _args2, true)
+        const depositOnLp = createNode(3, `depositOnLp${_params}`, tortleUser.getAddress(), _args3, false)
 
         await Batch.batchFunctions([addFundsForTokens1, addFundsForTokens2, depositOnLp])
       })
@@ -313,8 +317,8 @@ describe('Lp, Farms and autocompound integration tests', function () {
         await addLiquidity(uniswapRouter, [link.address, dai.address], [lpAmount, lpAmount], [0, 0], tortleUser.getAddress())
         const _args1 = [lpContract.address, lpAmount]
         const _args2 = ['depositOnFarmLp(address,string[],uint256[])', lpContract.address, TortleVault.address, lpAmount]
-        const addFundsForTokens = createNode(1, 'addFundsForTokens', tortleUser.getAddress(), _args1, true)
-        const depositOnLp = createNode(2, 'depositOnFarm', tortleUser.getAddress(), _args2, false)
+        const addFundsForTokens = createNode(1, `addFundsForTokens${_params}`, tortleUser.getAddress(), _args1, true)
+        const depositOnLp = createNode(2, `depositOnFarm${_params}`, tortleUser.getAddress(), _args2, false)
         await Batch.batchFunctions([addFundsForTokens, depositOnLp])
       })
       it('Masterchef Lp balance is correct', async () => {
@@ -336,7 +340,6 @@ describe('Lp, Farms and autocompound integration tests', function () {
     describe('Deposit One Token to Farm', async () => {
       const amount = '4000'
       beforeEach(async () => {
-        await addLiquidity(uniswapRouter, [link.address, dai.address], [amount, amount], [0, 0], tortleUser.getAddress())
         const _args1 = [link.address, amount]
         const _args2 = [
           'depositOnFarmOneToken(address,string[],uint256[])',
@@ -346,15 +349,17 @@ describe('Lp, Farms and autocompound integration tests', function () {
           amount,
           0,
         ]
-        const addFundsForTokens = createNode(1, 'addFundsForTokens', tortleUser.getAddress(), _args1, true)
-        const depositOnLp = createNode(2, 'depositOnFarm', tortleUser.getAddress(), _args2, false)
-        await Batch.batchFunctions([addFundsForTokens, depositOnLp])
+        const addFundsForTokens = createNode(1, `addFundsForTokens${_params}`, tortleUser.getAddress(), _args1, true)
+        const depositOnFarmOneToken = createNode(2, `depositOnFarm${_params}`, tortleUser.getAddress(), _args2, false)
+        await Batch.batchFunctions([addFundsForTokens, depositOnFarmOneToken])
       })
+
       it('Lp balance is correct', async () => {
         const expectedBalance = 1995
         let userInfo = await masterChef.userInfo(0, TortleFarmingStrategy.address)
         expect(userInfo.amount).equal(expectedBalance)
       })
+
       it('User Tokens Balance is correct', async () => {
         const expectedBalance = 0
         const balance0 = await Nodes.getBalance(tortleUser.getAddress(), link.address)
@@ -364,15 +369,14 @@ describe('Lp, Farms and autocompound integration tests', function () {
       })
       it('User Tt tracking is correct', async () => {
         const expectedBalance = 1993
+
         const balance = await Nodes.userTt(TortleVault.address, tortleUser.getAddress())
         expect(balance).to.equal(expectedBalance)
       })
     })
     describe('Deposit Tokens to Farm', async () => {
-      const amount = '4000'
+      const amount = '2000'
       beforeEach(async () => {
-        await addLiquidity(uniswapRouter, [link.address, dai.address], [amount, amount], [0, 0], tortleUser.getAddress())
-
         const _args1 = [link.address, amount]
         const _args2 = [dai.address, amount]
         const _args3 = [
@@ -384,13 +388,13 @@ describe('Lp, Farms and autocompound integration tests', function () {
           amount,
           amount,
         ]
-        const addFundsForTokens1 = createNode(1, 'addFundsForTokens', tortleUser.getAddress(), _args1, true)
-        const addFundsForTokens2 = createNode(2, 'addFundsForTokens', tortleUser.getAddress(), _args2, true)
-        const depositOnLp = createNode(3, 'depositOnFarm', tortleUser.getAddress(), _args3, false)
+        const addFundsForTokens1 = createNode(1, `addFundsForTokens${_params}`, tortleUser.getAddress(), _args1, true)
+        const addFundsForTokens2 = createNode(2, `addFundsForTokens${_params}`, tortleUser.getAddress(), _args2, true)
+        const depositOnLp = createNode(3, `depositOnFarm${_params}`, tortleUser.getAddress(), _args3, false)
         await Batch.batchFunctions([addFundsForTokens1, addFundsForTokens2, depositOnLp])
       })
       it('Lp balance is correct', async () => {
-        const expectedBalance = 4000
+        const expectedBalance = 2000
         let userInfo = await masterChef.userInfo(0, TortleFarmingStrategy.address)
         expect(userInfo.amount).equal(expectedBalance)
       })
@@ -402,7 +406,57 @@ describe('Lp, Farms and autocompound integration tests', function () {
         expect(balance1).to.equal(expectedBalance)
       })
       it('User Tt tracking is correct', async () => {
-        const expectedBalance = 3996
+        const expectedBalance = 1998
+        const balance = await Nodes.userTt(TortleVault.address, tortleUser.getAddress())
+        expect(balance).to.equal(expectedBalance)
+      })
+    })
+    describe('Deposit Tokens from Split Recipe', async () => {
+      const amount = '4000'
+
+      beforeEach(async () => {
+        const _args1 = [link.address, amount]
+        const _args2 = [
+          link.address, // InputToken
+          amount, //InputAmount
+          link.address, //token0
+          dai.address, //token1
+          '5000', // percentage, 50%
+          '0', // amountOutMinFirst
+          '0', // amountOutMinSecond
+          'y', // firstHasNext
+          'y', // secondHasNext
+        ]
+        const _args3 = [
+          'depositOnFarmTokens(address,string[],uint256[])',
+          lpContract.address,
+          TortleVault.address,
+          link.address,
+          dai.address,
+          1,
+          1,
+        ]
+        const addFundsForTokens = createNode(1, `addFundsForTokens${_params}`, tortleUser.getAddress(), _args1, true)
+        const split = createNode(2, `split${_params}`, tortleUser.getAddress(), _args2, true)
+        const depositOnLp = createNode(3, `depositOnFarm${_params}`, tortleUser.getAddress(), _args3, false)
+        await Batch.batchFunctions([addFundsForTokens, split, depositOnLp])
+      })
+
+      it('Lp balance is correct', async () => {
+        const expectedBalance = 1992
+        let userInfo = await masterChef.userInfo(0, TortleFarmingStrategy.address)
+        expect(userInfo.amount).equal(expectedBalance)
+      })
+
+      it('User Tokens Balance is correct', async () => {
+        const expectedBalance = 8
+        const balance0 = await Nodes.getBalance(tortleUser.getAddress(), link.address)
+        const balance1 = await Nodes.getBalance(tortleUser.getAddress(), dai.address)
+        expect(balance0).to.equal(expectedBalance)
+        expect(balance1).to.equal(0)
+      })
+      it('User Tt tracking is correct', async () => {
+        const expectedBalance = 1990
         const balance = await Nodes.userTt(TortleVault.address, tortleUser.getAddress())
         expect(balance).to.equal(expectedBalance)
       })
@@ -414,18 +468,12 @@ describe('Lp, Farms and autocompound integration tests', function () {
       let tokenDesired
       beforeEach(async () => {
         let tokenDesired = link.address
-        await addLiquidity(
-          uniswapRouter,
-          [link.address, dai.address],
-          [tokenAmount, tokenAmount],
-          [0, 0],
-          tortleUser.getAddress(),
-        )
+        await lpContract.connect(deployer).transfer(tortleUser.getAddress(), lpAmount)
         const _args1 = [lpContract.address, lpAmount]
         const _args2 = ['depositOnFarmLp(address,string[],uint256[])', lpContract.address, TortleVault.address, lpAmount]
-        const addFundsForTokens = createNode(1, 'addFundsForTokens', tortleUser.getAddress(), _args1, true)
-        const depositOnLp = createNode(2, 'depositOnFarm', tortleUser.getAddress(), _args2, false)
-        await Batch.batchFunctions([addFundsForTokens, depositOnLp])
+        const addFundsForTokens = createNode(1, `addFundsForTokens${_params}`, tortleUser.getAddress(), _args1, true)
+        const depositOnFarm = createNode(2, `depositOnFarm${_params}`, tortleUser.getAddress(), _args2, false)
+        await Batch.batchFunctions([addFundsForTokens, depositOnFarm])
 
         //Withdraw
         const _args3 = [
@@ -438,22 +486,14 @@ describe('Lp, Farms and autocompound integration tests', function () {
           1,
           ttToWithdraw,
         ]
-        const withdrawFromFarm = {
-          id: 1,
-          functionName: 'withdrawFromFarm',
-          user: tortleUser.getAddress(),
-          arguments: _args3,
-          hasNext: false,
-        }
+        const withdrawFromFarm = createNode(1, `withdrawFromFarm${_params}`, tortleUser.getAddress(), _args3, false)
         await Batch.batchFunctions([withdrawFromFarm])
       })
 
-      // Tt user balance is correct
-      // token user balance correct
       it('Tokens are correct', async () => {
         const balance0 = await Nodes.getBalance(tortleUser.getAddress(), link.address)
         const balance1 = await Nodes.getBalance(tortleUser.getAddress(), dai.address)
-        expect(STR(balance0)).equal('9967')
+        expect(STR(balance0)).equal('9965')
         expect(STR(balance1)).equal('0')
       })
       it('User Tt balance is correct ', async () => {
@@ -469,9 +509,9 @@ describe('Lp, Farms and autocompound integration tests', function () {
         const _args1 = [link.address, tokenAmount]
         const _args2 = [dai.address, tokenAmount]
         const _args3 = [lpContract.address, link.address, dai.address, tokenAmount, tokenAmount]
-        const addFundsForTokens1 = createNode(1, 'addFundsForTokens', tortleUser.getAddress(), _args1, true)
-        const addFundsForTokens2 = createNode(2, 'addFundsForTokens', tortleUser.getAddress(), _args2, true)
-        const depositOnLp = createNode(3, 'depositOnLp', tortleUser.getAddress(), _args3, false)
+        const addFundsForTokens1 = createNode(1, `addFundsForTokens${_params}`, tortleUser.getAddress(), _args1, true)
+        const addFundsForTokens2 = createNode(2, `addFundsForTokens${_params}`, tortleUser.getAddress(), _args2, true)
+        const depositOnLp = createNode(3, `depositOnLp${_params}`, tortleUser.getAddress(), _args3, false)
         await Batch.batchFunctions([addFundsForTokens1, addFundsForTokens2, depositOnLp])
 
         tokenDesired = link.address
@@ -485,7 +525,7 @@ describe('Lp, Farms and autocompound integration tests', function () {
           1,
           lpToWithdraw,
         ]
-        const WithdrawFromLp = createNode(1, 'withdrawFromLp', tortleUser.getAddress(), _args, false)
+        const WithdrawFromLp = createNode(1, `withdrawFromLp${_params}`, tortleUser.getAddress(), _args, false)
         await Batch.batchFunctions([WithdrawFromLp])
       })
       it('Tokens are correct', async () => {

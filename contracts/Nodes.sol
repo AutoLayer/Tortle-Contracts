@@ -296,28 +296,35 @@ contract Nodes is Initializable, ReentrancyGuard {
         address token1,
         uint256 amount0,
         uint256 amount1
-    ) external nonReentrant onlyOwner {
+    ) external nonReentrant onlyOwner returns (uint256) {
         require(amount0 <= getBalance(user, IERC20(token0)), 'DepositOnLp: Insufficient token0 funds.');
         require(amount1 <= getBalance(user, IERC20(token1)), 'DepositOnLp: Insufficient token1 funds.');
-        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = _addLiquidity(token0, token1, amount0, amount1);
-        userLp[lpToken][user] += lpBal;
+        (uint256 amount0f, uint256 amount1f, uint256 lpRes) = _addLiquidity(token0, token1, amount0, amount1);
+        userLp[lpToken][user] += lpRes;
         decreaseBalance(user, address(token0), amount0f);
         decreaseBalance(user, address(token1), amount1f);
+        return lpRes;
     }
 
     function depositOnFarmLp(
         address user,
         string[] memory _arguments,
         uint256[] memory auxStack
-    ) external nonReentrant onlyOwner returns (uint8) {
+    ) external nonReentrant onlyOwner returns (uint256[] memory result) {
         address lpToken = StringUtils.parseAddr(_arguments[1]);
         address tortleVault = StringUtils.parseAddr(_arguments[2]);
         uint256 amount = StringUtils.safeParseInt(_arguments[3]);
+        result = new uint256[](2);
+        if (auxStack.length > 0) {
+            amount = auxStack[auxStack.length - 1];
+            result[0] = 1;
+        }
         require(amount <= getBalance(user, IERC20(lpToken)), 'depositOnFarmLp: Insufficient lpToken funds.');
         _approve(lpToken, tortleVault, amount);
         uint256 ttShares = ITortleVault(tortleVault).deposit(amount);
         userTt[tortleVault][user] += ttShares;
         decreaseBalance(user, address(lpToken), amount);
+        result[1] = ttShares;
     }
 
     struct _dofot {
@@ -326,19 +333,25 @@ contract Nodes is Initializable, ReentrancyGuard {
         address token;
         uint256 amount;
         uint256 amountOutMin;
+        uint256 ttAmount; // output
     }
 
     function depositOnFarmOneToken(
         address user,
         string[] memory _arguments,
         uint256[] memory auxStack
-    ) external nonReentrant onlyOwner returns (uint8) {
+    ) external nonReentrant onlyOwner returns (uint256[] memory result) {
         _dofot memory args;
         args.lpToken = StringUtils.parseAddr(_arguments[1]);
         args.tortleVault = StringUtils.parseAddr(_arguments[2]);
         args.token = StringUtils.parseAddr(_arguments[3]);
         args.amount = StringUtils.safeParseInt(_arguments[4]);
         args.amountOutMin = StringUtils.safeParseInt(_arguments[5]);
+        result = new uint256[](2);
+        if (auxStack.length > 0) {
+            args.amount = auxStack[auxStack.length - 1];
+            result[0] = 1;
+        }
         require(args.amount >= minimumAmount, 'Tortle: Insignificant input amount');
         require(args.amount <= getBalance(user, IERC20(args.token)), 'depositOnFarmOneToken: Insufficient token funds.');
 
@@ -379,37 +392,49 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         // this approve could be made once if we always trust and allow our own vaults (which is the actual case)
         _approve(args.lpToken, args.tortleVault, lpBal);
-
-        userTt[args.tortleVault][user] += ITortleVault(args.tortleVault).deposit(lpBal);
+        args.ttAmount = ITortleVault(args.tortleVault).deposit(lpBal);
+        userTt[args.tortleVault][user] += args.ttAmount;
         decreaseBalance(user, path[0], swapedAmounts[0] + amount0f);
         setBalances(user, path[1], swapedAmounts[1] - amount1f);
+        result[1] = args.ttAmount;
+    }
+
+    struct _doft {
+        address lpToken;
+        address tortleVault;
+        address token0;
+        address token1;
+        uint256 amount0;
+        uint256 amount1;
     }
 
     function depositOnFarmTokens(
         address user,
         string[] memory _arguments,
         uint256[] memory auxStack
-    ) external nonReentrant onlyOwner returns (uint8 result) {
-        address lpToken = StringUtils.parseAddr(_arguments[1]);
-        address tortleVault = StringUtils.parseAddr(_arguments[2]);
-        address token0 = StringUtils.parseAddr(_arguments[3]);
-        address token1 = StringUtils.parseAddr(_arguments[4]);
-        uint256 amount0 = StringUtils.safeParseInt(_arguments[5]);
-        uint256 amount1 = StringUtils.safeParseInt(_arguments[6]);
-
+    ) external nonReentrant onlyOwner returns (uint256[] memory result) {
+        _doft memory args;
+        args.lpToken = StringUtils.parseAddr(_arguments[1]);
+        args.tortleVault = StringUtils.parseAddr(_arguments[2]);
+        args.token0 = StringUtils.parseAddr(_arguments[3]);
+        args.token1 = StringUtils.parseAddr(_arguments[4]);
+        args.amount0 = StringUtils.safeParseInt(_arguments[5]);
+        args.amount1 = StringUtils.safeParseInt(_arguments[6]);
+        result = new uint256[](2);
         if (auxStack.length > 0) {
-            amount0 = auxStack[auxStack.length - 2];
-            amount1 = auxStack[auxStack.length - 1];
-            result = 2;
+            args.amount0 = auxStack[auxStack.length - 2];
+            args.amount1 = auxStack[auxStack.length - 1];
+            result[0] = 2;
         }
-
-        require(amount0 <= getBalance(user, IERC20(token0)), 'DepositOnLp: Insufficient token0 funds.');
-        require(amount1 <= getBalance(user, IERC20(token1)), 'DepositOnLp: Insufficient token1 funds.');
-        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = _addLiquidity(token0, token1, amount0, amount1);
-        _approve(lpToken, tortleVault, lpBal);
-        userTt[tortleVault][user] += ITortleVault(tortleVault).deposit(lpBal);
-        decreaseBalance(user, address(token0), amount0f);
-        decreaseBalance(user, address(token1), amount1f);
+        require(args.amount0 <= getBalance(user, IERC20(args.token0)), 'DepositOnLp: Insufficient token0 funds.');
+        require(args.amount1 <= getBalance(user, IERC20(args.token1)), 'DepositOnLp: Insufficient token1 funds.');
+        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = _addLiquidity(args.token0, args.token1, args.amount0, args.amount1);
+        _approve(args.lpToken, args.tortleVault, lpBal);
+        uint256 ttAmount = ITortleVault(args.tortleVault).deposit(lpBal);
+        userTt[args.tortleVault][user] += ttAmount;
+        decreaseBalance(user, address(args.token0), amount0f);
+        decreaseBalance(user, address(args.token1), amount1f);
+        result[1] = ttAmount;
     }
 
     struct _wffot {
@@ -423,10 +448,14 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amount;
     }
 
-    function WithdrawFromLp(address user, string[] memory _arguments) external nonReentrant onlyOwner {
+    function withdrawFromLp(address user, string[] memory _arguments)
+        external
+        nonReentrant
+        onlyOwner
+        returns (uint256 amountTokenDesired)
+    {
         _wffot memory args;
         args.lpToken = StringUtils.parseAddr(_arguments[1]);
-        args.tortleVault = StringUtils.parseAddr(_arguments[2]);
         args.token0 = StringUtils.parseAddr(_arguments[3]);
         args.token1 = StringUtils.parseAddr(_arguments[4]);
         args.tokenDesired = StringUtils.parseAddr(_arguments[5]);
@@ -435,10 +464,15 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         require(args.amount <= userLp[args.lpToken][user], 'WithdrawFromLp: Insufficient funds.');
         userLp[args.lpToken][user] -= args.amount;
-        _withdrawLpAndSwap(user, args, args.amount);
+        amountTokenDesired = _withdrawLpAndSwap(user, args, args.amount);
     }
 
-    function withdrawFromFarm(address user, string[] memory _arguments) external nonReentrant onlyOwner {
+    function withdrawFromFarm(address user, string[] memory _arguments)
+        external
+        nonReentrant
+        onlyOwner
+        returns (uint256 amountTokenDesired)
+    {
         // For now it will only allow to withdraw one token, in the future this function will be renamed
         _wffot memory args;
         args.lpToken = StringUtils.parseAddr(_arguments[1]);
@@ -451,17 +485,17 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         require(args.amount <= userTt[args.tortleVault][user], 'WithdrawFromFarm: Insufficient funds.');
 
-        uint256 lpAmount = ITortleVault(args.tortleVault).withdraw(args.amount);
+        uint256 amountLp = ITortleVault(args.tortleVault).withdraw(args.amount);
         userTt[args.tortleVault][user] -= args.amount;
-        _withdrawLpAndSwap(user, args, lpAmount);
+        amountTokenDesired = _withdrawLpAndSwap(user, args, amountLp);
     }
 
     function _withdrawLpAndSwap(
         address user,
         _wffot memory args,
-        uint256 lpAmount
-    ) internal {
-        IERC20(args.lpToken).transfer(args.lpToken, lpAmount);
+        uint256 amountLp
+    ) internal returns (uint256 amountTokenDesired) {
+        IERC20(args.lpToken).transfer(args.lpToken, amountLp);
         (uint256 amount0, uint256 amount1) = IUniswapV2Pair(args.lpToken).burn(address(this));
 
         require(amount0 >= minimumAmount, 'UniswapV2Router: INSUFFICIENT_A_AMOUNT');
@@ -473,11 +507,11 @@ contract Nodes is Initializable, ReentrancyGuard {
         if (args.token1 == args.tokenDesired) {
             swapToken = args.token0;
             swapAmount = amount0;
-            setBalances(user, args.tokenDesired, amount1);
+            amountTokenDesired += amount1;
         } else {
             swapToken = args.token1;
             swapAmount = amount1;
-            setBalances(user, args.tokenDesired, amount0);
+            amountTokenDesired += amount0;
         }
 
         address[] memory path = new address[](2);
@@ -493,8 +527,8 @@ contract Nodes is Initializable, ReentrancyGuard {
             address(this),
             block.timestamp
         );
-
-        setBalances(user, path[1], swapedAmounts[1]);
+        amountTokenDesired += swapedAmounts[1];
+        setBalances(user, args.tokenDesired, amountTokenDesired);
     }
 
     function _addLiquidity(
@@ -507,12 +541,12 @@ contract Nodes is Initializable, ReentrancyGuard {
         returns (
             uint256 amount0f,
             uint256 amount1f,
-            uint256 lpBal
+            uint256 lpRes
         )
     {
         _approve(token0, address(router), amount0);
         _approve(token1, address(router), amount1);
-        (amount0f, amount1f, lpBal) = router.addLiquidity(token0, token1, amount0, amount1, 0, 0, address(this), block.timestamp);
+        (amount0f, amount1f, lpRes) = router.addLiquidity(token0, token1, amount0, amount1, 0, 0, address(this), block.timestamp);
     }
 
     function _approve(

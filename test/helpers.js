@@ -24,8 +24,16 @@ const createNode = (id, functionName, user, arguments, hasNext) => {
     hasNext,
   }
 }
+
+const addLiquidityETH = async (uniswapRouter, token, amountDesired, amountETHMin, amountMin, to) => {
+  return uniswapRouter.addLiquidityETH(token, amountDesired, amountETHMin, amountMin, to, 999999999999999, {
+    value: '5000000000000000000',
+  })
+}
+
 module.exports = {
   addLiquidity,
   beefIn,
   createNode,
+  addLiquidityETH,
 }
