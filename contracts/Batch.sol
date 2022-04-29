@@ -27,10 +27,10 @@ contract Batch {
     event SwapTokens(string id, address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
     event Liquidate(string id, IERC20[] tokensInput, uint256[] amountsIn, address tokenOutput, uint256 amountOut);
     event SendToWallet(string id, address tokenOutput, uint256 amountOut);
-    event lpDeposited(address lpToken, uint256 amount);
-    event ttDeposited(address ttVault, uint256 amount);
-    event lpWithdrawed(address lpToken, uint256 amountLp, address tokenDesired, uint256 amountTokenDesired);
-    event ttWithdrawed(address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired);
+    event lpDeposited(string id, address lpToken, uint256 amount);
+    event ttDeposited(string id, address ttVault, uint256 amount);
+    event lpWithdrawed(string id, address lpToken, uint256 amountLp, address tokenDesired, uint256 amountTokenDesired);
+    event ttWithdrawed(string id, address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired);
 
     constructor(address _owner) {
         owner = _owner;
@@ -81,6 +81,7 @@ contract Batch {
         }
         uint256 amountTokenDesired = nodes.withdrawFromFarm(args.user, args.arguments);
         emit ttWithdrawed(
+            args.id,
             StringUtils.parseAddr(args.arguments[2]),
             amount,
             StringUtils.parseAddr(args.arguments[5]),
@@ -99,6 +100,7 @@ contract Batch {
         }
         uint256 amountTokenDesired = nodes.withdrawFromLp(args.user, args.arguments);
         emit lpWithdrawed(
+            args.id,
             StringUtils.parseAddr(args.arguments[1]),
             amount,
             StringUtils.parseAddr(args.arguments[5]),
@@ -127,7 +129,7 @@ contract Batch {
             amount0,
             amount1
         );
-        emit lpDeposited(lpToken, lpRes);
+        emit lpDeposited(args.id, lpToken, lpRes);
         if (args.hasNext) {
             auxStack.push(lpRes);
         }
@@ -144,7 +146,7 @@ contract Batch {
             result[0]--;
         }
 
-        emit ttDeposited(StringUtils.parseAddr(args.arguments[2]), result[1]); // ttVault address and ttAmount
+        emit ttDeposited(args.id, StringUtils.parseAddr(args.arguments[2]), result[1]); // ttVault address and ttAmount
         if (args.hasNext) {
             auxStack.push(result[1]);
         }
