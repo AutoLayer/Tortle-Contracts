@@ -14,6 +14,44 @@ import './Batch.sol';
 
 contract Nodes is Initializable, ReentrancyGuard {
     using AddressToUintIterableMap for AddressToUintIterableMap.Map;
+    struct SplitStruct {
+        address user;
+        address token;
+        uint256 amount;
+        address firstToken;
+        address secondToken;
+        uint256 percentageFirstToken;
+        uint256 amountOutMinFirst;
+        uint256 amountOutMinSecond;
+    }
+    struct _dofot {
+        address lpToken;
+        address tortleVault;
+        address token;
+        uint256 amount;
+        uint256 amountOutMin;
+        uint256 ttAmount; // output
+    }
+
+    struct _doft {
+        address lpToken;
+        address tortleVault;
+        address token0;
+        address token1;
+        uint256 amount0;
+        uint256 amount1;
+    }
+
+    struct _wffot {
+        // withdraw from farm One Token
+        address lpToken;
+        address tortleVault;
+        address token0;
+        address token1;
+        address tokenDesired;
+        uint256 amountTokenDesiredMin;
+        uint256 amount;
+    }
 
     address public owner;
     IUniswapV2Router02 router; // Router.
@@ -27,23 +65,17 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     mapping(address => AddressToUintIterableMap.Map) private balance;
 
-    struct SplitStruct {
-        address user;
-        address token;
-        uint256 amount;
-        address firstToken;
-        address secondToken;
-        uint256 percentageFirstToken;
-        uint256 amountOutMinFirst;
-        uint256 amountOutMinSecond;
-    }
-
     event AddFunds(address tokenInput, uint256 amount);
     event Swap(address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
     event Split(uint256 amountOutToken1, uint256 amountOutToken2);
     event Liquidate(address tokenOutput, uint256 amountOut);
     event SendToWallet(address tokenOutput, uint256 amountOut);
     event RecoverAll(address tokenOut, uint256 amountOut);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner || msg.sender == address(batch), 'You must be the owner.');
+        _;
+    }
 
     function initializeConstructor(
         address _owner,
@@ -58,9 +90,236 @@ contract Nodes is Initializable, ReentrancyGuard {
         FTM = router.WETH();
     }
 
-    modifier onlyOwner() {
-        require(msg.sender == owner || msg.sender == address(batch), 'You must be the owner.');
-        _;
+    receive() external payable {}
+
+    function depositOnLp(
+        address user,
+        address lpToken,
+        address token0,
+        address token1,
+        uint256 amount0,
+        uint256 amount1
+    ) external nonReentrant onlyOwner returns (uint256) {
+        require(amount0 <= getBalance(user, IERC20(token0)), 'DepositOnLp: Insufficient token0 funds.');
+        require(amount1 <= getBalance(user, IERC20(token1)), 'DepositOnLp: Insufficient token1 funds.');
+        (uint256 amount0f, uint256 amount1f, uint256 lpRes) = _addLiquidity(token0, token1, amount0, amount1);
+        userLp[lpToken][user] += lpRes;
+        decreaseBalance(user, address(token0), amount0f);
+        decreaseBalance(user, address(token1), amount1f);
+        return lpRes;
+    }
+
+    function depositOnFarmLp(
+        address user,
+        string[] memory _arguments,
+        uint256[] memory auxStack
+    ) external nonReentrant onlyOwner returns (uint256[] memory result) {
+        address lpToken = StringUtils.parseAddr(_arguments[1]);
+        address tortleVault = StringUtils.parseAddr(_arguments[2]);
+        uint256 amount = StringUtils.safeParseInt(_arguments[3]);
+        result = new uint256[](2);
+        if (auxStack.length > 0) {
+            amount = auxStack[auxStack.length - 1];
+            result[0] = 1;
+        }
+        require(amount <= getBalance(user, IERC20(lpToken)), 'depositOnFarmLp: Insufficient lpToken funds.');
+        _approve(lpToken, tortleVault, amount);
+        uint256 ttShares = ITortleVault(tortleVault).deposit(amount);
+        userTt[tortleVault][user] += ttShares;
+        decreaseBalance(user, address(lpToken), amount);
+        result[1] = ttShares;
+    }
+
+    function depositOnFarmOneToken(
+        address user,
+        string[] memory _arguments,
+        uint256[] memory auxStack
+    ) external nonReentrant onlyOwner returns (uint256[] memory result) {
+        _dofot memory args;
+        args.lpToken = StringUtils.parseAddr(_arguments[1]);
+        args.tortleVault = StringUtils.parseAddr(_arguments[2]);
+        args.token = StringUtils.parseAddr(_arguments[3]);
+        args.amount = StringUtils.safeParseInt(_arguments[4]);
+        args.amountOutMin = StringUtils.safeParseInt(_arguments[5]);
+        result = new uint256[](2);
+        if (auxStack.length > 0) {
+            args.amount = auxStack[auxStack.length - 1];
+            result[0] = 1;
+        }
+        require(args.amount >= minimumAmount, 'Tortle: Insignificant input amount');
+        require(args.amount <= getBalance(user, IERC20(args.token)), 'depositOnFarmOneToken: Insufficient token funds.');
+
+        (uint256 reserveA, uint256 reserveB, ) = IUniswapV2Pair(args.lpToken).getReserves();
+        require(reserveA > minimumAmount && reserveB > minimumAmount, 'Tortle: Liquidity lp reserves too low');
+
+        address[] memory path = new address[](2);
+        path[0] = args.token;
+
+        uint256 swapAmountIn;
+        if (IUniswapV2Pair(args.lpToken).token0() == args.token) {
+            path[1] = IUniswapV2Pair(args.lpToken).token1();
+            swapAmountIn = _getSwapAmount(args.amount, reserveA, reserveB);
+        } else {
+            path[1] = IUniswapV2Pair(args.lpToken).token0();
+            swapAmountIn = _getSwapAmount(args.amount, reserveB, reserveA);
+        }
+
+        _approve(path[0], address(router), swapAmountIn + args.amount);
+        uint256[] memory swapedAmounts = router.swapExactTokensForTokens(
+            swapAmountIn,
+            args.amountOutMin,
+            path,
+            address(this),
+            block.timestamp
+        );
+        _approve(path[1], address(router), swapedAmounts[1]);
+        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = router.addLiquidity(
+            path[0],
+            path[1],
+            args.amount - swapedAmounts[0],
+            swapedAmounts[1],
+            1,
+            1,
+            address(this),
+            block.timestamp
+        );
+
+        // this approve could be made once if we always trust and allow our own vaults (which is the actual case)
+        _approve(args.lpToken, args.tortleVault, lpBal);
+        args.ttAmount = ITortleVault(args.tortleVault).deposit(lpBal);
+        userTt[args.tortleVault][user] += args.ttAmount;
+        decreaseBalance(user, path[0], swapedAmounts[0] + amount0f);
+        increaseBalance(user, path[1], swapedAmounts[1] - amount1f);
+        result[1] = args.ttAmount;
+    }
+
+    function depositOnFarmTokens(
+        address user,
+        string[] memory _arguments,
+        uint256[] memory auxStack
+    ) external nonReentrant onlyOwner returns (uint256[] memory result) {
+        _doft memory args;
+        args.lpToken = StringUtils.parseAddr(_arguments[1]);
+        args.tortleVault = StringUtils.parseAddr(_arguments[2]);
+        args.token0 = StringUtils.parseAddr(_arguments[3]);
+        args.token1 = StringUtils.parseAddr(_arguments[4]);
+        args.amount0 = StringUtils.safeParseInt(_arguments[5]);
+        args.amount1 = StringUtils.safeParseInt(_arguments[6]);
+        result = new uint256[](2);
+        if (auxStack.length > 0) {
+            args.amount0 = auxStack[auxStack.length - 2];
+            args.amount1 = auxStack[auxStack.length - 1];
+            result[0] = 2;
+        }
+        require(args.amount0 <= getBalance(user, IERC20(args.token0)), 'DepositOnLp: Insufficient token0 funds.');
+        require(args.amount1 <= getBalance(user, IERC20(args.token1)), 'DepositOnLp: Insufficient token1 funds.');
+        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = _addLiquidity(args.token0, args.token1, args.amount0, args.amount1);
+        _approve(args.lpToken, args.tortleVault, lpBal);
+        uint256 ttAmount = ITortleVault(args.tortleVault).deposit(lpBal);
+        userTt[args.tortleVault][user] += ttAmount;
+        decreaseBalance(user, address(args.token0), amount0f);
+        decreaseBalance(user, address(args.token1), amount1f);
+        result[1] = ttAmount;
+    }
+
+    function withdrawFromLp(address user, string[] memory _arguments)
+        external
+        nonReentrant
+        onlyOwner
+        returns (uint256 amountTokenDesired)
+    {
+        _wffot memory args;
+        args.lpToken = StringUtils.parseAddr(_arguments[1]);
+        args.token0 = StringUtils.parseAddr(_arguments[3]);
+        args.token1 = StringUtils.parseAddr(_arguments[4]);
+        args.tokenDesired = StringUtils.parseAddr(_arguments[5]);
+        args.amountTokenDesiredMin = StringUtils.safeParseInt(_arguments[6]);
+        args.amount = StringUtils.safeParseInt(_arguments[7]);
+
+        require(args.amount <= userLp[args.lpToken][user], 'WithdrawFromLp: Insufficient funds.');
+        userLp[args.lpToken][user] -= args.amount;
+        amountTokenDesired = _withdrawLpAndSwap(user, args, args.amount);
+    }
+
+    function withdrawFromFarm(address user, string[] memory _arguments)
+        external
+        nonReentrant
+        onlyOwner
+        returns (uint256 amountTokenDesired)
+    {
+        // For now it will only allow to withdraw one token, in the future this function will be renamed
+        _wffot memory args;
+        args.lpToken = StringUtils.parseAddr(_arguments[1]);
+        args.tortleVault = StringUtils.parseAddr(_arguments[2]);
+        args.token0 = StringUtils.parseAddr(_arguments[3]);
+        args.token1 = StringUtils.parseAddr(_arguments[4]);
+        args.tokenDesired = StringUtils.parseAddr(_arguments[5]);
+        args.amountTokenDesiredMin = StringUtils.safeParseInt(_arguments[6]);
+        args.amount = StringUtils.safeParseInt(_arguments[7]);
+
+        require(args.amount <= userTt[args.tortleVault][user], 'WithdrawFromFarm: Insufficient funds.');
+
+        uint256 amountLp = ITortleVault(args.tortleVault).withdraw(args.amount);
+        userTt[args.tortleVault][user] -= args.amount;
+        amountTokenDesired = _withdrawLpAndSwap(user, args, amountLp);
+    }
+
+    /**
+     * @notice Function that allows to withdraw tokens to the user's wallet.
+     * @param _user Address of the user who wishes to remove the tokens.
+     * @param _token Token to be withdrawn.
+     * @param _amount Amount of tokens to be withdrawn.
+     */
+    function sendToWallet(
+        address _user,
+        IERC20 _token,
+        uint256 _amount
+    ) public nonReentrant onlyOwner returns (uint256 amount) {
+        uint256 _userBalance = getBalance(_user, _token);
+        require(_userBalance >= _amount, 'Insufficient balance.');
+
+        if (address(_token) == FTM) {
+            payable(_user).transfer(_amount);
+        } else {
+            _token.transfer(_user, _amount);
+        }
+
+        decreaseBalance(_user, address(_token), _amount);
+
+        emit SendToWallet(address(_token), _amount);
+        return _amount;
+    }
+
+    /**
+     * @notice Emergency function that allows to recover all tokens in the state they are in.
+     * @param _tokens Array of the tokens to be withdrawn.
+     * @param _amounts Array of the amounts to be withdrawn.
+     */
+    function recoverAll(IERC20[] memory _tokens, uint256[] memory _amounts) public nonReentrant {
+        require(_tokens.length > 0, 'Enter some address.');
+
+        for (uint256 _i = 0; _i < _tokens.length; _i++) {
+            IERC20 _tokenAddress = _tokens[_i];
+
+            for (uint256 _x = 0; _x < balance[msg.sender].size(); _x++) {
+                address _tokenUserAddress = balance[msg.sender].getKeyAtIndex(_x);
+
+                if (address(_tokenAddress) == _tokenUserAddress) {
+                    uint256 _userBalance = getBalance(msg.sender, _tokenAddress);
+                    require(_userBalance >= _amounts[_i], 'Insufficient balance.');
+
+                    if (address(_tokenAddress) == FTM) {
+                        payable(msg.sender).transfer(_amounts[_i]);
+                    } else {
+                        _tokenAddress.transfer(msg.sender, _amounts[_i]);
+                    }
+
+                    decreaseBalance(msg.sender, address(_tokenAddress), _amounts[_i]);
+
+                    emit RecoverAll(address(_tokenAddress), _amounts[_i]);
+                }
+            }
+        }
     }
 
     function setBatch(Batch _batch) public onlyOwner {
@@ -85,7 +344,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 balanceAfter = _token.balanceOf(address(this));
         require(balanceAfter > balanceBefore, 'Transfer Error'); // Checks that the balance of the contract has increased.
 
-        setBalances(_user, address(_token), _amount);
+        increaseBalance(_user, address(_token), _amount);
 
         emit AddFunds(address(_token), _amount);
         return _amount;
@@ -98,7 +357,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     function addFundsForFTM(address _user) public payable nonReentrant returns (address token, uint256 amount) {
         require(msg.value > 0, 'Insufficient Balance.');
 
-        setBalances(_user, FTM, msg.value);
+        increaseBalance(_user, FTM, msg.value);
 
         emit AddFunds(FTM, msg.value);
         return (FTM, msg.value);
@@ -111,25 +370,6 @@ contract Nodes is Initializable, ReentrancyGuard {
      */
     function getBalance(address _user, IERC20 _token) public view returns (uint256) {
         return balance[_user].get(address(_token));
-    }
-
-    /**
-     * @notice Calculate the percentage of a number.
-     * @param x Number.
-     * @param y Percentage of number.
-     * @param scale Division.
-     */
-    function mulScale(
-        uint256 x,
-        uint256 y,
-        uint128 scale
-    ) internal pure returns (uint256) {
-        uint256 a = x / scale;
-        uint256 b = x % scale;
-        uint256 c = y / scale;
-        uint256 d = y % scale;
-
-        return a * c * scale + a * d + b * c + (b * d) / scale;
     }
 
     /**
@@ -170,8 +410,8 @@ contract Nodes is Initializable, ReentrancyGuard {
             _amountOutMinSecond
         );
 
-        setBalances(user, firstToken, _amountOutToken1);
-        setBalances(user, secondToken, _amountOutToken2);
+        increaseBalance(user, firstToken, _amountOutToken1);
+        increaseBalance(user, secondToken, _amountOutToken2);
 
         decreaseBalance(user, token, amount);
 
@@ -205,7 +445,7 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         uint256 _amountOut = nodes_.swapTokens(_token, _amount, _newToken, _amountOutMin);
 
-        setBalances(_user, _newToken, _amountOut);
+        increaseBalance(_user, _newToken, _amountOut);
 
         decreaseBalance(_user, address(_token), _amount);
 
@@ -289,207 +529,6 @@ contract Nodes is Initializable, ReentrancyGuard {
         return amount;
     }
 
-    function depositOnLp(
-        address user,
-        address lpToken,
-        address token0,
-        address token1,
-        uint256 amount0,
-        uint256 amount1
-    ) external nonReentrant onlyOwner returns (uint256) {
-        require(amount0 <= getBalance(user, IERC20(token0)), 'DepositOnLp: Insufficient token0 funds.');
-        require(amount1 <= getBalance(user, IERC20(token1)), 'DepositOnLp: Insufficient token1 funds.');
-        (uint256 amount0f, uint256 amount1f, uint256 lpRes) = _addLiquidity(token0, token1, amount0, amount1);
-        userLp[lpToken][user] += lpRes;
-        decreaseBalance(user, address(token0), amount0f);
-        decreaseBalance(user, address(token1), amount1f);
-        return lpRes;
-    }
-
-    function depositOnFarmLp(
-        address user,
-        string[] memory _arguments,
-        uint256[] memory auxStack
-    ) external nonReentrant onlyOwner returns (uint256[] memory result) {
-        address lpToken = StringUtils.parseAddr(_arguments[1]);
-        address tortleVault = StringUtils.parseAddr(_arguments[2]);
-        uint256 amount = StringUtils.safeParseInt(_arguments[3]);
-        result = new uint256[](2);
-        if (auxStack.length > 0) {
-            amount = auxStack[auxStack.length - 1];
-            result[0] = 1;
-        }
-        require(amount <= getBalance(user, IERC20(lpToken)), 'depositOnFarmLp: Insufficient lpToken funds.');
-        _approve(lpToken, tortleVault, amount);
-        uint256 ttShares = ITortleVault(tortleVault).deposit(amount);
-        userTt[tortleVault][user] += ttShares;
-        decreaseBalance(user, address(lpToken), amount);
-        result[1] = ttShares;
-    }
-
-    struct _dofot {
-        address lpToken;
-        address tortleVault;
-        address token;
-        uint256 amount;
-        uint256 amountOutMin;
-        uint256 ttAmount; // output
-    }
-
-    function depositOnFarmOneToken(
-        address user,
-        string[] memory _arguments,
-        uint256[] memory auxStack
-    ) external nonReentrant onlyOwner returns (uint256[] memory result) {
-        _dofot memory args;
-        args.lpToken = StringUtils.parseAddr(_arguments[1]);
-        args.tortleVault = StringUtils.parseAddr(_arguments[2]);
-        args.token = StringUtils.parseAddr(_arguments[3]);
-        args.amount = StringUtils.safeParseInt(_arguments[4]);
-        args.amountOutMin = StringUtils.safeParseInt(_arguments[5]);
-        result = new uint256[](2);
-        if (auxStack.length > 0) {
-            args.amount = auxStack[auxStack.length - 1];
-            result[0] = 1;
-        }
-        require(args.amount >= minimumAmount, 'Tortle: Insignificant input amount');
-        require(args.amount <= getBalance(user, IERC20(args.token)), 'depositOnFarmOneToken: Insufficient token funds.');
-
-        (uint256 reserveA, uint256 reserveB, ) = IUniswapV2Pair(args.lpToken).getReserves();
-        require(reserveA > minimumAmount && reserveB > minimumAmount, 'Tortle: Liquidity lp reserves too low');
-
-        address[] memory path = new address[](2);
-        path[0] = args.token;
-
-        uint256 swapAmountIn;
-        if (IUniswapV2Pair(args.lpToken).token0() == args.token) {
-            path[1] = IUniswapV2Pair(args.lpToken).token1();
-            swapAmountIn = _getSwapAmount(args.amount, reserveA, reserveB);
-        } else {
-            path[1] = IUniswapV2Pair(args.lpToken).token0();
-            swapAmountIn = _getSwapAmount(args.amount, reserveB, reserveA);
-        }
-
-        _approve(path[0], address(router), swapAmountIn + args.amount);
-        uint256[] memory swapedAmounts = router.swapExactTokensForTokens(
-            swapAmountIn,
-            args.amountOutMin,
-            path,
-            address(this),
-            block.timestamp
-        );
-        _approve(path[1], address(router), swapedAmounts[1]);
-        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = router.addLiquidity(
-            path[0],
-            path[1],
-            args.amount - swapedAmounts[0],
-            swapedAmounts[1],
-            1,
-            1,
-            address(this),
-            block.timestamp
-        );
-
-        // this approve could be made once if we always trust and allow our own vaults (which is the actual case)
-        _approve(args.lpToken, args.tortleVault, lpBal);
-        args.ttAmount = ITortleVault(args.tortleVault).deposit(lpBal);
-        userTt[args.tortleVault][user] += args.ttAmount;
-        decreaseBalance(user, path[0], swapedAmounts[0] + amount0f);
-        setBalances(user, path[1], swapedAmounts[1] - amount1f);
-        result[1] = args.ttAmount;
-    }
-
-    struct _doft {
-        address lpToken;
-        address tortleVault;
-        address token0;
-        address token1;
-        uint256 amount0;
-        uint256 amount1;
-    }
-
-    function depositOnFarmTokens(
-        address user,
-        string[] memory _arguments,
-        uint256[] memory auxStack
-    ) external nonReentrant onlyOwner returns (uint256[] memory result) {
-        _doft memory args;
-        args.lpToken = StringUtils.parseAddr(_arguments[1]);
-        args.tortleVault = StringUtils.parseAddr(_arguments[2]);
-        args.token0 = StringUtils.parseAddr(_arguments[3]);
-        args.token1 = StringUtils.parseAddr(_arguments[4]);
-        args.amount0 = StringUtils.safeParseInt(_arguments[5]);
-        args.amount1 = StringUtils.safeParseInt(_arguments[6]);
-        result = new uint256[](2);
-        if (auxStack.length > 0) {
-            args.amount0 = auxStack[auxStack.length - 2];
-            args.amount1 = auxStack[auxStack.length - 1];
-            result[0] = 2;
-        }
-        require(args.amount0 <= getBalance(user, IERC20(args.token0)), 'DepositOnLp: Insufficient token0 funds.');
-        require(args.amount1 <= getBalance(user, IERC20(args.token1)), 'DepositOnLp: Insufficient token1 funds.');
-        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = _addLiquidity(args.token0, args.token1, args.amount0, args.amount1);
-        _approve(args.lpToken, args.tortleVault, lpBal);
-        uint256 ttAmount = ITortleVault(args.tortleVault).deposit(lpBal);
-        userTt[args.tortleVault][user] += ttAmount;
-        decreaseBalance(user, address(args.token0), amount0f);
-        decreaseBalance(user, address(args.token1), amount1f);
-        result[1] = ttAmount;
-    }
-
-    struct _wffot {
-        // withdraw from farm One Token
-        address lpToken;
-        address tortleVault;
-        address token0;
-        address token1;
-        address tokenDesired;
-        uint256 amountTokenDesiredMin;
-        uint256 amount;
-    }
-
-    function withdrawFromLp(address user, string[] memory _arguments)
-        external
-        nonReentrant
-        onlyOwner
-        returns (uint256 amountTokenDesired)
-    {
-        _wffot memory args;
-        args.lpToken = StringUtils.parseAddr(_arguments[1]);
-        args.token0 = StringUtils.parseAddr(_arguments[3]);
-        args.token1 = StringUtils.parseAddr(_arguments[4]);
-        args.tokenDesired = StringUtils.parseAddr(_arguments[5]);
-        args.amountTokenDesiredMin = StringUtils.safeParseInt(_arguments[6]);
-        args.amount = StringUtils.safeParseInt(_arguments[7]);
-
-        require(args.amount <= userLp[args.lpToken][user], 'WithdrawFromLp: Insufficient funds.');
-        userLp[args.lpToken][user] -= args.amount;
-        amountTokenDesired = _withdrawLpAndSwap(user, args, args.amount);
-    }
-
-    function withdrawFromFarm(address user, string[] memory _arguments)
-        external
-        nonReentrant
-        onlyOwner
-        returns (uint256 amountTokenDesired)
-    {
-        // For now it will only allow to withdraw one token, in the future this function will be renamed
-        _wffot memory args;
-        args.lpToken = StringUtils.parseAddr(_arguments[1]);
-        args.tortleVault = StringUtils.parseAddr(_arguments[2]);
-        args.token0 = StringUtils.parseAddr(_arguments[3]);
-        args.token1 = StringUtils.parseAddr(_arguments[4]);
-        args.tokenDesired = StringUtils.parseAddr(_arguments[5]);
-        args.amountTokenDesiredMin = StringUtils.safeParseInt(_arguments[6]);
-        args.amount = StringUtils.safeParseInt(_arguments[7]);
-
-        require(args.amount <= userTt[args.tortleVault][user], 'WithdrawFromFarm: Insufficient funds.');
-
-        uint256 amountLp = ITortleVault(args.tortleVault).withdraw(args.amount);
-        userTt[args.tortleVault][user] -= args.amount;
-        amountTokenDesired = _withdrawLpAndSwap(user, args, amountLp);
-    }
-
     function _withdrawLpAndSwap(
         address user,
         _wffot memory args,
@@ -528,7 +567,7 @@ contract Nodes is Initializable, ReentrancyGuard {
             block.timestamp
         );
         amountTokenDesired += swapedAmounts[1];
-        setBalances(user, args.tokenDesired, amountTokenDesired);
+        increaseBalance(user, args.tokenDesired, amountTokenDesired);
     }
 
     function _addLiquidity(
@@ -558,6 +597,25 @@ contract Nodes is Initializable, ReentrancyGuard {
         IERC20(token).approve(spender, amount);
     }
 
+    /**
+     * @notice Calculate the percentage of a number.
+     * @param x Number.
+     * @param y Percentage of number.
+     * @param scale Division.
+     */
+    function mulScale(
+        uint256 x,
+        uint256 y,
+        uint128 scale
+    ) internal pure returns (uint256) {
+        uint256 a = x / scale;
+        uint256 b = x % scale;
+        uint256 c = y / scale;
+        uint256 d = y % scale;
+
+        return a * c * scale + a * d + b * c + (b * d) / scale;
+    }
+
     function _getSwapAmount(
         uint256 investmentA,
         uint256 reserveA,
@@ -569,7 +627,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         swapAmount = investmentA - (Babylonian.sqrt((halfInvestment * halfInvestment * nominator) / denominator));
     }
 
-    function setBalances(
+    function increaseBalance(
         address _user,
         address _token,
         uint256 _amount
@@ -590,64 +648,4 @@ contract Nodes is Initializable, ReentrancyGuard {
         _userBalance -= _amount;
         balance[_user].set(address(_token), _userBalance);
     }
-
-    /**
-     * @notice Function that allows to withdraw tokens to the user's wallet.
-     * @param _user Address of the user who wishes to remove the tokens.
-     * @param _token Token to be withdrawn.
-     * @param _amount Amount of tokens to be withdrawn.
-     */
-    function sendToWallet(
-        address _user,
-        IERC20 _token,
-        uint256 _amount
-    ) public nonReentrant onlyOwner returns (uint256 amount) {
-        uint256 _userBalance = getBalance(_user, _token);
-        require(_userBalance >= _amount, 'Insufficient balance.');
-
-        if (address(_token) == FTM) {
-            payable(_user).transfer(_amount);
-        } else {
-            _token.transfer(_user, _amount);
-        }
-
-        decreaseBalance(_user, address(_token), _amount);
-
-        emit SendToWallet(address(_token), _amount);
-        return _amount;
-    }
-
-    /**
-     * @notice Emergency function that allows to recover all tokens in the state they are in.
-     * @param _tokens Array of the tokens to be withdrawn.
-     * @param _amounts Array of the amounts to be withdrawn.
-     */
-    function recoverAll(IERC20[] memory _tokens, uint256[] memory _amounts) public nonReentrant {
-        require(_tokens.length > 0, 'Enter some address.');
-
-        for (uint256 _i = 0; _i < _tokens.length; _i++) {
-            IERC20 _tokenAddress = _tokens[_i];
-
-            for (uint256 _x = 0; _x < balance[msg.sender].size(); _x++) {
-                address _tokenUserAddress = balance[msg.sender].getKeyAtIndex(_x);
-
-                if (address(_tokenAddress) == _tokenUserAddress) {
-                    uint256 _userBalance = getBalance(msg.sender, _tokenAddress);
-                    require(_userBalance >= _amounts[_i], 'Insufficient balance.');
-
-                    if (address(_tokenAddress) == FTM) {
-                        payable(msg.sender).transfer(_amounts[_i]);
-                    } else {
-                        _tokenAddress.transfer(msg.sender, _amounts[_i]);
-                    }
-
-                    decreaseBalance(msg.sender, address(_tokenAddress), _amounts[_i]);
-
-                    emit RecoverAll(address(_tokenAddress), _amounts[_i]);
-                }
-            }
-        }
-    }
-
-    receive() external payable {}
 }
