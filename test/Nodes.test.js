@@ -108,8 +108,8 @@ describe('Nodes Contract', function () {
             const result = await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: "200000000000000000" });
             
             let receipt = await result.wait()
-            assert.equal(receipt.events[0].args.tokenInput, wftm.address);
-            assert.equal(receipt.events[0].args.amount, "200000000000000000");
+            assert.equal(receipt.events[1].args.tokenInput, wftm.address);
+            assert.equal(receipt.events[1].args.amount, "200000000000000000");
 
             const balanceAfter = await nodes.getBalance(otherUser.getAddress(), wftm.address)
             assert.notEqual(balanceBefore, balanceAfter)
@@ -212,13 +212,13 @@ describe('Nodes Contract', function () {
             await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: "200000000000000000" });
             
             const balanceBefore = await nodes.getBalance(otherUser.getAddress(), tortle.address)
-
+            
             const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), wftm.address, "200000000000000000", tortle.address, "0")
             
             let receipt = await result.wait()
-            assert.equal(receipt.events[5].args.tokenInput, wftm.address);
-            assert.equal(receipt.events[5].args.amountIn, "200000000000000000");
-            assert.equal(receipt.events[5].args.tokenOutput, tortle.address);
+            assert.equal(receipt.events[7].args.tokenInput, wftm.address);
+            assert.equal(receipt.events[7].args.amountIn, "200000000000000000");
+            assert.equal(receipt.events[7].args.tokenOutput, tortle.address);
 
             const balanceAfter = await nodes.getBalance(otherUser.getAddress(), tortle.address)
             assert.notEqual(balanceBefore, balanceAfter)
@@ -232,9 +232,9 @@ describe('Nodes Contract', function () {
             const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), link.address, "2000000000000000000", wftm.address, "0")
             
             let receipt = await result.wait()
-            assert.equal(receipt.events[8].args.tokenInput, link.address);
-            assert.equal(receipt.events[8].args.amountIn, "2000000000000000000");
-            assert.equal(receipt.events[8].args.tokenOutput, wftm.address);
+            assert.equal(receipt.events[7].args.tokenInput, link.address);
+            assert.equal(receipt.events[7].args.amountIn, "2000000000000000000");
+            assert.equal(receipt.events[7].args.tokenOutput, wftm.address);
 
             const balanceAfter = await nodes.getBalance(otherUser.getAddress(), wftm.address)
             assert.notEqual(balanceBefore, balanceAfter)
@@ -255,9 +255,9 @@ describe('Nodes Contract', function () {
         
         it('Liquidate token to ftm', async () => {
             await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, "2000000000000000000");
-
+            
             const balanceBefore = await nodes.getBalance(otherUser.getAddress(), wftm.address)
-
+            
             await nodes.liquidate(otherUser.getAddress(), [link.address], ["2000000000000000000"], wftm.address)
             
             const balanceAfter = await nodes.getBalance(otherUser.getAddress(), wftm.address)
@@ -317,8 +317,8 @@ describe('Nodes Contract', function () {
             const result = await nodes.sendToWallet(otherUser.getAddress(), wftm.address, "200000000000000000")
             
             let receipt = await result.wait()
-            assert.equal(receipt.events[0].args.tokenOutput, wftm.address);
-            assert.equal(receipt.events[0].args.amountOut, "200000000000000000");
+            assert.equal(receipt.events[1].args.tokenOutput, wftm.address);
+            assert.equal(receipt.events[1].args.amountOut, "200000000000000000");
         });
     });
 

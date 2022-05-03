@@ -77,9 +77,7 @@ contract Nodes_ is ReentrancyGuard {
         ); // Amount of first token.
         uint256 _secondTokenAmount = _amount - _firstTokenAmount; // Amount of second token.
 
-        if (address(_token) != FTM) {
-            IERC20(_token).approve(address(router), _amount);
-        }
+        IERC20(_token).approve(address(router), _amount);
 
         uint256[] memory amountsOut;
         uint256 _amountOutToken1;
@@ -164,7 +162,8 @@ contract Nodes_ is ReentrancyGuard {
             pathFirstToken[0] = FTM;
             pathFirstToken[1] = _firstToken;
 
-            amountsOut = router.swapExactETHForTokens{value: _firstTokenAmount}(
+            amountsOut = router.swapExactTokensForTokens(
+                _firstTokenAmount,
                 _amountOutMinFirst,
                 pathFirstToken,
                 address(msg.sender),
@@ -174,7 +173,7 @@ contract Nodes_ is ReentrancyGuard {
             _amountOutToken1 = amountsOut[amountsOut.length - 1];
         } else {
             _amountOutToken1 = _firstTokenAmount;
-            payable(msg.sender).transfer(_firstTokenAmount);
+            IERC20(_firstToken).transfer(msg.sender, _firstTokenAmount);
         }
 
         uint256 _amountOutToken2;
@@ -183,9 +182,8 @@ contract Nodes_ is ReentrancyGuard {
             pathSecondToken[0] = FTM;
             pathSecondToken[1] = _secondToken;
 
-            amountsOut = router.swapExactETHForTokens{
-                value: _secondTokenAmount
-            }(
+            amountsOut = router.swapExactTokensForTokens(
+                _secondTokenAmount,
                 _amountOutMinSecond,
                 pathSecondToken,
                 address(msg.sender),
@@ -195,7 +193,7 @@ contract Nodes_ is ReentrancyGuard {
             _amountOutToken2 = amountsOut[amountsOut.length - 1];
         } else {
             _amountOutToken2 = _secondTokenAmount;
-            payable(msg.sender).transfer(_secondTokenAmount);
+            IERC20(_secondToken).transfer(msg.sender, _secondTokenAmount);
         }
 
         return (_amountOutToken1, _amountOutToken2);
@@ -219,7 +217,7 @@ contract Nodes_ is ReentrancyGuard {
                 pathFirstToken[0] = address(_token);
                 pathFirstToken[1] = FTM;
 
-                amountsOut = router.swapExactTokensForETH(
+                amountsOut = router.swapExactTokensForTokens(
                     _firstTokenAmount,
                     _amountOutMinFirst,
                     pathFirstToken,
@@ -230,7 +228,7 @@ contract Nodes_ is ReentrancyGuard {
                 _amountOutToken1 = amountsOut[amountsOut.length - 1];
             } else {
                 _amountOutToken1 = _firstTokenAmount;
-                payable(msg.sender).transfer(_firstTokenAmount);
+                IERC20(_firstToken).transfer(msg.sender, _firstTokenAmount);
             }
 
             if (_secondToken != _token) {
@@ -278,7 +276,7 @@ contract Nodes_ is ReentrancyGuard {
                 pathSecondToken[0] = address(_token);
                 pathSecondToken[1] = FTM;
 
-                amountsOut = router.swapExactTokensForETH(
+                amountsOut = router.swapExactTokensForTokens(
                     _secondTokenAmount,
                     _amountOutMinSecond,
                     pathSecondToken,
@@ -289,7 +287,7 @@ contract Nodes_ is ReentrancyGuard {
                 _amountOutToken2 = amountsOut[amountsOut.length - 1];
             } else {
                 _amountOutToken2 = _secondTokenAmount;
-                payable(msg.sender).transfer(_secondTokenAmount);
+                IERC20(_secondToken).transfer(msg.sender, _secondTokenAmount);
             }
         }
 
@@ -309,31 +307,16 @@ contract Nodes_ is ReentrancyGuard {
         address _newToken,
         uint256 _amountOutMin
     ) public nonReentrant returns (uint256 amountOut) {
-        if (address(_token) != FTM) {
-            _token.approve(address(router), _amount);
-        }
+        _token.approve(address(router), _amount);
 
         uint256[] memory amountsOut;
         uint256 _amountOut;
-        if (address(_token) == FTM) {
-            address[] memory path = new address[](2);
-            path[0] = FTM;
-            path[1] = _newToken;
-
-            amountsOut = router.swapExactETHForTokens{value: _amount}(
-                _amountOutMin,
-                path,
-                address(msg.sender),
-                block.timestamp
-            );
-
-            _amountOut = amountsOut[amountsOut.length - 1];
-        } else if (_newToken == FTM) {
+        if (address(_token) == FTM || _newToken == FTM) {
             address[] memory path = new address[](2);
             path[0] = address(_token);
-            path[1] = FTM;
+            path[1] = _newToken;
 
-            amountsOut = router.swapExactTokensForETH(
+            amountsOut = router.swapExactTokensForTokens(
                 _amount,
                 _amountOutMin,
                 path,
