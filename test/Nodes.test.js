@@ -108,8 +108,8 @@ describe('Nodes Contract', function () {
             const result = await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: "200000000000000000" });
             
             let receipt = await result.wait()
-            assert.equal(receipt.events[0].args.tokenInput, wftm.address);
-            assert.equal(receipt.events[0].args.amount, "200000000000000000");
+            assert.equal(receipt.events[1].args.tokenInput, wftm.address);
+            assert.equal(receipt.events[1].args.amount, "200000000000000000");
 
             const balanceAfter = await nodes.getBalance(otherUser.getAddress(), wftm.address)
             assert.notEqual(balanceBefore, balanceAfter)
