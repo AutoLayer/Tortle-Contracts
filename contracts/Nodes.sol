@@ -9,6 +9,7 @@ import '@uniswap/lib/contracts/libraries/Babylonian.sol';
 import './lib/AddressToUintIterableMap.sol';
 import './lib/StringUtils.sol';
 import './interfaces/ITortleVault.sol';
+import './interfaces/IWETH.sol';
 import './Nodes_.sol';
 import './Batch.sol';
 
@@ -56,6 +57,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     address public owner;
     IUniswapV2Router02 router; // Router.
     address private FTM;
+    address private WFTM;
     Nodes_ public nodes_;
     Batch private batch;
     uint256 public constant minimumAmount = 1000;
@@ -87,7 +89,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         nodes_ = _nodes_;
         batch = _batch;
         router = IUniswapV2Router02(_router); // TestNet
-        FTM = router.WETH();
+        WFTM = router.WETH();
     }
 
     receive() external payable {}
@@ -357,10 +359,11 @@ contract Nodes is Initializable, ReentrancyGuard {
     function addFundsForFTM(address _user) public payable nonReentrant returns (address token, uint256 amount) {
         require(msg.value > 0, 'Insufficient Balance.');
 
-        increaseBalance(_user, FTM, msg.value);
+        increaseBalance(_user, WFTM, msg.value);
+        IWETH(WFTM).deposit{value: msg.value}();
 
-        emit AddFunds(FTM, msg.value);
-        return (FTM, msg.value);
+        emit AddFunds(WFTM, msg.value);
+        return (WFTM, msg.value);
     }
 
     /**
