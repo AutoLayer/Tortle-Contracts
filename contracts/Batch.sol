@@ -79,7 +79,7 @@ contract Batch {
             amount = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
-        uint256 amountTokenDesired = nodes.withdrawFromFarm(args.user, args.arguments);
+        uint256 amountTokenDesired = nodes.withdrawFromFarm(args.user, args.arguments, amount);
         emit ttWithdrawed(
             args.id,
             StringUtils.parseAddr(args.arguments[2]),
@@ -98,7 +98,7 @@ contract Batch {
             amount = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
-        uint256 amountTokenDesired = nodes.withdrawFromLp(args.user, args.arguments);
+        uint256 amountTokenDesired = nodes.withdrawFromLp(args.user, args.arguments, amount);
         emit lpWithdrawed(
             args.id,
             StringUtils.parseAddr(args.arguments[1]),
