@@ -224,31 +224,28 @@ contract Nodes is Initializable, ReentrancyGuard {
         result[1] = ttAmount;
     }
 
-    function withdrawFromLp(address user, string[] memory _arguments)
-        external
-        nonReentrant
-        onlyOwner
-        returns (uint256 amountTokenDesired)
-    {
+    function withdrawFromLp(
+        address user,
+        string[] memory _arguments,
+        uint256 amount
+    ) external nonReentrant onlyOwner returns (uint256 amountTokenDesired) {
         _wffot memory args;
         args.lpToken = StringUtils.parseAddr(_arguments[1]);
         args.token0 = StringUtils.parseAddr(_arguments[3]);
         args.token1 = StringUtils.parseAddr(_arguments[4]);
         args.tokenDesired = StringUtils.parseAddr(_arguments[5]);
         args.amountTokenDesiredMin = StringUtils.safeParseInt(_arguments[6]);
-        args.amount = StringUtils.safeParseInt(_arguments[7]);
 
-        require(args.amount <= userLp[args.lpToken][user], 'WithdrawFromLp: Insufficient funds.');
-        userLp[args.lpToken][user] -= args.amount;
-        amountTokenDesired = _withdrawLpAndSwap(user, args, args.amount);
+        require(amount <= userLp[args.lpToken][user], 'WithdrawFromLp: Insufficient funds.');
+        userLp[args.lpToken][user] -= amount;
+        amountTokenDesired = _withdrawLpAndSwap(user, args, amount);
     }
 
-    function withdrawFromFarm(address user, string[] memory _arguments)
-        external
-        nonReentrant
-        onlyOwner
-        returns (uint256 amountTokenDesired)
-    {
+    function withdrawFromFarm(
+        address user,
+        string[] memory _arguments,
+        uint256 amount
+    ) external nonReentrant onlyOwner returns (uint256 amountTokenDesired) {
         // For now it will only allow to withdraw one token, in the future this function will be renamed
         _wffot memory args;
         args.lpToken = StringUtils.parseAddr(_arguments[1]);
@@ -257,12 +254,11 @@ contract Nodes is Initializable, ReentrancyGuard {
         args.token1 = StringUtils.parseAddr(_arguments[4]);
         args.tokenDesired = StringUtils.parseAddr(_arguments[5]);
         args.amountTokenDesiredMin = StringUtils.safeParseInt(_arguments[6]);
-        args.amount = StringUtils.safeParseInt(_arguments[7]);
 
-        require(args.amount <= userTt[args.tortleVault][user], 'WithdrawFromFarm: Insufficient funds.');
+        require(amount <= userTt[args.tortleVault][user], 'WithdrawFromFarm: Insufficient funds.');
 
-        uint256 amountLp = ITortleVault(args.tortleVault).withdraw(args.amount);
-        userTt[args.tortleVault][user] -= args.amount;
+        uint256 amountLp = ITortleVault(args.tortleVault).withdraw(amount);
+        userTt[args.tortleVault][user] -= amount;
         amountTokenDesired = _withdrawLpAndSwap(user, args, amountLp);
     }
 
@@ -465,7 +461,7 @@ contract Nodes is Initializable, ReentrancyGuard {
                 IERC20(tokenInput).approve(address(router), amountInput);
 
                 uint256[] memory amountsOut;
-                if(tokenInput == WFTM || _tokenOutput == WFTM) {
+                if (tokenInput == WFTM || _tokenOutput == WFTM) {
                     address[] memory path = new address[](2);
                     path[0] = tokenInput;
                     path[1] = _tokenOutput;
