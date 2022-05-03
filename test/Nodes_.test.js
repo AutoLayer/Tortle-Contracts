@@ -52,6 +52,7 @@ describe('Nodes_ Contract', function () {
         const _Nodes_ = await hre.ethers.getContractFactory('Nodes_')
         nodes_ = await (await _Nodes_.deploy(deployer.getAddress(), uniswapRouter.address)).deployed()
         
+        await wftm.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000')
         await link.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000')
         await dai.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000') 
         await tortle.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000')
@@ -71,10 +72,7 @@ describe('Nodes_ Contract', function () {
         it('Swap ftm/token', async () => {
             const balanceBefore = await tortle.balanceOf(otherUser.getAddress())
 
-            await otherUser.sendTransaction({
-                to: nodes_.address,
-                value: ethers.utils.parseEther("1") // 1 ether
-            })
+            await wftm.connect(otherUser).transfer(nodes_.address, '1000000000000000000')
             await nodes_.connect(otherUser).swapTokens(wftm.address, "1000000000000000000", tortle.address, "0")
 
             const balanceAfter = await tortle.balanceOf(otherUser.getAddress())
@@ -82,12 +80,12 @@ describe('Nodes_ Contract', function () {
         });
 
         it('Swap token/ftm', async () => {
-            const balanceBefore = await otherUser.getBalance()
-
+            const balanceBefore = await wftm.balanceOf(otherUser.getAddress())
+            
             await link.connect(otherUser).transfer(nodes_.address, '2000000000000000000')
             await nodes_.connect(otherUser).swapTokens(link.address, "2000000000000000000", wftm.address, "0")
             
-            const balanceAfter = await otherUser.getBalance()
+            const balanceAfter = await wftm.balanceOf(otherUser.getAddress())
             assert.notEqual(balanceBefore, balanceAfter)
         });
     });
@@ -120,13 +118,13 @@ describe('Nodes_ Contract', function () {
         });
 
         it('Split token to ftm/token', async () => {
-            const balanceBeforeToken1 = await otherUser.getBalance()
+            const balanceBeforeToken1 = await wftm.balanceOf(otherUser.getAddress())
             const balanceBeforeToken2 = await dai.balanceOf(otherUser.getAddress())
 
             await link.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
             await nodes_.connect(otherUser).split(link.address, "2000000000000000000", wftm.address, dai.address, "5000", "0", "0")
         
-            const balanceAfterToken1 = await otherUser.getBalance()
+            const balanceAfterToken1 = await wftm.balanceOf(otherUser.getAddress())
             const balanceAfterToken2 = await dai.balanceOf(otherUser.getAddress())
             assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
             assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
@@ -162,10 +160,7 @@ describe('Nodes_ Contract', function () {
             const balanceBeforeToken1 = await link.balanceOf(otherUser.getAddress())
             const balanceBeforeToken2 = await dai.balanceOf(otherUser.getAddress())
 
-            await otherUser.sendTransaction({
-                to: nodes_.address,
-                value: ethers.utils.parseEther("1") // 1 ether
-            })
+            await wftm.connect(otherUser).transfer(nodes_.address, '1000000000000000000')
             await nodes_.connect(otherUser).split(wftm.address, "1000000000000000000", link.address, dai.address, "5000", "0", "0")
         
             const balanceAfterToken1 = await link.balanceOf(otherUser.getAddress())
@@ -175,16 +170,13 @@ describe('Nodes_ Contract', function () {
         });
 
         it('Split ftm to ftm/token', async () => {
-            const balanceBeforeToken1 = await otherUser.getBalance()
+            const balanceBeforeToken1 = await wftm.balanceOf(otherUser.getAddress())
             const balanceBeforeToken2 = await dai.balanceOf(otherUser.getAddress())
-
-            await otherUser.sendTransaction({
-                to: nodes_.address,
-                value: ethers.utils.parseEther("1") // 1 ether
-            })
+            
+            await wftm.connect(otherUser).transfer(nodes_.address, '1000000000000000000')
             await nodes_.connect(otherUser).split(wftm.address, "1000000000000000000", wftm.address, dai.address, "5000", "0", "0")
         
-            const balanceAfterToken1 = await otherUser.getBalance()
+            const balanceAfterToken1 = await wftm.balanceOf(otherUser.getAddress())
             const balanceAfterToken2 = await dai.balanceOf(otherUser.getAddress())
             assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
             assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
@@ -192,16 +184,13 @@ describe('Nodes_ Contract', function () {
 
         it('Split ftm to token/ftm', async () => {
             const balanceBeforeToken1 = await dai.balanceOf(otherUser.getAddress())
-            const balanceBeforeToken2 = await otherUser.getBalance()
-
-            await otherUser.sendTransaction({
-                to: nodes_.address,
-                value: ethers.utils.parseEther("1") // 1 ether
-            })
+            const balanceBeforeToken2 = wftm.balanceOf(otherUser.getAddress())
+            
+            await wftm.connect(otherUser).transfer(nodes_.address, '1000000000000000000')
             await nodes_.connect(otherUser).split(wftm.address, "1000000000000000000", dai.address, wftm.address, "5000", "0", "0")
         
             const balanceAfterToken1 = await dai.balanceOf(otherUser.getAddress())
-            const balanceAfterToken2 = await otherUser.getBalance()
+            const balanceAfterToken2 = wftm.balanceOf(otherUser.getAddress())
             assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
             assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
         });
