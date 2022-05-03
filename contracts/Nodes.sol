@@ -280,11 +280,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 _userBalance = getBalance(_user, _token);
         require(_userBalance >= _amount, 'Insufficient balance.');
 
-        if (address(_token) == FTM) {
-            payable(_user).transfer(_amount);
-        } else {
-            _token.transfer(_user, _amount);
-        }
+        _token.transfer(_user, _amount);
 
         decreaseBalance(_user, address(_token), _amount);
 
@@ -310,11 +306,7 @@ contract Nodes is Initializable, ReentrancyGuard {
                     uint256 _userBalance = getBalance(msg.sender, _tokenAddress);
                     require(_userBalance >= _amounts[_i], 'Insufficient balance.');
 
-                    if (address(_tokenAddress) == FTM) {
-                        payable(msg.sender).transfer(_amounts[_i]);
-                    } else {
-                        _tokenAddress.transfer(msg.sender, _amounts[_i]);
-                    }
+                    _tokenAddress.transfer(msg.sender, _amounts[_i]);
 
                     decreaseBalance(msg.sender, address(_tokenAddress), _amounts[_i]);
 
@@ -397,11 +389,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 _userBalance = getBalance(user, IERC20(token));
         require(amount <= _userBalance, 'Insufficient Balance.');
 
-        if (token == FTM) {
-            payable(address(nodes_)).transfer(amount);
-        } else {
-            IERC20(token).transfer(address(nodes_), amount);
-        }
+        IERC20(token).transfer(address(nodes_), amount);
 
         (uint256 _amountOutToken1, uint256 _amountOutToken2) = nodes_.split(
             token,
@@ -440,11 +428,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 _userBalance = getBalance(_user, _token);
         require(_amount <= _userBalance, 'Insufficient Balance.');
 
-        if (address(_token) == FTM) {
-            payable(address(nodes_)).transfer(_amount);
-        } else {
-            _token.transfer(address(nodes_), _amount);
-        }
+        _token.transfer(address(nodes_), _amount);
 
         uint256 _amountOut = nodes_.swapTokens(_token, _amount, _newToken, _amountOutMin);
 
@@ -481,26 +465,18 @@ contract Nodes is Initializable, ReentrancyGuard {
                 IERC20(tokenInput).approve(address(router), amountInput);
 
                 uint256[] memory amountsOut;
-                if (tokenInput == FTM) {
-                    address[] memory path = new address[](2);
-                    path[0] = FTM;
-                    path[1] = _tokenOutput;
-
-                    amountsOut = router.swapExactETHForTokens{value: amountInput}(0, path, address(this), block.timestamp);
-
-                    _amountOut = amountsOut[amountsOut.length - 1];
-                } else if (_tokenOutput == FTM) {
+                if(tokenInput == WFTM || _tokenOutput == WFTM) {
                     address[] memory path = new address[](2);
                     path[0] = tokenInput;
-                    path[1] = FTM;
+                    path[1] = _tokenOutput;
 
-                    amountsOut = router.swapExactTokensForETH(amountInput, 0, path, address(this), block.timestamp);
+                    amountsOut = router.swapExactTokensForTokens(amountInput, 0, path, address(this), block.timestamp);
 
                     _amountOut = amountsOut[amountsOut.length - 1];
                 } else {
                     address[] memory path = new address[](3);
                     path[0] = tokenInput;
-                    path[1] = FTM;
+                    path[1] = WFTM;
                     path[2] = _tokenOutput;
 
                     amountsOut = router.swapExactTokensForTokens(amountInput, 0, path, address(this), block.timestamp);
@@ -508,19 +484,11 @@ contract Nodes is Initializable, ReentrancyGuard {
                     _amountOut = amountsOut[amountsOut.length - 1];
                 }
 
-                if (_tokenOutput == FTM) {
-                    payable(_user).transfer(_amountOut);
-                } else {
-                    IERC20(_tokenOutput).transfer(_user, _amountOut);
-                }
+                IERC20(_tokenOutput).transfer(_user, _amountOut);
 
                 amount += _amountOut;
             } else {
-                if (_tokenOutput == FTM) {
-                    payable(_user).transfer(amountInput);
-                } else {
-                    IERC20(_tokenOutput).transfer(_user, amountInput);
-                }
+                IERC20(_tokenOutput).transfer(_user, amountInput);
 
                 amount += amountInput;
             }
