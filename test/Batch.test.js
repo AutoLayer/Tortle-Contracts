@@ -152,10 +152,10 @@ describe('Batch Contract', function () {
             assert.equal(receipt.events[3].args.amount, "1000000000000000000");
             
             // swapTokens
-            assert.equal(receipt.events[13].args.tokenInput, link.address);
-            assert.equal(receipt.events[13].args.amountIn, "1000000000000000000");
-            assert.equal(receipt.events[13].args.tokenOutput, wftm.address);
-            const amountOut = receipt.events[13].args.amountOut
+            assert.equal(receipt.events[12].args.tokenInput, link.address);
+            assert.equal(receipt.events[12].args.amountIn, "1000000000000000000");
+            assert.equal(receipt.events[12].args.tokenOutput, wftm.address);
+            const amountOut = receipt.events[12].args.amountOut
 
             // sendToWallet
             assert.equal(receipt.events[15].args.tokenOutput, wftm.address);
@@ -174,14 +174,14 @@ describe('Batch Contract', function () {
             let receipt = await result.wait()
             
             // swapTokens
-            assert.equal(receipt.events[6].args.tokenInput, wftm.address);
-            assert.equal(receipt.events[6].args.amountIn, "1000000000000000000");
-            assert.equal(receipt.events[6].args.tokenOutput, dai.address);
-            const amountOut = receipt.events[6].args.amountOut
+            assert.equal(receipt.events[8].args.tokenInput, wftm.address);
+            assert.equal(receipt.events[8].args.amountIn, "1000000000000000000");
+            assert.equal(receipt.events[8].args.tokenOutput, dai.address);
+            const amountOut = receipt.events[8].args.amountOut
 
             // sendToWallet
-            assert.equal(receipt.events[9].args.tokenOutput, dai.address);
-            assert.equal(receipt.events[9].args.amountOut, amountOut.toString());
+            assert.equal(receipt.events[11].args.tokenOutput, dai.address);
+            assert.equal(receipt.events[11].args.amountOut, amountOut.toString());
         });
     });
     
@@ -301,14 +301,14 @@ describe('Batch Contract', function () {
             assert.equal(receipt.events[3].args.amount, "1000000000000000000");
             
             // split
-            assert.equal(receipt.events[21].args.tokenInput, link.address);
-            assert.equal(receipt.events[21].args.amountIn, "1000000000000000000");
-            const amountOutToken1 = receipt.events[21].args.amountOutToken1
-            const amountOutToken2 = receipt.events[21].args.amountOutToken2
+            assert.equal(receipt.events[20].args.tokenInput, link.address);
+            assert.equal(receipt.events[20].args.amountIn, "1000000000000000000");
+            const amountOutToken1 = receipt.events[20].args.amountOutToken1
+            const amountOutToken2 = receipt.events[20].args.amountOutToken2
             
             // sendToWallet second token
-            assert.equal(receipt.events[24].args.tokenOutput, dai.address);
-            assert.equal(receipt.events[24].args.amountOut, amountOutToken2.toString());
+            assert.equal(receipt.events[23].args.tokenOutput, dai.address);
+            assert.equal(receipt.events[23].args.amountOut, amountOutToken2.toString());
 
             // sendToWallet first token
             assert.equal(receipt.events[26].args.tokenOutput, wftm.address);
@@ -339,18 +339,18 @@ describe('Batch Contract', function () {
             let receipt = await result.wait()
             
             // split
-            assert.equal(receipt.events[11].args.tokenInput, wftm.address);
-            assert.equal(receipt.events[11].args.amountIn, "1000000000000000000");
-            const amountOutToken1 = receipt.events[11].args.amountOutToken1
-            const amountOutToken2 = receipt.events[11].args.amountOutToken2
+            assert.equal(receipt.events[13].args.tokenInput, wftm.address);
+            assert.equal(receipt.events[13].args.amountIn, "1000000000000000000");
+            const amountOutToken1 = receipt.events[13].args.amountOutToken1
+            const amountOutToken2 = receipt.events[13].args.amountOutToken2
             
             // sendToWallet second token
-            assert.equal(receipt.events[14].args.tokenOutput, dai.address);
-            assert.equal(receipt.events[14].args.amountOut, amountOutToken2.toString());
+            assert.equal(receipt.events[16].args.tokenOutput, dai.address);
+            assert.equal(receipt.events[16].args.amountOut, amountOutToken2.toString());
 
             // sendToWallet first token
-            assert.equal(receipt.events[17].args.tokenOutput, link.address);
-            assert.equal(receipt.events[17].args.amountOut, amountOutToken1.toString());
+            assert.equal(receipt.events[19].args.tokenOutput, link.address);
+            assert.equal(receipt.events[19].args.amountOut, amountOutToken1.toString());
         });
 
         it('Split from ftm to ftm/token', async () => {
@@ -377,18 +377,18 @@ describe('Batch Contract', function () {
             let receipt = await result.wait()
             
             // split
-            assert.equal(receipt.events[6].args.tokenInput, wftm.address);
-            assert.equal(receipt.events[6].args.amountIn, "1000000000000000000");
-            const amountOutToken1 = receipt.events[6].args.amountOutToken1
-            const amountOutToken2 = receipt.events[6].args.amountOutToken2
+            assert.equal(receipt.events[9].args.tokenInput, wftm.address);
+            assert.equal(receipt.events[9].args.amountIn, "1000000000000000000");
+            const amountOutToken1 = receipt.events[9].args.amountOutToken1
+            const amountOutToken2 = receipt.events[9].args.amountOutToken2
             
             // sendToWallet second token
-            assert.equal(receipt.events[9].args.tokenOutput, dai.address);
-            assert.equal(receipt.events[9].args.amountOut, amountOutToken2.toString());
+            assert.equal(receipt.events[12].args.tokenOutput, dai.address);
+            assert.equal(receipt.events[12].args.amountOut, amountOutToken2.toString());
 
             // sendToWallet first token
-            assert.equal(receipt.events[11].args.tokenOutput, wftm.address);
-            assert.equal(receipt.events[11].args.amountOut, amountOutToken1.toString());
+            assert.equal(receipt.events[15].args.tokenOutput, wftm.address);
+            assert.equal(receipt.events[15].args.amountOut, amountOutToken1.toString());
         });
     });
     
@@ -469,20 +469,20 @@ describe('Batch Contract', function () {
             assert.equal(receipt.events[3].args.amount, "1000000000000000000");
 
             // split
-            assert.equal(receipt.events[21].args.tokenInput, link.address);
-            assert.equal(receipt.events[21].args.amountIn, "1000000000000000000");
-            const amountOutToken1 = receipt.events[21].args.amountOutToken1
-            const amountOutToken2 = receipt.events[21].args.amountOutToken2
+            assert.equal(receipt.events[20].args.tokenInput, link.address);
+            assert.equal(receipt.events[20].args.amountIn, "1000000000000000000");
+            const amountOutToken1 = receipt.events[20].args.amountOutToken1
+            const amountOutToken2 = receipt.events[20].args.amountOutToken2
 
             // liquidate1
-            assert.equal(receipt.events[30].args.tokensInput[0], wftm.address);
-            assert.equal(receipt.events[30].args.amountsIn[0], amountOutToken2.toString());
-            assert.equal(receipt.events[30].args.tokenOutput, tortle.address);
+            assert.equal(receipt.events[29].args.tokensInput[0], wftm.address);
+            assert.equal(receipt.events[29].args.amountsIn[0], amountOutToken2.toString());
+            assert.equal(receipt.events[29].args.tokenOutput, tortle.address);
 
             // liquidate2
-            assert.equal(receipt.events[42].args.tokensInput[0], dai.address);
-            assert.equal(receipt.events[42].args.amountsIn[0], amountOutToken1.toString());
-            assert.equal(receipt.events[42].args.tokenOutput, link.address);
+            assert.equal(receipt.events[41].args.tokensInput[0], dai.address);
+            assert.equal(receipt.events[41].args.amountsIn[0], amountOutToken1.toString());
+            assert.equal(receipt.events[41].args.tokenOutput, link.address);
         });
 
         it('AddFunds-Swap-Split-(1->Swap-SendToWallet)-(2->Liquidate)', async () => {
@@ -514,25 +514,25 @@ describe('Batch Contract', function () {
             const amountOutSwap1 = receipt.events[15].args.amountOut
 
             // split
-            assert.equal(receipt.events[33].args.tokenInput, dai.address);
-            assert.equal(receipt.events[33].args.amountIn, amountOutSwap1.toString());
-            const amountOutToken1 = receipt.events[33].args.amountOutToken1
-            const amountOutToken2 = receipt.events[33].args.amountOutToken2
+            assert.equal(receipt.events[32].args.tokenInput, dai.address);
+            assert.equal(receipt.events[32].args.amountIn, amountOutSwap1.toString());
+            const amountOutToken1 = receipt.events[32].args.amountOutToken1
+            const amountOutToken2 = receipt.events[32].args.amountOutToken2
 
             // swapTokens2
-            assert.equal(receipt.events[40].args.tokenInput, wftm.address);
-            assert.equal(receipt.events[40].args.amountIn, amountOutToken2.toString());
-            assert.equal(receipt.events[40].args.tokenOutput, link.address);
-            const amountOutSwap2 = receipt.events[40].args.amountOut
+            assert.equal(receipt.events[41].args.tokenInput, wftm.address);
+            assert.equal(receipt.events[41].args.amountIn, amountOutToken2.toString());
+            assert.equal(receipt.events[41].args.tokenOutput, link.address);
+            const amountOutSwap2 = receipt.events[41].args.amountOut
 
             // sendToWallet
-            assert.equal(receipt.events[43].args.tokenOutput, link.address);
-            assert.equal(receipt.events[43].args.amountOut, amountOutSwap2.toString());
+            assert.equal(receipt.events[44].args.tokenOutput, link.address);
+            assert.equal(receipt.events[44].args.amountOut, amountOutSwap2.toString());
 
             // liquidate
-            assert.equal(receipt.events[55].args.tokensInput[0], tortle.address);
-            assert.equal(receipt.events[55].args.amountsIn[0], amountOutToken1.toString());
-            assert.equal(receipt.events[55].args.tokenOutput, dai.address);
+            assert.equal(receipt.events[56].args.tokensInput[0], tortle.address);
+            assert.equal(receipt.events[56].args.amountsIn[0], amountOutToken1.toString());
+            assert.equal(receipt.events[56].args.tokenOutput, dai.address);
         });
 
         it('AddFunds-Swap-Split-(1->Swap-SendToWallet)-(2->Split-(2.1->Swap-SendToWallet)-(2.2->Liquidate))', async () => {
@@ -570,26 +570,26 @@ describe('Batch Contract', function () {
             const amountOutSwap1 = receipt.events[15].args.amountOut
 
             // split1
-            assert.equal(receipt.events[33].args.tokenInput, dai.address);
-            assert.equal(receipt.events[33].args.amountIn, amountOutSwap1.toString());
-            const amountOutToken1 = receipt.events[33].args.amountOutToken1
-            const amountOutToken2 = receipt.events[33].args.amountOutToken2
+            assert.equal(receipt.events[32].args.tokenInput, dai.address);
+            assert.equal(receipt.events[32].args.amountIn, amountOutSwap1.toString());
+            const amountOutToken1 = receipt.events[32].args.amountOutToken1
+            const amountOutToken2 = receipt.events[32].args.amountOutToken2
 
             // swapTokens2
-            assert.equal(receipt.events[40].args.tokenInput, wftm.address);
-            assert.equal(receipt.events[40].args.amountIn, amountOutToken2.toString());
-            assert.equal(receipt.events[40].args.tokenOutput, link.address);
-            const amountOutSwap2 = receipt.events[40].args.amountOut
+            assert.equal(receipt.events[41].args.tokenInput, wftm.address);
+            assert.equal(receipt.events[41].args.amountIn, amountOutToken2.toString());
+            assert.equal(receipt.events[41].args.tokenOutput, link.address);
+            const amountOutSwap2 = receipt.events[41].args.amountOut
 
             // sendToWallet1
-            assert.equal(receipt.events[43].args.tokenOutput, link.address);
-            assert.equal(receipt.events[43].args.amountOut, amountOutSwap2.toString());
+            assert.equal(receipt.events[44].args.tokenOutput, link.address);
+            assert.equal(receipt.events[44].args.amountOut, amountOutSwap2.toString());
 
             // split2
-            assert.equal(receipt.events[63].args.tokenInput, tortle.address);
-            assert.equal(receipt.events[63].args.amountIn, amountOutToken1.toString());
-            const amountOutToken1Split2 = receipt.events[63].args.amountOutToken1
-            const amountOutToken2Split2 = receipt.events[63].args.amountOutToken2
+            assert.equal(receipt.events[64].args.tokenInput, tortle.address);
+            assert.equal(receipt.events[64].args.amountIn, amountOutToken1.toString());
+            const amountOutToken1Split2 = receipt.events[64].args.amountOutToken1
+            const amountOutToken2Split2 = receipt.events[64].args.amountOutToken2
 
             // swapTokens3
             assert.equal(receipt.events[73].args.tokenInput, link.address);
@@ -598,13 +598,13 @@ describe('Batch Contract', function () {
             const amountOutSwap3 = receipt.events[73].args.amountOut
 
             // sendToWallet2
-            assert.equal(receipt.events[75].args.tokenOutput, wftm.address);
-            assert.equal(receipt.events[75].args.amountOut, amountOutSwap3.toString());
+            assert.equal(receipt.events[76].args.tokenOutput, wftm.address);
+            assert.equal(receipt.events[76].args.amountOut, amountOutSwap3.toString());
 
             // liquidate
-            assert.equal(receipt.events[87].args.tokensInput[0], dai.address);
-            assert.equal(receipt.events[87].args.amountsIn[0], amountOutToken1Split2.toString());
-            assert.equal(receipt.events[87].args.tokenOutput, tortle.address);
+            assert.equal(receipt.events[88].args.tokensInput[0], dai.address);
+            assert.equal(receipt.events[88].args.amountsIn[0], amountOutToken1Split2.toString());
+            assert.equal(receipt.events[88].args.tokenOutput, tortle.address);
         });
 
         it('AddFunds-Swap-Split-(1->Swap-SendToWallet)-(2->Split-(2.1->Swap-SendToWallet)-(2.2->Split-(3.1->Liquidate)-(3.2->Liquidate)))', async () => {
@@ -646,26 +646,26 @@ describe('Batch Contract', function () {
             const amountOutSwap1 = receipt.events[15].args.amountOut
 
             // split1
-            assert.equal(receipt.events[33].args.tokenInput, dai.address);
-            assert.equal(receipt.events[33].args.amountIn, amountOutSwap1.toString());
-            const amountOutToken1 = receipt.events[33].args.amountOutToken1
-            const amountOutToken2 = receipt.events[33].args.amountOutToken2
+            assert.equal(receipt.events[32].args.tokenInput, dai.address);
+            assert.equal(receipt.events[32].args.amountIn, amountOutSwap1.toString());
+            const amountOutToken1 = receipt.events[32].args.amountOutToken1
+            const amountOutToken2 = receipt.events[32].args.amountOutToken2
 
             // swapTokens2
-            assert.equal(receipt.events[40].args.tokenInput, wftm.address);
-            assert.equal(receipt.events[40].args.amountIn, amountOutToken2.toString());
-            assert.equal(receipt.events[40].args.tokenOutput, link.address);
-            const amountOutSwap2 = receipt.events[40].args.amountOut
+            assert.equal(receipt.events[41].args.tokenInput, wftm.address);
+            assert.equal(receipt.events[41].args.amountIn, amountOutToken2.toString());
+            assert.equal(receipt.events[41].args.tokenOutput, link.address);
+            const amountOutSwap2 = receipt.events[41].args.amountOut
 
             // sendToWallet1
-            assert.equal(receipt.events[43].args.tokenOutput, link.address);
-            assert.equal(receipt.events[43].args.amountOut, amountOutSwap2.toString());
+            assert.equal(receipt.events[44].args.tokenOutput, link.address);
+            assert.equal(receipt.events[44].args.amountOut, amountOutSwap2.toString());
 
             // split2
-            assert.equal(receipt.events[63].args.tokenInput, tortle.address);
-            assert.equal(receipt.events[63].args.amountIn, amountOutToken1.toString());
-            const amountOutToken1Split2 = receipt.events[63].args.amountOutToken1
-            const amountOutToken2Split2 = receipt.events[63].args.amountOutToken2
+            assert.equal(receipt.events[64].args.tokenInput, tortle.address);
+            assert.equal(receipt.events[64].args.amountIn, amountOutToken1.toString());
+            const amountOutToken1Split2 = receipt.events[64].args.amountOutToken1
+            const amountOutToken2Split2 = receipt.events[64].args.amountOutToken2
 
             // swapTokens3
             assert.equal(receipt.events[73].args.tokenInput, link.address);
@@ -674,24 +674,24 @@ describe('Batch Contract', function () {
             const amountOutSwap3 = receipt.events[73].args.amountOut
 
             // sendToWallet2
-            assert.equal(receipt.events[75].args.tokenOutput, wftm.address);
-            assert.equal(receipt.events[75].args.amountOut, amountOutSwap3.toString());
+            assert.equal(receipt.events[76].args.tokenOutput, wftm.address);
+            assert.equal(receipt.events[76].args.amountOut, amountOutSwap3.toString());
 
             // split3
-            assert.equal(receipt.events[95].args.tokenInput, dai.address);
-            assert.equal(receipt.events[95].args.amountIn, amountOutToken1Split2.toString());
-            const amountOutToken1Split3 = receipt.events[95].args.amountOutToken1
-            const amountOutToken2Split3 = receipt.events[95].args.amountOutToken2
+            assert.equal(receipt.events[96].args.tokenInput, dai.address);
+            assert.equal(receipt.events[96].args.amountIn, amountOutToken1Split2.toString());
+            const amountOutToken1Split3 = receipt.events[96].args.amountOutToken1
+            const amountOutToken2Split3 = receipt.events[96].args.amountOutToken2
 
             // liquidate
-            assert.equal(receipt.events[104].args.tokensInput[0], link.address);
-            assert.equal(receipt.events[104].args.amountsIn[0], amountOutToken2Split3.toString());
-            assert.equal(receipt.events[104].args.tokenOutput, wftm.address);
+            assert.equal(receipt.events[105].args.tokensInput[0], link.address);
+            assert.equal(receipt.events[105].args.amountsIn[0], amountOutToken2Split3.toString());
+            assert.equal(receipt.events[105].args.tokenOutput, wftm.address);
 
             // liquidate
-            assert.equal(receipt.events[113].args.tokensInput[0], tortle.address);
-            assert.equal(receipt.events[113].args.amountsIn[0], amountOutToken1Split3.toString());
-            assert.equal(receipt.events[113].args.tokenOutput, wftm.address);
+            assert.equal(receipt.events[114].args.tokensInput[0], tortle.address);
+            assert.equal(receipt.events[114].args.amountsIn[0], amountOutToken1Split3.toString());
+            assert.equal(receipt.events[114].args.tokenOutput, wftm.address);
         });
     });
 });
