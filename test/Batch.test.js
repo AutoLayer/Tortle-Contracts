@@ -135,6 +135,33 @@ describe('Batch Contract', function () {
             assert.equal(receipt.events[18].args.amountOut, amountOut.toString());
         });
 
+        it('Swap token/sameToken', async () => {
+            const _args1 = [link.address, "1000000000000000000"]
+            const _args2 = [link.address, '1000000000000000000', link.address, '0']
+            const _args3 = [link.address, "0"]
+            const addFundsForTokens = createNode(1, `addFundsForTokens${_params}`, otherUser.getAddress(), _args1, true)
+            const swapTokens = createNode(2, `swapTokens${_params}`, otherUser.getAddress(), _args2, true)
+            const sendToWallet = createNode(3, `sendToWallet${_params}`, otherUser.getAddress(), _args3, false)
+
+            const result = await batch.connect(deployer).batchFunctions([addFundsForTokens, swapTokens, sendToWallet]);
+            
+            let receipt = await result.wait()
+            
+            // addFunds
+            assert.equal(receipt.events[3].args.tokenInput, link.address);
+            assert.equal(receipt.events[3].args.amount, "1000000000000000000");
+            
+            // swapTokens
+            assert.equal(receipt.events[5].args.tokenInput, link.address);
+            assert.equal(receipt.events[5].args.amountIn, "1000000000000000000");
+            assert.equal(receipt.events[5].args.tokenOutput, link.address);
+            const amountOut = receipt.events[5].args.amountOut
+
+            // sendToWallet
+            assert.equal(receipt.events[8].args.tokenOutput, link.address);
+            assert.equal(receipt.events[8].args.amountOut, amountOut.toString());
+        });
+
         it('Swap token/ftm', async () => {
             const _args1 = [link.address, "1000000000000000000"]
             const _args2 = [link.address, '1000000000000000000', wftm.address, '0']

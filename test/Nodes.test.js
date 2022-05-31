@@ -208,6 +208,38 @@ describe('Nodes Contract', function () {
             assert.notEqual(balanceBefore, balanceAfter)
         });
 
+        it('Swap token/sameToken', async () => {
+            await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, "2000000000000000000");
+            
+            const balanceBefore = await nodes.getBalance(otherUser.getAddress(), link.address)
+
+            const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), link.address, "2000000000000000000", link.address, "0")
+            
+            let receipt = await result.wait()
+            assert.equal(receipt.events[0].args.tokenInput, link.address);
+            assert.equal(receipt.events[0].args.amountIn, "2000000000000000000");
+            assert.equal(receipt.events[0].args.tokenOutput, link.address);
+
+            const balanceAfter = await nodes.getBalance(otherUser.getAddress(), link.address)
+            assert.equal(balanceBefore.toString(), balanceAfter.toString())
+        });
+
+        it('Swap ftm/ftm', async () => {
+            await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: "200000000000000000" });
+            
+            const balanceBefore = await nodes.getBalance(otherUser.getAddress(), wftm.address)
+
+            const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), wftm.address, "200000000000000000", wftm.address, "0")
+            
+            let receipt = await result.wait()
+            assert.equal(receipt.events[0].args.tokenInput, wftm.address);
+            assert.equal(receipt.events[0].args.amountIn, "200000000000000000");
+            assert.equal(receipt.events[0].args.tokenOutput, wftm.address);
+
+            const balanceAfter = await nodes.getBalance(otherUser.getAddress(), wftm.address)
+            assert.equal(balanceBefore.toString(), balanceAfter.toString())
+        });
+
         it('Swap ftm/token', async () => {
             await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: "200000000000000000" });
             

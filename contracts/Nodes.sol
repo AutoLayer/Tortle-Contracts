@@ -424,14 +424,19 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 _userBalance = getBalance(_user, _token);
         require(_amount <= _userBalance, 'Insufficient Balance.');
 
-        _token.transfer(address(nodes_), _amount);
+        uint256 _amountOut;
+        if(address(_token) != _newToken) {
+            _token.transfer(address(nodes_), _amount);
 
-        uint256 _amountOut = nodes_.swapTokens(_token, _amount, _newToken, _amountOutMin);
+            _amountOut = nodes_.swapTokens(_token, _amount, _newToken, _amountOutMin);
 
-        increaseBalance(_user, _newToken, _amountOut);
+            increaseBalance(_user, _newToken, _amountOut);
 
-        decreaseBalance(_user, address(_token), _amount);
-
+            decreaseBalance(_user, address(_token), _amount);
+        } else {
+            _amountOut = _amount;
+        }
+        
         emit Swap(address(_token), _amount, _newToken, _amountOut);
         return _amountOut;
     }
