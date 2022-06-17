@@ -48,6 +48,11 @@ module.exports = {
       blockGasLimit: 100000000429729999990,
       allowUnlimitedContractSize: true,
     },
+    ftm: {
+      url: 'https://rpc.ftm.tools/',
+      allowUnlimitedContractSize: true,
+      accounts: [],
+    },
     testnet: {
       url: 'https://xapi.testnet.fantom.network/lachesis',
       allowUnlimitedContractSize: true,
