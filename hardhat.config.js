@@ -51,6 +51,7 @@ module.exports = {
     ftm: {
       url: 'https://rpc.ftm.tools/',
       allowUnlimitedContractSize: true,
+      gasPrice: 62500000000,
       accounts: [],
     },
     testnet: {
