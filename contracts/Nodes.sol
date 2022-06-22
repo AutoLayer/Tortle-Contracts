@@ -466,7 +466,7 @@ contract Nodes is Initializable, ReentrancyGuard {
 
             uint256 _amountOut;
             if (tokenInput != _tokenOutput) {
-                IERC20(tokenInput).approve(address(router), amountInput);
+                _approve(tokenInput, address(router), amountInput);
 
                 uint256[] memory amountsOut;
                 if (tokenInput == WFTM || _tokenOutput == WFTM) {
@@ -568,8 +568,8 @@ contract Nodes is Initializable, ReentrancyGuard {
         address spender,
         uint256 amount
     ) internal {
-        IERC20(token).approve(spender, 0);
-        IERC20(token).approve(spender, amount);
+        IERC20(token).safeApprove(spender, 0);
+        IERC20(token).safeApprove(spender, amount);
     }
 
     /**

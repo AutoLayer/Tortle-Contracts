@@ -81,7 +81,7 @@ contract Nodes_ is ReentrancyGuard {
         ); // Amount of first token.
         uint256 _secondTokenAmount = _amount - _firstTokenAmount; // Amount of second token.
 
-        IERC20(_token).approve(address(router), _amount);
+        IERC20(_token).safeApprove(address(router), _amount);
 
         uint256[] memory amountsOut;
         uint256 _amountOutToken1;
@@ -312,7 +312,7 @@ contract Nodes_ is ReentrancyGuard {
         uint256 _amountOutMin
     ) public nonReentrant returns (uint256 amountOut) {
         require(_amount <= _token.balanceOf(msg.sender));
-        _token.approve(address(router), _amount);
+        _token.safeApprove(address(router), _amount);
 
         uint256[] memory amountsOut;
         uint256 _amountOut;
