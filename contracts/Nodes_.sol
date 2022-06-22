@@ -70,6 +70,7 @@ contract Nodes_ is ReentrancyGuard {
         nonReentrant
         returns (uint256 amountOutToken1, uint256 amountOutToken2)
     {
+        require(_amount <= IERC20(_token).balanceOf(msg.sender));
         uint256 _firstTokenAmount = mulScale(
             _amount,
             _percentageFirstToken,
@@ -307,6 +308,7 @@ contract Nodes_ is ReentrancyGuard {
         address _newToken,
         uint256 _amountOutMin
     ) public nonReentrant returns (uint256 amountOut) {
+        require(_amount <= _token.balanceOf(msg.sender));
         _token.approve(address(router), _amount);
 
         uint256[] memory amountsOut;
