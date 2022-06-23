@@ -265,6 +265,13 @@
         "address1": "0x9879aBDea01a879644185341F7aF7d8343556B7a"
     },
     {
+        "token0": "TUSD",
+        "token1": "USDC",
+        "address0": "0x9879aBDea01a879644185341F7aF7d8343556B7a",
+        "address1": "0x04068DA6C83AFCFA0e13ba15A6696662335D5B75",
+        "poolId": "45"
+    },
+    {
         "token0": "WFTM",
         "token1": "ANY",
         "address0": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
@@ -280,15 +287,23 @@
     },
     {
         "token0": "WFTM",
-        "token1": "MAI",
+        "token1": "miMATIC",
         "address0": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
         "address1": "0xfb98b335551a418cd0737375a2ea0ded62ea213b"
+    },
+    {
+        "token0": "USDC",
+        "token1": "miMATIC",
+        "address0": "0x04068DA6C83AFCFA0e13ba15A6696662335D5B75",
+        "address1": "0xfB98B335551a418cD0737375a2ea0ded62Ea213b",
+        "poolId": "42"
     },
     {
         "token0": "MST",
         "token1": "WFTM",
         "address0": "0x152888854378201e173490956085c711f1DeD565",
-        "address1": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83"
+        "address1": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
+        "poolId": "62"
     },
     {
         "token0": "USDC",
