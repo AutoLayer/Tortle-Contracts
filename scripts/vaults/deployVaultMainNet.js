@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat')
 const { WEI } = require('../../test/utils')
-const farmsListJSON = require('./farmsList.json')
+const farmsListJSON = require('./shortExampleFarmList.json')
 
 const deployVaults = async (tokensList) => {
     const VaultDepositFEE = 10
@@ -61,7 +61,7 @@ const deployVaults = async (tokensList) => {
 
     // await createVault(tokensList[0])
     // await createVault(tokensList[1])
-    console.log('Lista Final: ', farmsList)
+    console.log('Final List: ', farmsList)
 }
 
 deployVaults(farmsListJSON)

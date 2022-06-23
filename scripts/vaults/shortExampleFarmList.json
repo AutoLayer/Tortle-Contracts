@@ -1,14 +1,30 @@
 [
     {
-        "token0": "WFTM",
-        "token1": "BEETS",
-        "address0": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
-        "address1": "0xf24bcf4d1e507740041c9cfd2dddb29585adce1e"
+        "token0": "USDC",
+        "token1": "DAI",
+        "address0": "0x04068da6c83afcfa0e13ba15a6696662335d5b75",
+        "address1": "0x8d11ec38a3eb5e956b052f67da8bdc9bef8abf3e",
+        "poolId": "59"
     },
     {
-        "token0": "USDC",
-        "token1": "BOO",
-        "address0": "0x04068da6c83afcfa0e13ba15a6696662335d5b75",
-        "address1": "0x841fad6eae12c286d1fd18d1d525dffa75c7effe"
+        "token0": "WFTM",
+        "token1": "YEL",
+        "address0": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
+        "address1": "0xd3b71117e6c1558c1553305b44988cd944e97300",
+        "poolId": "43"
+    },
+    {
+        "token0": "WFTM",
+        "token1": "KAE",
+        "address0": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
+        "address1": "0x65def5029a0e7591e46b38742bfedd1fb7b24436",
+        "poolId": "64"
+    },
+    {
+        "token0": "WFTM",
+        "token1": "KEK",
+        "address0": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
+        "address1": "0x627524d78B4fC840C887ffeC90563c7A42b671fD",
+        "poolId": "25"
     }
 ]
