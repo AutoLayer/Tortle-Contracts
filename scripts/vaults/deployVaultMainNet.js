@@ -9,7 +9,7 @@ const deployVaults = async (tokensList) => {
     const uniswapFactory = await ethers.getContractAt('UniswapV2Factory', "0x152eE697f2E276fA89E96742e9bB9aB1F2E61bE3")
     let wftm = "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"
     let boo = "0x841FAD6EAe12c286d1Fd18d1d525DFfA75C7EFFE"
-    let masterChef = "0x18b4f774fdC7BF685daeeF66c2990b1dDd9ea6aD"
+    let masterChef = "0x2b2929E785374c651a81A63878Ab22742656DcDd"
     let tortleTreasury = "0x8844C3CB1408Ccc719ad1EA48689C8db7a590186"
 
     const _TortleVault = await hre.ethers.getContractFactory('TortleVault')
@@ -29,7 +29,7 @@ const deployVaults = async (tokensList) => {
         let TortleFarmingStrategy = await (
             await _TortleFarmingsStrategy.deploy(
                 lpToken,
-                0,
+                farm.poolId,
                 TortleVault.address,
                 tortleTreasury,
                 uniswapRouter,
@@ -42,7 +42,8 @@ const deployVaults = async (tokensList) => {
 
         const tx = await TortleVault.initialize(TortleFarmingStrategy.address)
         await tx.wait(6)
-
+        
+        farmObj.poolId = farm.poolId
         farmObj.token0 = farm.token0
         farmObj.token1 = farm.token1
         farmObj.address = TortleVault.address
@@ -54,7 +55,7 @@ const deployVaults = async (tokensList) => {
 
     let index = 0
     do {
-        await createVault(tokensList[index]).catch(async () => setTimeout(async () => {await createVault(tokensList[index])}, 3000))
+        await createVault(tokensList[index])
         index++
     } while (index !== tokensList.length);
 
