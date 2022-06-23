@@ -1,0 +1,14 @@
+[
+    {
+        "token0": "WFTM",
+        "token1": "BEETS",
+        "address0": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
+        "address1": "0xf24bcf4d1e507740041c9cfd2dddb29585adce1e"
+    },
+    {
+        "token0": "USDC",
+        "token1": "BOO",
+        "address0": "0x04068da6c83afcfa0e13ba15a6696662335d5b75",
+        "address1": "0x841fad6eae12c286d1fd18d1d525dffa75c7effe"
+    }
+]
