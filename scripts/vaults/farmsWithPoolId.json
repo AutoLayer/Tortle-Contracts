@@ -88,7 +88,7 @@
         "token1": "ETH",
         "address0": "0x29b0Da86e484E1C0029B56e817912d778aC0EC69",
         "address1": "0x74b23882a30290451a17c44f4f05243b6b58c76d",
-        "poolId": "9"
+        "poolId": "26"
     },
     {
         "token0": "WFTM",
@@ -124,6 +124,13 @@
         "address0": "0x04068da6c83afcfa0e13ba15a6696662335d5b75",
         "address1": "0xc5e2b037d30a390e62180970b3aa4e91868764cd",
         "poolId": "78"
+    },
+    {
+        "token0": "WFTM",
+        "token1": "TAROT",
+        "address0": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
+        "address1": "0xc5e2b037d30a390e62180970b3aa4e91868764cd",
+        "poolId": "27"
     },
     {
         "token0": "WFTM",
