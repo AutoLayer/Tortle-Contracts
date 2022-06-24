@@ -21,16 +21,16 @@ contract Batch {
         bool hasNext;
     }
 
-    event AddFundsForTokens(string id, address tokenInput, uint256 amount);
-    event AddFundsForFTM(string id, uint256 amount);
-    event Split(string id, address tokenInput, uint256 amountIn, uint256 amountOutToken1, uint256 amountOutToken2);
-    event SwapTokens(string id, address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
-    event Liquidate(string id, IERC20[] tokensInput, uint256[] amountsIn, address tokenOutput, uint256 amountOut);
-    event SendToWallet(string id, address tokenOutput, uint256 amountOut);
-    event lpDeposited(string id, address lpToken, uint256 amount);
-    event ttDeposited(string id, address ttVault, uint256 amount);
-    event lpWithdrawed(string id, address lpToken, uint256 amountLp, address tokenDesired, uint256 amountTokenDesired);
-    event ttWithdrawed(string id, address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired);
+    event AddFundsForTokens(string indexed id, address tokenInput, uint256 amount);
+    event AddFundsForFTM(string indexed id, uint256 amount);
+    event Split(string indexed id, address tokenInput, uint256 amountIn, uint256 amountOutToken1, uint256 amountOutToken2);
+    event SwapTokens(string indexed id, address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
+    event Liquidate(string indexed id, IERC20[] tokensInput, uint256[] amountsIn, address tokenOutput, uint256 amountOut);
+    event SendToWallet(string indexed id, address tokenOutput, uint256 amountOut);
+    event lpDeposited(string indexed id, address lpToken, uint256 amount);
+    event ttDeposited(string indexed id, address ttVault, uint256 amount);
+    event lpWithdrawed(string indexed id, address lpToken, uint256 amountLp, address tokenDesired, uint256 amountTokenDesired);
+    event ttWithdrawed(string indexed id, address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired);
 
     constructor(address _owner) {
         owner = _owner;
