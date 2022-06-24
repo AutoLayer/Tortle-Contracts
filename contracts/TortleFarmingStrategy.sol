@@ -232,22 +232,6 @@ contract TortleFarmingStrategy is Ownable, Pausable {
         return true;
     }
 
-    function updateCallFee(uint256 _callFee) external onlyOwner returns (bool) {
-        callFee = _callFee;
-        treasuryFee = PERCENT_DIVISOR - callFee;
-        emit FeesUpdated(callFee, treasuryFee);
-        return true;
-    }
-
-    function updateTreasury(address newTreasury)
-        external
-        onlyOwner
-        returns (bool)
-    {
-        treasury = newTreasury;
-        return true;
-    }
-
     function swap(uint256 _amount, address[] memory _path) internal {
         if (_path.length < 2 || _amount == 0) {
             return;
