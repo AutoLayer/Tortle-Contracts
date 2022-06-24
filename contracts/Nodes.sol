@@ -508,6 +508,9 @@ contract Nodes is Initializable, ReentrancyGuard {
         _wffot memory args,
         uint256 amountLp
     ) internal returns (uint256 amountTokenDesired) {
+        IUniswapV2Pair lp = IUniswapV2Pair(args.lpToken);
+        require((lp.token0() == args.token0 && lp.token1() == args.token1) || (lp.token0() == args.token1 && lp.token1() == args.token0));
+        require(args.tokenDesired == args.token0 || args.tokenDesired == args.token1);
         IERC20(args.lpToken).transfer(args.lpToken, amountLp);
         (uint256 amount0, uint256 amount1) = IUniswapV2Pair(args.lpToken).burn(address(this));
 
