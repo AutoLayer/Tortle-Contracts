@@ -2,11 +2,14 @@
 
 pragma solidity ^0.8.6;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "./lib/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
 contract Nodes_ is ReentrancyGuard {
+    using SafeERC20 for IERC20;
+
     address public owner;
     IUniswapV2Router02 router; // Router.
     address private FTM;
@@ -77,7 +80,7 @@ contract Nodes_ is ReentrancyGuard {
         ); // Amount of first token.
         uint256 _secondTokenAmount = _amount - _firstTokenAmount; // Amount of second token.
 
-        IERC20(_token).approve(address(router), _amount);
+        IERC20(_token).safeApprove(address(router), _amount);
 
         uint256[] memory amountsOut;
         uint256 _amountOutToken1;
@@ -119,7 +122,7 @@ contract Nodes_ is ReentrancyGuard {
                 _amountOutToken1 = amountsOut[amountsOut.length - 1];
             } else {
                 _amountOutToken1 = _firstTokenAmount;
-                IERC20(_firstToken).transfer(msg.sender, _firstTokenAmount);
+                IERC20(_firstToken).safeTransfer(msg.sender, _firstTokenAmount);
             }
 
             if (_secondToken != _token) {
@@ -139,7 +142,7 @@ contract Nodes_ is ReentrancyGuard {
                 _amountOutToken2 = amountsOut[amountsOut.length - 1];
             } else {
                 _amountOutToken2 = _secondTokenAmount;
-                IERC20(_secondToken).transfer(msg.sender, _secondTokenAmount);
+                IERC20(_secondToken).safeTransfer(msg.sender, _secondTokenAmount);
             }
         }
 
@@ -173,7 +176,7 @@ contract Nodes_ is ReentrancyGuard {
             _amountOutToken1 = amountsOut[amountsOut.length - 1];
         } else {
             _amountOutToken1 = _firstTokenAmount;
-            IERC20(_firstToken).transfer(msg.sender, _firstTokenAmount);
+            IERC20(_firstToken).safeTransfer(msg.sender, _firstTokenAmount);
         }
 
         uint256 _amountOutToken2;
@@ -193,7 +196,7 @@ contract Nodes_ is ReentrancyGuard {
             _amountOutToken2 = amountsOut[amountsOut.length - 1];
         } else {
             _amountOutToken2 = _secondTokenAmount;
-            IERC20(_secondToken).transfer(msg.sender, _secondTokenAmount);
+            IERC20(_secondToken).safeTransfer(msg.sender, _secondTokenAmount);
         }
 
         return (_amountOutToken1, _amountOutToken2);
@@ -228,7 +231,7 @@ contract Nodes_ is ReentrancyGuard {
                 _amountOutToken1 = amountsOut[amountsOut.length - 1];
             } else {
                 _amountOutToken1 = _firstTokenAmount;
-                IERC20(_firstToken).transfer(msg.sender, _firstTokenAmount);
+                IERC20(_firstToken).safeTransfer(msg.sender, _firstTokenAmount);
             }
 
             if (_secondToken != _token) {
@@ -248,7 +251,7 @@ contract Nodes_ is ReentrancyGuard {
                 _amountOutToken2 = amountsOut[amountsOut.length - 1];
             } else {
                 _amountOutToken2 = _secondTokenAmount;
-                IERC20(_secondToken).transfer(msg.sender, _secondTokenAmount);
+                IERC20(_secondToken).safeTransfer(msg.sender, _secondTokenAmount);
             }
         } else if (_secondToken == FTM) {
             if (_firstToken != _token) {
@@ -268,7 +271,7 @@ contract Nodes_ is ReentrancyGuard {
                 _amountOutToken1 = amountsOut[amountsOut.length - 1];
             } else {
                 _amountOutToken1 = _firstTokenAmount;
-                IERC20(_firstToken).transfer(msg.sender, _firstTokenAmount);
+                IERC20(_firstToken).safeTransfer(msg.sender, _firstTokenAmount);
             }
 
             if (_secondToken != _token) {
@@ -287,7 +290,7 @@ contract Nodes_ is ReentrancyGuard {
                 _amountOutToken2 = amountsOut[amountsOut.length - 1];
             } else {
                 _amountOutToken2 = _secondTokenAmount;
-                IERC20(_secondToken).transfer(msg.sender, _secondTokenAmount);
+                IERC20(_secondToken).safeTransfer(msg.sender, _secondTokenAmount);
             }
         }
 
@@ -307,7 +310,7 @@ contract Nodes_ is ReentrancyGuard {
         address _newToken,
         uint256 _amountOutMin
     ) public nonReentrant returns (uint256 amountOut) {
-        _token.approve(address(router), _amount);
+        _token.safeApprove(address(router), _amount);
 
         uint256[] memory amountsOut;
         uint256 _amountOut;

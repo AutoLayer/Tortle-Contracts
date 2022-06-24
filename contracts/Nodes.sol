@@ -10,12 +10,15 @@ import './lib/UniswapV2Library.sol';
 import './lib/AddressToUintIterableMap.sol';
 import './lib/StringUtils.sol';
 import './interfaces/ITortleVault.sol';
+import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import './interfaces/IWETH.sol';
 import './Nodes_.sol';
 import './Batch.sol';
 
 contract Nodes is Initializable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
     using AddressToUintIterableMap for AddressToUintIterableMap.Map;
+
     struct SplitStruct {
         address user;
         address token;
@@ -278,7 +281,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 _userBalance = getBalance(_user, _token);
         require(_userBalance >= _amount, 'Insufficient balance.');
 
-        _token.transfer(_user, _amount);
+        _token.safeTransfer(_user, _amount);
 
         decreaseBalance(_user, address(_token), _amount);
 
@@ -304,7 +307,7 @@ contract Nodes is Initializable, ReentrancyGuard {
                     uint256 _userBalance = getBalance(msg.sender, _tokenAddress);
                     require(_userBalance >= _amounts[_i], 'Insufficient balance.');
 
-                    _tokenAddress.transfer(msg.sender, _amounts[_i]);
+                    _tokenAddress.safeTransfer(msg.sender, _amounts[_i]);
 
                     decreaseBalance(msg.sender, address(_tokenAddress), _amounts[_i]);
 
@@ -332,7 +335,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         require(_amount > 0, 'Insufficient Balance.');
 
         uint256 balanceBefore = _token.balanceOf(address(this));
-        _token.transferFrom(_user, address(this), _amount); // Send tokens from investor account to contract account.
+        _token.safeTransferFrom(_user, address(this), _amount); // Send tokens from investor account to contract account.
         uint256 balanceAfter = _token.balanceOf(address(this));
         require(balanceAfter > balanceBefore, 'Transfer Error'); // Checks that the balance of the contract has increased.
 
@@ -387,7 +390,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 _userBalance = getBalance(user, IERC20(token));
         require(amount <= _userBalance, 'Insufficient Balance.');
 
-        IERC20(token).transfer(address(nodes_), amount);
+        IERC20(token).safeTransfer(address(nodes_), amount);
 
         (uint256 _amountOutToken1, uint256 _amountOutToken2) = nodes_.split(
             token,
@@ -427,8 +430,8 @@ contract Nodes is Initializable, ReentrancyGuard {
         require(_amount <= _userBalance, 'Insufficient Balance.');
 
         uint256 _amountOut;
-        if(address(_token) != _newToken) {
-            _token.transfer(address(nodes_), _amount);
+        if (address(_token) != _newToken) {
+            _token.safeTransfer(address(nodes_), _amount);
 
             _amountOut = nodes_.swapTokens(_token, _amount, _newToken, _amountOutMin);
 
@@ -438,7 +441,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         } else {
             _amountOut = _amount;
         }
-        
+
         emit Swap(address(_token), _amount, _newToken, _amountOut);
         return _amountOut;
     }
@@ -465,7 +468,7 @@ contract Nodes is Initializable, ReentrancyGuard {
 
             uint256 _amountOut;
             if (tokenInput != _tokenOutput) {
-                IERC20(tokenInput).approve(address(router), amountInput);
+                _approve(tokenInput, address(router), amountInput);
 
                 uint256[] memory amountsOut;
                 if (tokenInput == WFTM || _tokenOutput == WFTM) {
@@ -487,11 +490,11 @@ contract Nodes is Initializable, ReentrancyGuard {
                     _amountOut = amountsOut[amountsOut.length - 1];
                 }
 
-                IERC20(_tokenOutput).transfer(_user, _amountOut);
+                IERC20(_tokenOutput).safeTransfer(_user, _amountOut);
 
                 amount += _amountOut;
             } else {
-                IERC20(_tokenOutput).transfer(_user, amountInput);
+                IERC20(_tokenOutput).safeTransfer(_user, amountInput);
 
                 amount += amountInput;
             }
@@ -509,9 +512,12 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amountLp
     ) internal returns (uint256 amountTokenDesired) {
         IUniswapV2Pair lp = IUniswapV2Pair(args.lpToken);
-        require((lp.token0() == args.token0 && lp.token1() == args.token1) || (lp.token0() == args.token1 && lp.token1() == args.token0));
+        require(
+            (lp.token0() == args.token0 && lp.token1() == args.token1) ||
+                (lp.token0() == args.token1 && lp.token1() == args.token0)
+        );
         require(args.tokenDesired == args.token0 || args.tokenDesired == args.token1);
-        IERC20(args.lpToken).transfer(args.lpToken, amountLp);
+        IERC20(args.lpToken).safeTransfer(args.lpToken, amountLp);
         (uint256 amount0, uint256 amount1) = IUniswapV2Pair(args.lpToken).burn(address(this));
 
         require(amount0 >= minimumAmount, 'UniswapV2Router: INSUFFICIENT_A_AMOUNT');
@@ -570,8 +576,8 @@ contract Nodes is Initializable, ReentrancyGuard {
         address spender,
         uint256 amount
     ) internal {
-        IERC20(token).approve(spender, 0);
-        IERC20(token).approve(spender, amount);
+        IERC20(token).safeApprove(spender, 0);
+        IERC20(token).safeApprove(spender, amount);
     }
 
     /**
