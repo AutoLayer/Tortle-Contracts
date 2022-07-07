@@ -339,7 +339,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 balanceAfter = _token.balanceOf(address(this));
         require(balanceAfter > balanceBefore, 'Transfer Error'); // Checks that the balance of the contract has increased.
 
-        increaseBalance(_user, address(_token), _amount);
+        increaseBalance(_user, address(_token), balanceAfter - balanceBefore);
 
         emit AddFunds(address(_token), _amount);
         return _amount;
