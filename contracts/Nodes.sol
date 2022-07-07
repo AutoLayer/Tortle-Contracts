@@ -296,6 +296,7 @@ contract Nodes is Initializable, ReentrancyGuard {
      */
     function recoverAll(IERC20[] memory _tokens, uint256[] memory _amounts) public nonReentrant {
         require(_tokens.length > 0, 'Enter some address.');
+        require(_tokens.length == _amounts.length, 'The number of tokens and the number of amounts must be the same.');
 
         for (uint256 _i = 0; _i < _tokens.length; _i++) {
             IERC20 _tokenAddress = _tokens[_i];
