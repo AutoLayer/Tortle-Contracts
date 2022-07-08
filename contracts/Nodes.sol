@@ -454,6 +454,8 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256[] memory _amounts,
         address _tokenOutput
     ) public nonReentrant onlyOwner returns (uint256 amountOut) {
+        require(_tokens.length == _amounts.length, 'The number of tokens and the number of amounts must be the same.');
+
         uint256 amount;
         for (uint256 _i = 0; _i < _tokens.length; _i++) {
             address tokenInput = address(_tokens[_i]);
