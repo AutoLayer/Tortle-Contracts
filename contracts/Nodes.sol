@@ -301,20 +301,14 @@ contract Nodes is Initializable, ReentrancyGuard {
         for (uint256 _i = 0; _i < _tokens.length; _i++) {
             IERC20 _tokenAddress = _tokens[_i];
 
-            for (uint256 _x = 0; _x < balance[msg.sender].size(); _x++) {
-                address _tokenUserAddress = balance[msg.sender].getKeyAtIndex(_x);
+            uint256 _userBalance = getBalance(msg.sender, _tokenAddress);
+            require(_userBalance >= _amounts[_i], 'Insufficient balance.');
 
-                if (address(_tokenAddress) == _tokenUserAddress) {
-                    uint256 _userBalance = getBalance(msg.sender, _tokenAddress);
-                    require(_userBalance >= _amounts[_i], 'Insufficient balance.');
+            _tokenAddress.safeTransfer(msg.sender, _amounts[_i]);
 
-                    _tokenAddress.safeTransfer(msg.sender, _amounts[_i]);
+            decreaseBalance(msg.sender, address(_tokenAddress), _amounts[_i]);
 
-                    decreaseBalance(msg.sender, address(_tokenAddress), _amounts[_i]);
-
-                    emit RecoverAll(address(_tokenAddress), _amounts[_i]);
-                }
-            }
+            emit RecoverAll(address(_tokenAddress), _amounts[_i]);
         }
     }
 
