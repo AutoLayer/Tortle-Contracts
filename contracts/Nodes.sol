@@ -92,7 +92,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         owner = _owner;
         nodes_ = _nodes_;
         batch = _batch;
-        router = IUniswapV2Router02(_router); // TestNet
+        router = IUniswapV2Router02(_router);
         WFTM = router.WETH();
     }
 

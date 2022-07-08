@@ -27,7 +27,7 @@ contract Nodes_ is ReentrancyGuard {
 
     constructor(address _owner, address _router) {
         owner = _owner;
-        router = IUniswapV2Router02(_router); // TestNet
+        router = IUniswapV2Router02(_router);
         FTM = router.WETH();
     }
 
