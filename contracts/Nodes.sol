@@ -296,24 +296,19 @@ contract Nodes is Initializable, ReentrancyGuard {
      */
     function recoverAll(IERC20[] memory _tokens, uint256[] memory _amounts) public nonReentrant {
         require(_tokens.length > 0, 'Enter some address.');
+        require(_tokens.length == _amounts.length, 'The number of tokens and the number of amounts must be the same.');
 
         for (uint256 _i = 0; _i < _tokens.length; _i++) {
             IERC20 _tokenAddress = _tokens[_i];
 
-            for (uint256 _x = 0; _x < balance[msg.sender].size(); _x++) {
-                address _tokenUserAddress = balance[msg.sender].getKeyAtIndex(_x);
+            uint256 _userBalance = getBalance(msg.sender, _tokenAddress);
+            require(_userBalance >= _amounts[_i], 'Insufficient balance.');
 
-                if (address(_tokenAddress) == _tokenUserAddress) {
-                    uint256 _userBalance = getBalance(msg.sender, _tokenAddress);
-                    require(_userBalance >= _amounts[_i], 'Insufficient balance.');
+            _tokenAddress.safeTransfer(msg.sender, _amounts[_i]);
 
-                    _tokenAddress.safeTransfer(msg.sender, _amounts[_i]);
+            decreaseBalance(msg.sender, address(_tokenAddress), _amounts[_i]);
 
-                    decreaseBalance(msg.sender, address(_tokenAddress), _amounts[_i]);
-
-                    emit RecoverAll(address(_tokenAddress), _amounts[_i]);
-                }
-            }
+            emit RecoverAll(address(_tokenAddress), _amounts[_i]);
         }
     }
 
@@ -339,7 +334,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 balanceAfter = _token.balanceOf(address(this));
         require(balanceAfter > balanceBefore, 'Transfer Error'); // Checks that the balance of the contract has increased.
 
-        increaseBalance(_user, address(_token), _amount);
+        increaseBalance(_user, address(_token), balanceAfter - balanceBefore);
 
         emit AddFunds(address(_token), _amount);
         return _amount;
@@ -459,6 +454,8 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256[] memory _amounts,
         address _tokenOutput
     ) public nonReentrant onlyOwner returns (uint256 amountOut) {
+        require(_tokens.length == _amounts.length, 'The number of tokens and the number of amounts must be the same.');
+
         uint256 amount;
         for (uint256 _i = 0; _i < _tokens.length; _i++) {
             address tokenInput = address(_tokens[_i]);
