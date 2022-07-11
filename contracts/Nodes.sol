@@ -60,7 +60,6 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     address public owner;
     IUniswapV2Router02 router; // Router.
-    address private FTM;
     address private WFTM;
     Nodes_ public nodes_;
     Batch private batch;
@@ -280,8 +279,13 @@ contract Nodes is Initializable, ReentrancyGuard {
     ) public nonReentrant onlyOwner returns (uint256 amount) {
         uint256 _userBalance = getBalance(_user, _token);
         require(_userBalance >= _amount, 'Insufficient balance.');
-
-        _token.safeTransfer(_user, _amount);
+        
+        if(address(_token) == WFTM) {
+            IWETH(WFTM).withdraw(_amount);
+            payable(_user).transfer(_amount);
+        } else {
+            _token.safeTransfer(_user, _amount);
+        }
 
         decreaseBalance(_user, address(_token), _amount);
 
