@@ -474,27 +474,9 @@ contract Nodes is Initializable, ReentrancyGuard {
 
             uint256 _amountOut;
             if (tokenInput != _tokenOutput) {
-                _approve(tokenInput, address(router), amountInput);
+                IERC20(tokenInput).safeTransfer(address(nodes_), amountInput);
 
-                uint256[] memory amountsOut;
-                if (tokenInput == WFTM || _tokenOutput == WFTM) {
-                    address[] memory path = new address[](2);
-                    path[0] = tokenInput;
-                    path[1] = _tokenOutput;
-
-                    amountsOut = router.swapExactTokensForTokens(amountInput, 0, path, address(this), block.timestamp);
-
-                    _amountOut = amountsOut[amountsOut.length - 1];
-                } else {
-                    address[] memory path = new address[](3);
-                    path[0] = tokenInput;
-                    path[1] = WFTM;
-                    path[2] = _tokenOutput;
-
-                    amountsOut = router.swapExactTokensForTokens(amountInput, 0, path, address(this), block.timestamp);
-
-                    _amountOut = amountsOut[amountsOut.length - 1];
-                }
+                _amountOut = nodes_.swapTokens(IERC20(tokenInput), amountInput, _tokenOutput, 0);
 
                 amount += _amountOut;
             } else {
