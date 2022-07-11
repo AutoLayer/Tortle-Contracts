@@ -308,8 +308,13 @@ contract Nodes is Initializable, ReentrancyGuard {
             uint256 _userBalance = getBalance(msg.sender, _tokenAddress);
             require(_userBalance >= _amounts[_i], 'Insufficient balance.');
 
-            _tokenAddress.safeTransfer(msg.sender, _amounts[_i]);
-
+            if(address(_tokenAddress) == WFTM) {
+                IWETH(WFTM).withdraw(_amounts[_i]);
+                payable(msg.sender).transfer(_amounts[_i]);
+            } else {
+                _tokenAddress.safeTransfer(msg.sender, _amounts[_i]);
+            }
+            
             decreaseBalance(msg.sender, address(_tokenAddress), _amounts[_i]);
 
             emit RecoverAll(address(_tokenAddress), _amounts[_i]);
