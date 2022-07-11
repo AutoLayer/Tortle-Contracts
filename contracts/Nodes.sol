@@ -491,16 +491,20 @@ contract Nodes is Initializable, ReentrancyGuard {
                     _amountOut = amountsOut[amountsOut.length - 1];
                 }
 
-                IERC20(_tokenOutput).safeTransfer(_user, _amountOut);
-
                 amount += _amountOut;
             } else {
-                IERC20(_tokenOutput).safeTransfer(_user, amountInput);
-
+                _amountOut = amountInput;
                 amount += amountInput;
             }
 
             decreaseBalance(_user, tokenInput, amountInput);
+
+            if(_tokenOutput == WFTM) {
+                IWETH(WFTM).withdraw(_amountOut);
+                payable(_user).transfer(_amountOut);
+            } else {
+                IERC20(_tokenOutput).safeTransfer(_user, _amountOut); 
+            }
         }
 
         emit Liquidate(_tokenOutput, amount);
