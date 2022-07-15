@@ -206,7 +206,7 @@ contract Batch {
             _amount = StringUtils.safeParseInt(args.arguments[1]);
         }
 
-        uint256 amountOut = nodes.swapTokens(args.user, IERC20(_token), _amount, _newToken, _amountOutMin);
+        uint256 amountOut = nodes.swapTokens(args.user, _token, _amount, _newToken, _amountOutMin);
         if (args.hasNext) {
             auxStack.push(amountOut);
         }

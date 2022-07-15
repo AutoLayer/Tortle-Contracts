@@ -62,6 +62,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     IUniswapV2Router02 router; // Router.
     address private WFTM;
     Nodes_ public nodes_;
+    Nodes_.SplitStruct private nodes_SplitStruct;
     Batch private batch;
     uint256 public constant minimumAmount = 1000;
 
@@ -385,29 +386,24 @@ contract Nodes is Initializable, ReentrancyGuard {
         address user = _splitStruct.user;
         address token = _splitStruct.token;
         uint256 amount = _splitStruct.amount;
-        address firstToken = _splitStruct.firstToken;
-        address secondToken = _splitStruct.secondToken;
-        uint256 percentageFirstToken = _splitStruct.percentageFirstToken;
-        uint256 _amountOutMinFirst = _splitStruct.amountOutMinFirst;
-        uint256 _amountOutMinSecond = _splitStruct.amountOutMinSecond;
 
         uint256 _userBalance = getBalance(user, IERC20(token));
         require(amount <= _userBalance, 'Insufficient Balance.');
 
         IERC20(token).safeTransfer(address(nodes_), amount);
 
-        (uint256 _amountOutToken1, uint256 _amountOutToken2) = nodes_.split(
-            token,
-            amount,
-            firstToken,
-            secondToken,
-            percentageFirstToken,
-            _amountOutMinFirst,
-            _amountOutMinSecond
-        );
+        Nodes_.SplitStruct memory newSplitStruct = nodes_SplitStruct;
+        newSplitStruct.token = token;
+        newSplitStruct.amount = amount;
+        newSplitStruct.firstToken = _splitStruct.firstToken;
+        newSplitStruct.secondToken = _splitStruct.secondToken;
+        newSplitStruct.percentageFirstToken = _splitStruct.percentageFirstToken;
+        newSplitStruct.amountOutMinFirst = _splitStruct.amountOutMinFirst;
+        newSplitStruct.amountOutMinSecond = _splitStruct.amountOutMinSecond;
+        (uint256 _amountOutToken1, uint256 _amountOutToken2) = nodes_.split(newSplitStruct);
 
-        increaseBalance(user, firstToken, _amountOutToken1);
-        increaseBalance(user, secondToken, _amountOutToken2);
+        increaseBalance(user, _splitStruct.firstToken, _amountOutToken1);
+        increaseBalance(user, _splitStruct.secondToken, _amountOutToken2);
 
         decreaseBalance(user, token, amount);
 
@@ -425,28 +421,28 @@ contract Nodes is Initializable, ReentrancyGuard {
      */
     function swapTokens(
         address _user,
-        IERC20 _token,
+        address _token,
         uint256 _amount,
         address _newToken,
         uint256 _amountOutMin
     ) public nonReentrant onlyOwner returns (uint256 amountOut) {
-        uint256 _userBalance = getBalance(_user, _token);
+        uint256 _userBalance = getBalance(_user, IERC20(_token));
         require(_amount <= _userBalance, 'Insufficient Balance.');
 
         uint256 _amountOut;
-        if (address(_token) != _newToken) {
-            _token.safeTransfer(address(nodes_), _amount);
+        if (_token != _newToken) {
+            IERC20(_token).safeTransfer(address(nodes_), _amount);
 
             _amountOut = nodes_.swapTokens(_token, _amount, _newToken, _amountOutMin);
 
             increaseBalance(_user, _newToken, _amountOut);
 
-            decreaseBalance(_user, address(_token), _amount);
+            decreaseBalance(_user, _token, _amount);
         } else {
             _amountOut = _amount;
         }
 
-        emit Swap(address(_token), _amount, _newToken, _amountOut);
+        emit Swap(_token, _amount, _newToken, _amountOut);
         return _amountOut;
     }
 
@@ -476,7 +472,7 @@ contract Nodes is Initializable, ReentrancyGuard {
             if (tokenInput != _tokenOutput) {
                 IERC20(tokenInput).safeTransfer(address(nodes_), amountInput);
 
-                _amountOut = nodes_.swapTokens(IERC20(tokenInput), amountInput, _tokenOutput, 0);
+                _amountOut = nodes_.swapTokens(tokenInput, amountInput, _tokenOutput, 0);
 
                 amount += _amountOut;
             } else {
