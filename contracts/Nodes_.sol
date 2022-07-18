@@ -6,16 +6,19 @@ import "./lib/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "./lib/UniswapV2Library.sol";
+import "hardhat/console.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 
 contract Nodes_ is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     address public owner;
-    IUniswapV2Router02 router; // Router.
     address private FTM;
+    address[] public routers;
+    uint256 public constant minimumAmount = 1000;
 
     struct SplitStruct {
-        address user;
         address token;
         uint256 amount;
         address firstToken;
@@ -25,10 +28,10 @@ contract Nodes_ is ReentrancyGuard {
         uint256 amountOutMinSecond;
     }
 
-    constructor(address _owner, address _router) {
+    constructor(address _owner, address[] memory _routers) {
         owner = _owner;
-        router = IUniswapV2Router02(_router);
-        FTM = router.WETH();
+        routers = _routers;
+        FTM = IUniswapV2Router02(_routers[0]).WETH();
     }
 
     /**
@@ -52,37 +55,64 @@ contract Nodes_ is ReentrancyGuard {
 
     /**
      * @notice Function that divides the token you send into two tokens according to the percentage you select.
-     * @param _token Address of the token to be splited.
-     * @param _amount Amount of Tokens to be splited.
-     * @param _firstToken Contract of the first token you wish to receive.
-     * @param _secondToken Contract of the second token you wish to receive.
-     * @param _percentageFirstToken Percentage of the split
-     * @param _amountOutMinFirst Minimum amount you wish to receive.
-     * @param _amountOutMinSecond Minimum amount you wish to receive.
+     * @param _splitStruct Struct: token, amount, firstToken, secondToken, percentageFirstToken, amountOutMinFirst, amountOutMinSecond.
      */
     function split(
-        address _token,
-        uint256 _amount,
-        address _firstToken,
-        address _secondToken,
-        uint256 _percentageFirstToken,
-        uint256 _amountOutMinFirst,
-        uint256 _amountOutMinSecond
+        SplitStruct memory _splitStruct
     )
         public
         nonReentrant
         returns (uint256 amountOutToken1, uint256 amountOutToken2)
     {
+        address _token = _splitStruct.token;
+        uint256 _amount = _splitStruct.amount;
+        address _firstToken = _splitStruct.firstToken;
+        address _secondToken = _splitStruct.secondToken;
+        uint256 _amountOutMinFirst = _splitStruct.amountOutMinFirst;
+        uint256 _amountOutMinSecond = _splitStruct.amountOutMinSecond;
+
+        IUniswapV2Router02 routerIn = getRouter(_token);
+        IUniswapV2Router02 routerOutFirstToken = getRouter(_firstToken);
+        IUniswapV2Router02 routerOutSecondToken = getRouter(_secondToken);
+
+        uint256[] memory amountsOut;
+        if(_token != FTM && (routerIn != routerOutFirstToken || routerIn != routerOutSecondToken)) {
+            IERC20(_token).safeApprove(address(routerIn), _amount);
+
+            address[] memory path = new address[](2);
+            path[0] = _token;
+            path[1] = FTM;
+
+            amountsOut = routerIn.swapExactTokensForTokens(
+                _amount,
+                0,
+                path,
+                address(this),
+                block.timestamp
+            );
+
+            _amount = amountsOut[amountsOut.length - 1];
+            _token = FTM;
+        }
+
         uint256 _firstTokenAmount = mulScale(
             _amount,
-            _percentageFirstToken,
+            _splitStruct.percentageFirstToken,
             10000
         ); // Amount of first token.
         uint256 _secondTokenAmount = _amount - _firstTokenAmount; // Amount of second token.
 
-        IERC20(_token).safeApprove(address(router), _amount);
-
-        uint256[] memory amountsOut;
+        if(routerOutFirstToken == routerOutSecondToken && address(routerOutFirstToken) != address(0) && address(routerOutSecondToken) != address(0)) {
+            IERC20(_token).safeApprove(address(routerOutFirstToken), _amount);
+        } else {
+            if(address(routerOutFirstToken) != address(0)) {
+                IERC20(_token).safeApprove(address(routerOutFirstToken), _firstTokenAmount);
+            }
+            if(address(routerOutSecondToken) != address(0)) {
+                IERC20(_token).safeApprove(address(routerOutSecondToken), _secondTokenAmount);
+            }
+        }
+        
         uint256 _amountOutToken1;
         uint256 _amountOutToken2;
         if (_token == FTM) {
@@ -111,7 +141,7 @@ contract Nodes_ is ReentrancyGuard {
                 pathFirstToken[1] = FTM;
                 pathFirstToken[2] = _firstToken;
 
-                amountsOut = router.swapExactTokensForTokens(
+                amountsOut = routerOutFirstToken.swapExactTokensForTokens(
                     _firstTokenAmount,
                     _amountOutMinFirst,
                     pathFirstToken,
@@ -131,7 +161,7 @@ contract Nodes_ is ReentrancyGuard {
                 pathSecondToken[1] = FTM;
                 pathSecondToken[2] = _secondToken;
 
-                amountsOut = router.swapExactTokensForTokens(
+                amountsOut = routerOutSecondToken.swapExactTokensForTokens(
                     _secondTokenAmount,
                     _amountOutMinSecond,
                     pathSecondToken,
@@ -161,15 +191,17 @@ contract Nodes_ is ReentrancyGuard {
 
         uint256 _amountOutToken1;
         if (_firstToken != FTM) {
+            IUniswapV2Router02 routerOutFirstToken = getRouter(_firstToken);
+
             address[] memory pathFirstToken = new address[](2);
             pathFirstToken[0] = FTM;
             pathFirstToken[1] = _firstToken;
 
-            amountsOut = router.swapExactTokensForTokens(
+            amountsOut = routerOutFirstToken.swapExactTokensForTokens(
                 _firstTokenAmount,
                 _amountOutMinFirst,
                 pathFirstToken,
-                address(msg.sender),
+                msg.sender,
                 block.timestamp
             );
 
@@ -181,11 +213,13 @@ contract Nodes_ is ReentrancyGuard {
 
         uint256 _amountOutToken2;
         if (_secondToken != FTM) {
+            IUniswapV2Router02 routerOutSecondToken = getRouter(_secondToken);
+
             address[] memory pathSecondToken = new address[](2);
             pathSecondToken[0] = FTM;
             pathSecondToken[1] = _secondToken;
 
-            amountsOut = router.swapExactTokensForTokens(
+            amountsOut = routerOutSecondToken.swapExactTokensForTokens(
                 _secondTokenAmount,
                 _amountOutMinSecond,
                 pathSecondToken,
@@ -211,16 +245,21 @@ contract Nodes_ is ReentrancyGuard {
         uint256 _amountOutMinFirst,
         uint256 _amountOutMinSecond
     ) private returns (uint256 amountOutToken1, uint256 amountOutToken2) {
+        IUniswapV2Router02 routerOutFirstToken;
+        IUniswapV2Router02 routerOutSecondToken;
+
         uint256[] memory amountsOut;
         uint256 _amountOutToken1;
         uint256 _amountOutToken2;
         if (_firstToken == FTM) {
             if (_firstToken != _token) {
+                routerOutFirstToken = getRouter(FTM);
+
                 address[] memory pathFirstToken = new address[](2);
-                pathFirstToken[0] = address(_token);
+                pathFirstToken[0] = _token;
                 pathFirstToken[1] = FTM;
 
-                amountsOut = router.swapExactTokensForTokens(
+                amountsOut = routerOutFirstToken.swapExactTokensForTokens(
                     _firstTokenAmount,
                     _amountOutMinFirst,
                     pathFirstToken,
@@ -235,12 +274,21 @@ contract Nodes_ is ReentrancyGuard {
             }
 
             if (_secondToken != _token) {
-                address[] memory pathSecondToken = new address[](3);
-                pathSecondToken[0] = address(_token);
-                pathSecondToken[1] = FTM;
-                pathSecondToken[2] = _secondToken;
+                routerOutSecondToken = getRouter(_secondToken);
 
-                amountsOut = router.swapExactTokensForTokens(
+                address[] memory pathSecondToken;
+                if(_secondToken == FTM) {
+                    pathSecondToken = new address[](2);
+                    pathSecondToken[0] = _token;
+                    pathSecondToken[1] = FTM;
+                } else {
+                    pathSecondToken = new address[](3);
+                    pathSecondToken[0] = _token;
+                    pathSecondToken[1] = FTM;
+                    pathSecondToken[2] = _secondToken;
+                }
+
+                amountsOut = routerOutSecondToken.swapExactTokensForTokens(
                     _secondTokenAmount,
                     _amountOutMinSecond,
                     pathSecondToken,
@@ -255,12 +303,21 @@ contract Nodes_ is ReentrancyGuard {
             }
         } else if (_secondToken == FTM) {
             if (_firstToken != _token) {
-                address[] memory pathFirstToken = new address[](3);
-                pathFirstToken[0] = address(_token);
-                pathFirstToken[1] = FTM;
-                pathFirstToken[2] = _firstToken;
+                routerOutFirstToken = getRouter(_firstToken);
 
-                amountsOut = router.swapExactTokensForTokens(
+                address[] memory pathFirstToken;
+                if(_firstToken == FTM) {
+                    pathFirstToken = new address[](2);
+                    pathFirstToken[0] = _token;
+                    pathFirstToken[1] = FTM;
+                } else {
+                    pathFirstToken = new address[](3);
+                    pathFirstToken[0] = _token;
+                    pathFirstToken[1] = FTM;
+                    pathFirstToken[2] = _firstToken;
+                }
+
+                amountsOut = routerOutFirstToken.swapExactTokensForTokens(
                     _firstTokenAmount,
                     _amountOutMinFirst,
                     pathFirstToken,
@@ -275,11 +332,13 @@ contract Nodes_ is ReentrancyGuard {
             }
 
             if (_secondToken != _token) {
+                routerOutSecondToken = getRouter(FTM);
+
                 address[] memory pathSecondToken = new address[](2);
-                pathSecondToken[0] = address(_token);
+                pathSecondToken[0] = _token;
                 pathSecondToken[1] = FTM;
 
-                amountsOut = router.swapExactTokensForTokens(
+                amountsOut = routerOutSecondToken.swapExactTokensForTokens(
                     _secondTokenAmount,
                     _amountOutMinSecond,
                     pathSecondToken,
@@ -299,53 +358,96 @@ contract Nodes_ is ReentrancyGuard {
 
     /**
      * @notice Function that allows to send X amount of tokens and returns the token you want.
-     * @param _token Address of the token to be swapped.
+     * @param _tokenIn Address of the token to be swapped.
      * @param _amount Amount of Tokens to be swapped.
-     * @param _newToken Contract of the token you wish to receive.
+     * @param _tokenOut Contract of the token you wish to receive.
      * @param _amountOutMin Minimum amount you wish to receive.
      */
     function swapTokens(
-        IERC20 _token,
+        address _tokenIn,
         uint256 _amount,
-        address _newToken,
+        address _tokenOut,
         uint256 _amountOutMin
     ) public nonReentrant returns (uint256 amountOut) {
-        _token.safeApprove(address(router), _amount);
+        IUniswapV2Router02 routerIn = getRouter(_tokenIn);
+        IUniswapV2Router02 routerOut = getRouter(_tokenOut);
 
         uint256[] memory amountsOut;
-        uint256 _amountOut;
-        if (address(_token) == FTM || _newToken == FTM) {
+        if(_tokenIn != FTM && routerIn != routerOut) {
+            IERC20(_tokenIn).safeApprove(address(routerIn), _amount);
+
             address[] memory path = new address[](2);
-            path[0] = address(_token);
-            path[1] = _newToken;
-
-            amountsOut = router.swapExactTokensForTokens(
-                _amount,
-                _amountOutMin,
-                path,
-                address(msg.sender),
-                block.timestamp
-            );
-
-            _amountOut = amountsOut[amountsOut.length - 1];
-        } else {
-            address[] memory path = new address[](3);
-            path[0] = address(_token);
+            path[0] = _tokenIn;
             path[1] = FTM;
-            path[2] = _newToken;
 
-            amountsOut = router.swapExactTokensForTokens(
+            amountsOut = routerIn.swapExactTokensForTokens(
                 _amount,
                 _amountOutMin,
                 path,
-                address(msg.sender),
+                address(this),
                 block.timestamp
             );
 
-            _amountOut = amountsOut[amountsOut.length - 1];
+            _amount = amountsOut[amountsOut.length - 1];
+            _tokenIn = FTM;
+        }
+        
+        IERC20(_tokenIn).safeApprove(address(routerOut), _amount);
+        
+        uint256 _amountOut;
+        if(_tokenIn != _tokenOut) {
+            if (_tokenIn == FTM || _tokenOut == FTM) {
+                address[] memory path = new address[](2);
+                path[0] = _tokenIn;
+                path[1] = _tokenOut;
+
+                amountsOut = routerOut.swapExactTokensForTokens(
+                    _amount,
+                    _amountOutMin,
+                    path,
+                    address(msg.sender),
+                    block.timestamp
+                );
+
+                _amountOut = amountsOut[amountsOut.length - 1];
+            } else {
+                address[] memory path = new address[](3);
+                path[0] = _tokenIn;
+                path[1] = FTM;
+                path[2] = _tokenOut;
+
+                amountsOut = routerOut.swapExactTokensForTokens(
+                    _amount,
+                    _amountOutMin,
+                    path,
+                    address(msg.sender),
+                    block.timestamp
+                );
+
+                _amountOut = amountsOut[amountsOut.length - 1];
+            }
+        } else {
+            _amountOut = _amount;
         }
 
         return _amountOut;
+    }
+
+    function getRouter(address _token) public view returns(IUniswapV2Router02 router) {
+        address pair;
+        for(uint8 i = 0; i < routers.length; i++) {
+            if(_token == FTM){
+                router = IUniswapV2Router02(routers[i]);
+                break;
+            } else {
+                pair = IUniswapV2Factory(IUniswapV2Router02(routers[i]).factory()).getPair(_token, FTM);
+            }
+            if(pair != address(0)) {
+                router = IUniswapV2Router02(routers[i]);
+            }
+        }
+
+        require(address(router) != address(0), "Pair doesn't exists.");
     }
 
     receive() external payable {}
