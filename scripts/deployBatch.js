@@ -8,6 +8,7 @@ const deployBatch = async () => {
   const deployer = accounts[0]
 
   const uniswapRouter = await ethers.getContractAt('UniswapV2Router02', addresses.contracts.UniswapV2Router02)
+  const spookyRouter = await ethers.getContractAt('UniswapV2Router02', '0xa6AD18C2aC47803E193F75c3677b14BF19B94883')
 
   const StringUtils = await (await (await ethers.getContractFactory('StringUtils')).connect(deployer).deploy()).deployed()
   const AddressToUintIterableMap = await (
@@ -34,7 +35,7 @@ const deployBatch = async () => {
   ).deployed()
 
   const Nodes_ = await (
-    await (await ethers.getContractFactory('Nodes_')).connect(deployer).deploy(deployer.getAddress(), uniswapRouter.address)
+    await (await ethers.getContractFactory('Nodes_')).connect(deployer).deploy(deployer.getAddress(), [uniswapRouter.address, spookyRouter.address])
   ).deployed()
 
   const ProxyNodes = await upgrades.deployProxy(Nodes, [Batch.address, Nodes_.address, Batch.address, uniswapRouter.address], {deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall']})
