@@ -10,13 +10,16 @@ describe('Batch Contract', function () {
     let dai
     let link
     let tortle
+    let boo
     let stringUtils
     let addressToUintIterableMap
     let nodes
     let nodes_
     let batch
     let uniswapFactory
+    let uniswapFactory2
     let uniswapRouter
+    let uniswapRouter2
     const _params = '((string,string,address,string[],bool))'
 
     beforeEach(async () => {
@@ -37,6 +40,10 @@ describe('Batch Contract', function () {
         tortle = await (
         await (await hre.ethers.getContractFactory('WERC10')).deploy('Tortle', 'TRTL', 18, deployer.getAddress())
         ).deployed()
+
+        boo = await (
+        await (await hre.ethers.getContractFactory('WERC10')).deploy('SpookyToken', 'BOO', 18, deployer.getAddress())
+        ).deployed()
         
         uniswapFactory = await (
         await (await hre.ethers.getContractFactory('UniswapV2Factory')).deploy(deployer.getAddress())
@@ -46,16 +53,28 @@ describe('Batch Contract', function () {
         await (await hre.ethers.getContractFactory('UniswapV2Router02')).deploy(uniswapFactory.address, wftm.address)
         ).deployed()
 
-        const liquidity = "10000000000000000000000"
+        uniswapFactory2 = await (
+        await (await hre.ethers.getContractFactory('UniswapV2Factory')).deploy(deployer.getAddress())
+        ).deployed()
+        
+        uniswapRouter2 = await (
+        await (await hre.ethers.getContractFactory('UniswapV2Router02')).deploy(uniswapFactory2.address, wftm.address)
+        ).deployed()
+
+        const liquidity = "1000000000000000000000"
+        // Router1
         await link.connect(deployer).approve(uniswapRouter.address, '5000000000000000000000000000')
         await dai.connect(deployer).approve(uniswapRouter.address, '5000000000000000000000000000')
-        await tortle.connect(deployer).approve(uniswapRouter.address, '5000000000000000000000000000')
         await addLiquidityETH(uniswapRouter, link.address, liquidity, 0, 0, deployer.getAddress())
         await addLiquidityETH(uniswapRouter, dai.address, liquidity, 0, 0, deployer.getAddress())
-        await addLiquidityETH(uniswapRouter, tortle.address, liquidity, 0, 0, deployer.getAddress())
+        // Router 2
+        await tortle.connect(deployer).approve(uniswapRouter2.address, '5000000000000000000000000000')
+        await boo.connect(deployer).approve(uniswapRouter2.address, '5000000000000000000000000000')
+        await addLiquidityETH(uniswapRouter2, tortle.address, liquidity, 0, 0, deployer.getAddress())
+        await addLiquidityETH(uniswapRouter2, boo.address, liquidity, 0, 0, deployer.getAddress())
         
         const _Nodes_ = await hre.ethers.getContractFactory('Nodes_')
-        nodes_ = await (await _Nodes_.deploy(deployer.getAddress(), uniswapRouter.address)).deployed()
+        nodes_ = await (await _Nodes_.deploy(deployer.getAddress(), [uniswapRouter.address, uniswapRouter2.address])).deployed()
         
         const _StringUtils = await hre.ethers.getContractFactory('StringUtils')
         stringUtils = await (await _StringUtils.deploy()).deployed()
@@ -84,9 +103,11 @@ describe('Batch Contract', function () {
         await link.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000')
         await dai.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000')
         await tortle.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000')
+        await boo.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000')
         await link.connect(otherUser).approve(nodes.address, '50000000000000000000000')
         await dai.connect(otherUser).approve(nodes.address, '50000000000000000000000')
         await tortle.connect(otherUser).approve(nodes.address, '50000000000000000000000')
+        await boo.connect(otherUser).approve(nodes.address, '50000000000000000000000')
     });
 
     it('AddFunds and SendToWallet', async () => {
@@ -529,7 +550,7 @@ describe('Batch Contract', function () {
             const result = await batch.connect(deployer).batchFunctions([addFundsForTokens, swapTokens1, split, swapTokens2, sendToWallet, liquidate]);
             
             let receipt = await result.wait()
-            
+
             // addFunds
             assert.equal(receipt.events[3].args.tokenInput, link.address);
             assert.equal(receipt.events[3].args.amount, "1000000000000000000");
