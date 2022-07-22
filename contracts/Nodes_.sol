@@ -69,9 +69,9 @@ contract Nodes_ is ReentrancyGuard {
         uint256 _amountOutMinFirst = _splitStruct.amountOutMinFirst;
         uint256 _amountOutMinSecond = _splitStruct.amountOutMinSecond;
 
-        IUniswapV2Router02 routerIn = getRouter(_token);
-        IUniswapV2Router02 routerOutFirstToken = getRouter(_firstToken);
-        IUniswapV2Router02 routerOutSecondToken = getRouter(_secondToken);
+        IUniswapV2Router02 routerIn = getRouterOneToken(_token);
+        IUniswapV2Router02 routerOutFirstToken = getRouterOneToken(_firstToken);
+        IUniswapV2Router02 routerOutSecondToken = getRouterOneToken(_secondToken);
 
         uint256[] memory amountsOut;
         if(_token != FTM && (routerIn != routerOutFirstToken || routerIn != routerOutSecondToken)) {
@@ -189,7 +189,7 @@ contract Nodes_ is ReentrancyGuard {
 
         uint256 _amountOutToken1;
         if (_firstToken != FTM) {
-            IUniswapV2Router02 routerOutFirstToken = getRouter(_firstToken);
+            IUniswapV2Router02 routerOutFirstToken = getRouterOneToken(_firstToken);
 
             address[] memory pathFirstToken = new address[](2);
             pathFirstToken[0] = FTM;
@@ -211,7 +211,7 @@ contract Nodes_ is ReentrancyGuard {
 
         uint256 _amountOutToken2;
         if (_secondToken != FTM) {
-            IUniswapV2Router02 routerOutSecondToken = getRouter(_secondToken);
+            IUniswapV2Router02 routerOutSecondToken = getRouterOneToken(_secondToken);
 
             address[] memory pathSecondToken = new address[](2);
             pathSecondToken[0] = FTM;
@@ -251,7 +251,7 @@ contract Nodes_ is ReentrancyGuard {
         uint256 _amountOutToken2;
         if (_firstToken == FTM) {
             if (_firstToken != _token) {
-                routerOutFirstToken = getRouter(FTM);
+                routerOutFirstToken = getRouterOneToken(FTM);
 
                 address[] memory pathFirstToken = new address[](2);
                 pathFirstToken[0] = _token;
@@ -272,7 +272,7 @@ contract Nodes_ is ReentrancyGuard {
             }
 
             if (_secondToken != _token) {
-                routerOutSecondToken = getRouter(_secondToken);
+                routerOutSecondToken = getRouterOneToken(_secondToken);
 
                 address[] memory pathSecondToken;
                 if(_secondToken == FTM) {
@@ -301,7 +301,7 @@ contract Nodes_ is ReentrancyGuard {
             }
         } else if (_secondToken == FTM) {
             if (_firstToken != _token) {
-                routerOutFirstToken = getRouter(_firstToken);
+                routerOutFirstToken = getRouterOneToken(_firstToken);
 
                 address[] memory pathFirstToken;
                 if(_firstToken == FTM) {
@@ -330,7 +330,7 @@ contract Nodes_ is ReentrancyGuard {
             }
 
             if (_secondToken != _token) {
-                routerOutSecondToken = getRouter(FTM);
+                routerOutSecondToken = getRouterOneToken(FTM);
 
                 address[] memory pathSecondToken = new address[](2);
                 pathSecondToken[0] = _token;
@@ -367,8 +367,8 @@ contract Nodes_ is ReentrancyGuard {
         address _tokenOut,
         uint256 _amountOutMin
     ) public nonReentrant returns (uint256 amountOut) {
-        IUniswapV2Router02 routerIn = getRouter(_tokenIn);
-        IUniswapV2Router02 routerOut = getRouter(_tokenOut);
+        IUniswapV2Router02 routerIn = getRouterOneToken(_tokenIn);
+        IUniswapV2Router02 routerOut = getRouterOneToken(_tokenOut);
 
         uint256[] memory amountsOut;
         if(_tokenIn != FTM && routerIn != routerOut) {
@@ -431,7 +431,28 @@ contract Nodes_ is ReentrancyGuard {
         return _amountOut;
     }
 
-    function getRouter(address _token) public view returns(IUniswapV2Router02 router) {
+    function getRouter(address _token0, address _token1) public view returns(IUniswapV2Router02 router) {
+        address pairToken0;
+        address pairToken1;
+        for(uint8 i = 0; i < routers.length; i++) {
+            if(_token0 == FTM || _token1 == FTM){
+                router = IUniswapV2Router02(routers[i]);
+                break;
+            } else {
+                pairToken0 = IUniswapV2Factory(IUniswapV2Router02(routers[i]).factory()).getPair(_token0, FTM);
+                if(pairToken0 != address(0)) {
+                    pairToken1 = IUniswapV2Factory(IUniswapV2Router02(routers[i]).factory()).getPair(_token1, FTM);
+                }
+            }
+            if(pairToken1 != address(0)) {
+                router = IUniswapV2Router02(routers[i]);
+            }
+        }
+
+        require(address(router) != address(0), "Pair doesn't exists.");
+    }
+
+    function getRouterOneToken(address _token) public view returns(IUniswapV2Router02 router) {
         address pair;
         for(uint8 i = 0; i < routers.length; i++) {
             if(_token == FTM){
