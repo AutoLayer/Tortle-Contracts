@@ -5,8 +5,8 @@ pragma solidity ^0.8.6;
 import '@openzeppelin/contracts/proxy/utils/Initializable.sol';
 
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
-import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 import '@uniswap/lib/contracts/libraries/Babylonian.sol';
+import './lib/UniswapV2Library.sol';
 import './lib/AddressToUintIterableMap.sol';
 import './lib/StringUtils.sol';
 import './interfaces/ITortleVault.sol';
@@ -107,7 +107,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amount1
     ) external nonReentrant onlyOwner returns (uint256) {
         IUniswapV2Router02 router1 = nodes_.getRouter(token0, token1);
-        require(lpToken == IUniswapV2Factory(router1.factory()).getPair(token0, token1), 'DepositOnLp: Invalid LpToken');
+        require(lpToken == UniswapV2Library.pairFor(router1.factory(), token0, token1), 'DepositOnLp: Invalid LpToken');
         require(amount0 <= getBalance(user, IERC20(token0)), 'DepositOnLp: Insufficient token0 funds.');
         require(amount1 <= getBalance(user, IERC20(token1)), 'DepositOnLp: Insufficient token1 funds.');
         (uint256 amount0f, uint256 amount1f, uint256 lpRes) = _addLiquidity(token0, token1, amount0, amount1);
