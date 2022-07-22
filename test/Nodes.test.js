@@ -20,6 +20,7 @@ describe('Nodes Contract', function () {
     let uniswapFactory2
     let uniswapRouter
     let uniswapRouter2
+    let pairLinkDai
 
     beforeEach(async() => {
         accounts = await ethers.getSigners()
@@ -71,6 +72,8 @@ describe('Nodes Contract', function () {
         await boo.connect(deployer).approve(uniswapRouter2.address, '5000000000000000000000000000')
         await addLiquidityETH(uniswapRouter2, tortle.address, liquidity, 0, 0, deployer.getAddress())
         await addLiquidityETH(uniswapRouter2, boo.address, liquidity, 0, 0, deployer.getAddress())
+
+        pairLinkDai = await uniswapFactory.getPair(link.address, wftm.address)
         
         const _Nodes_ = await hre.ethers.getContractFactory('Nodes_')
         nodes_ = await (await _Nodes_.deploy(deployer.getAddress(), [uniswapRouter.address, uniswapRouter2.address])).deployed()
@@ -591,6 +594,18 @@ describe('Nodes Contract', function () {
                 assert.equal(balanceBefore.toString(), balanceAfter.toString())
             });
         })
+    });
+
+    describe('DepositOnLP', async() => {
+        it('DepositOnLP', async () => {
+            await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: "200000000000000000" });
+
+            await nodes.connect(deployer).split({user: otherUser.getAddress(), token: wftm.address, amount: "200000000000000000", firstToken: link.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+            const balanceToken0 = await nodes.getBalance(otherUser.getAddress(), link.address) 
+            const balanceToken1 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
+            console.log(pairLinkDai)
+            await nodes.connect(deployer).depositOnLp(otherUser.getAddress(), pairLinkDai, link.address, wftm.address, balanceToken0.toString(), balanceToken1.toString())
+        });
     });
 
     describe('Liquidate', async() => {
