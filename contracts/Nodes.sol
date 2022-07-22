@@ -7,7 +7,6 @@ import '@openzeppelin/contracts/proxy/utils/Initializable.sol';
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 import '@uniswap/lib/contracts/libraries/Babylonian.sol';
-import './lib/UniswapV2Library.sol';
 import './lib/AddressToUintIterableMap.sol';
 import './lib/StringUtils.sol';
 import './interfaces/ITortleVault.sol';
