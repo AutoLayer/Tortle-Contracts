@@ -11,8 +11,8 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 contract Nodes_ is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    address public owner;
-    address private FTM;
+    address public immutable owner;
+    address private immutable FTM;
     address[] public routers;
     uint256 public constant minimumAmount = 1000;
 

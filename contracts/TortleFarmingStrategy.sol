@@ -16,22 +16,22 @@ import "hardhat/console.sol";
 contract TortleFarmingStrategy is Ownable, Pausable {
     using SafeERC20 for IERC20;
 
-    address public wftm;
-    address public rewardToken;
-    address public lpToken;
-    address public lpToken0;
-    address public lpToken1;
+    address public immutable wftm;
+    address public immutable rewardToken;
+    address public immutable lpToken;
+    address public immutable lpToken0;
+    address public immutable lpToken1;
 
-    address public uniRouter;
-    address public masterChef;
-    uint8 public poolId;
+    address public immutable uniRouter;
+    address public immutable masterChef;
+    uint8 public immutable poolId;
 
-    address public treasury;
-    address public vault;
+    address public immutable treasury;
+    address public immutable vault;
 
-    uint256 public callFee = 1000;
-    uint256 public treasuryFee = 9000;
-    uint256 public securityFee = 10;
+    uint256 public constant callFee = 1000;
+    uint256 public constant treasuryFee = 9000;
+    uint256 public constant securityFee = 10;
     uint256 public totalFee = 500;
     uint256 public constant MAX_FEE = 500;
     uint256 public constant PERCENT_DIVISOR = 10000;

@@ -19,9 +19,9 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
     uint256 public tvlCap;
 
     bool public initialized = false;
-    uint256 public constructionTime;
+    uint256 public immutable constructionTime;
 
-    IERC20 public token;
+    IERC20 public immutable token;
 
     mapping(address => uint256) public cumulativeDeposits;
     mapping(address => uint256) public cumulativeWithdrawals;
