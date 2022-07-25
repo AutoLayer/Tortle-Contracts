@@ -104,13 +104,15 @@ contract Nodes is Initializable, ReentrancyGuard {
         address token0,
         address token1,
         uint256 amount0,
-        uint256 amount1
+        uint256 amount1,
+        uint256 amountOutMin0,
+        uint256 amountOutMin1
     ) external nonReentrant onlyOwner returns (uint256) {
         IUniswapV2Router02 router1 = nodes_.getRouter(token0, token1);
         require(lpToken == UniswapV2Library.pairFor(router1.factory(), token0, token1), 'DepositOnLp: Invalid LpToken');
         require(amount0 <= getBalance(user, IERC20(token0)), 'DepositOnLp: Insufficient token0 funds.');
         require(amount1 <= getBalance(user, IERC20(token1)), 'DepositOnLp: Insufficient token1 funds.');
-        (uint256 amount0f, uint256 amount1f, uint256 lpRes) = _addLiquidity(token0, token1, amount0, amount1);
+        (uint256 amount0f, uint256 amount1f, uint256 lpRes) = _addLiquidity(token0, token1, amount0, amount1, amountOutMin0, amountOutMin1);
         userLp[lpToken][user] += lpRes;
         decreaseBalance(user, address(token0), amount0f);
         decreaseBalance(user, address(token1), amount1f);
@@ -221,7 +223,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         }
         require(args.amount0 <= getBalance(user, IERC20(args.token0)), 'DepositOnLp: Insufficient token0 funds.');
         require(args.amount1 <= getBalance(user, IERC20(args.token1)), 'DepositOnLp: Insufficient token1 funds.');
-        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = _addLiquidity(args.token0, args.token1, args.amount0, args.amount1);
+        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = _addLiquidity(args.token0, args.token1, args.amount0, args.amount1, 0, 0);
         _approve(args.lpToken, args.tortleVault, lpBal);
         uint256 ttAmount = ITortleVault(args.tortleVault).deposit(lpBal);
         userTt[args.tortleVault][user] += ttAmount;
@@ -453,12 +455,14 @@ contract Nodes is Initializable, ReentrancyGuard {
      * @param _tokens Array of tokens input.
      * @param _amounts Array of amounts.
      * @param _tokenOutput Address of the token to which all tokens are to be swapped.
+     * @param _amountOutMin Minimum amount you wish to receive.
      */
     function liquidate(
         address _user,
         IERC20[] memory _tokens,
         uint256[] memory _amounts,
-        address _tokenOutput
+        address _tokenOutput,
+        uint256 _amountOutMin
     ) public nonReentrant onlyOwner returns (uint256 amountOut) {
         require(_tokens.length == _amounts.length, 'The number of tokens and the number of amounts must be the same.');
 
@@ -473,7 +477,7 @@ contract Nodes is Initializable, ReentrancyGuard {
             if (tokenInput != _tokenOutput) {
                 IERC20(tokenInput).safeTransfer(address(nodes_), amountInput);
 
-                _amountOut = nodes_.swapTokens(tokenInput, amountInput, _tokenOutput, 0);
+                _amountOut = nodes_.swapTokens(tokenInput, amountInput, _tokenOutput, _amountOutMin);
 
                 amount += _amountOut;
             } else {
@@ -547,7 +551,9 @@ contract Nodes is Initializable, ReentrancyGuard {
         address token0,
         address token1,
         uint256 amount0,
-        uint256 amount1
+        uint256 amount1,
+        uint256 amountOutMin0,
+        uint256 amountOutMin1
     )
         internal
         returns (
@@ -559,7 +565,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         IUniswapV2Router02 router1 = nodes_.getRouter(token0, token1);
         _approve(token0, address(router1), amount0);
         _approve(token1, address(router1), amount1);
-        (amount0f, amount1f, lpRes) = router1.addLiquidity(token0, token1, amount0, amount1, 0, 0, address(this), block.timestamp);
+        (amount0f, amount1f, lpRes) = router1.addLiquidity(token0, token1, amount0, amount1, amountOutMin0, amountOutMin1, address(this), block.timestamp);
     }
 
     function _approve(

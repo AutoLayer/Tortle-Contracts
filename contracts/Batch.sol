@@ -114,6 +114,8 @@ contract Batch {
     function depositOnLp(Function memory args) public onlySelf {
         uint256 amount0 = StringUtils.safeParseInt(args.arguments[3]);
         uint256 amount1 = StringUtils.safeParseInt(args.arguments[4]);
+        uint256 amountOutMin0 = StringUtils.safeParseInt(args.arguments[5]);
+        uint256 amountOutMin1 = StringUtils.safeParseInt(args.arguments[6]);
         address lpToken = StringUtils.parseAddr(args.arguments[0]);
         if (auxStack.length > 0) {
             amount0 = auxStack[auxStack.length - 2];
@@ -127,7 +129,9 @@ contract Batch {
             StringUtils.parseAddr(args.arguments[1]),
             StringUtils.parseAddr(args.arguments[2]),
             amount0,
-            amount1
+            amount1,
+            amountOutMin0,
+            amountOutMin1
         );
         emit lpDeposited(args.id, lpToken, lpRes);
         if (args.hasNext) {
@@ -215,7 +219,7 @@ contract Batch {
     }
 
     function liquidate(Function memory args) public onlySelf {
-        uint256 _tokenArguments = (args.arguments.length - 1) / 2;
+        uint256 _tokenArguments = (args.arguments.length - 2) / 2;
 
         IERC20[] memory _tokens = new IERC20[](_tokenArguments);
         for (uint256 x = 0; x < _tokenArguments; x++) {
@@ -226,7 +230,7 @@ contract Batch {
 
         uint256[] memory _amounts = new uint256[](_tokenArguments);
         uint256 y;
-        for (uint256 x = _tokenArguments; x < args.arguments.length - 1; x++) {
+        for (uint256 x = _tokenArguments; x < args.arguments.length - 2; x++) {
             uint256 _amount;
             if (auxStack.length > 0) {
                 _amount = auxStack[auxStack.length - 1];
@@ -239,9 +243,10 @@ contract Batch {
             y++;
         }
 
-        address _tokenOutput = StringUtils.parseAddr(args.arguments[args.arguments.length - 1]);
+        address _tokenOutput = StringUtils.parseAddr(args.arguments[args.arguments.length - 2]);
+        uint256 _amountOutMin = StringUtils.safeParseInt(args.arguments[args.arguments.length - 1]);
 
-        uint256 amountOut = nodes.liquidate(args.user, _tokens, _amounts, _tokenOutput);
+        uint256 amountOut = nodes.liquidate(args.user, _tokens, _amounts, _tokenOutput, _amountOutMin);
 
         emit Liquidate(args.id, _tokens, _amounts, _tokenOutput, amountOut);
     }
