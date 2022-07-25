@@ -15,7 +15,6 @@ import "hardhat/console.sol";
 
 contract TortleFarmingStrategy is Ownable, Pausable {
     using SafeERC20 for IERC20;
-    using Address for address;
 
     address public wftm;
     address public rewardToken;
