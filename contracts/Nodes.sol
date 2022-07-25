@@ -174,7 +174,7 @@ contract Nodes is Initializable, ReentrancyGuard {
             swapAmountIn = _getSwapAmount(args.amount, reserveB, reserveA);
         }
 
-        _approve(path[0], address(router), swapAmountIn + args.amount);
+        _approve(path[0], address(router), args.amount);
         uint256[] memory swapedAmounts = router.swapExactTokensForTokens(
             swapAmountIn,
             args.amountOutMin,
