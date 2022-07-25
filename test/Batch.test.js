@@ -443,7 +443,7 @@ describe('Batch Contract', function () {
     describe('Liquidate', async() => { 
         it('Liquidate from token to token', async () => {
             const _args1 = [link.address, '1000000000000000000']
-            const _args2 = [link.address, '0', dai.address]
+            const _args2 = [link.address, '0', dai.address, '0']
             const addFundsForTokens = createNode(1, `addFundsForTokens${_params}`, otherUser.getAddress(), _args1, true)
             const liquidate = createNode(2, `liquidate${_params}`, otherUser.getAddress(), _args2, false)
 
@@ -456,14 +456,14 @@ describe('Batch Contract', function () {
             assert.equal(receipt.events[3].args.amount, "1000000000000000000");
             
             // liquidate
-            assert.equal(receipt.events[15].args.tokensInput[0], link.address);
-            assert.equal(receipt.events[15].args.amountsIn[0], "1000000000000000000");
-            assert.equal(receipt.events[15].args.tokenOutput, dai.address);
+            assert.equal(receipt.events[16].args.tokensInput[0], link.address);
+            assert.equal(receipt.events[16].args.amountsIn[0], "1000000000000000000");
+            assert.equal(receipt.events[16].args.tokenOutput, dai.address);
         });
         
         it('Liquidate from token to ftm', async () => {
             const _args1 = [link.address, '1000000000000000000']
-            const _args2 = [link.address, '0', wftm.address]
+            const _args2 = [link.address, '0', wftm.address, '0']
             const addFundsForTokens = createNode(1, `addFundsForTokens${_params}`, otherUser.getAddress(), _args1, true)
             const liquidate = createNode(2, `liquidate${_params}`, otherUser.getAddress(), _args2, false)
 
@@ -476,13 +476,13 @@ describe('Batch Contract', function () {
             assert.equal(receipt.events[3].args.amount, "1000000000000000000");
             
             // liquidate
-            assert.equal(receipt.events[12].args.tokensInput[0], link.address);
-            assert.equal(receipt.events[12].args.amountsIn[0], "1000000000000000000");
-            assert.equal(receipt.events[12].args.tokenOutput, wftm.address);
+            assert.equal(receipt.events[13].args.tokensInput[0], link.address);
+            assert.equal(receipt.events[13].args.amountsIn[0], "1000000000000000000");
+            assert.equal(receipt.events[13].args.tokenOutput, wftm.address);
         }); 
 
         it('Liquidate from ftm to token', async () => {
-            const _args1 = [wftm.address, '1000000000000000000', dai.address]
+            const _args1 = [wftm.address, '1000000000000000000', dai.address, '0']
             const liquidate = createNode(1, `liquidate${_params}`, otherUser.getAddress(), _args1, false)
 
             await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: "1000000000000000000" });
@@ -491,9 +491,9 @@ describe('Batch Contract', function () {
             let receipt = await result.wait()
             
             // liquidate
-            assert.equal(receipt.events[8].args.tokensInput[0], wftm.address);
-            assert.equal(receipt.events[8].args.amountsIn[0], "1000000000000000000");
-            assert.equal(receipt.events[8].args.tokenOutput, dai.address);
+            assert.equal(receipt.events[9].args.tokensInput[0], wftm.address);
+            assert.equal(receipt.events[9].args.amountsIn[0], "1000000000000000000");
+            assert.equal(receipt.events[9].args.tokenOutput, dai.address);
         }); 
     });
     

@@ -604,7 +604,7 @@ describe('Nodes Contract', function () {
             const balanceToken0 = await nodes.getBalance(otherUser.getAddress(), link.address) 
             const balanceToken1 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
             console.log(pairLinkDai)
-            await nodes.connect(deployer).depositOnLp(otherUser.getAddress(), pairLinkDai, link.address, wftm.address, balanceToken0.toString(), balanceToken1.toString())
+            await nodes.connect(deployer).depositOnLp(otherUser.getAddress(), pairLinkDai, link.address, wftm.address, balanceToken0.toString(), balanceToken1.toString(), "0", "0")
         });
     });
 
@@ -614,7 +614,7 @@ describe('Nodes Contract', function () {
 
             const balanceBefore = await nodes.getBalance(otherUser.getAddress(), dai.address)
 
-            await nodes.connect(deployer).liquidate(otherUser.getAddress(), [link.address], ["2000000000000000000"], dai.address)
+            await nodes.connect(deployer).liquidate(otherUser.getAddress(), [link.address], ["2000000000000000000"], dai.address, "0")
             
             const balanceAfter = await nodes.getBalance(otherUser.getAddress(), dai.address)
             assert.notEqual(balanceBefore, balanceAfter)
@@ -625,7 +625,7 @@ describe('Nodes Contract', function () {
             
             const balanceBefore = await nodes.getBalance(otherUser.getAddress(), wftm.address)
             
-            await nodes.liquidate(otherUser.getAddress(), [link.address], ["2000000000000000000"], wftm.address)
+            await nodes.liquidate(otherUser.getAddress(), [link.address], ["2000000000000000000"], wftm.address, "0")
             
             const balanceAfter = await nodes.getBalance(otherUser.getAddress(), wftm.address)
             assert.notEqual(balanceBefore, balanceAfter)
@@ -636,7 +636,7 @@ describe('Nodes Contract', function () {
             
             const balanceBefore = await nodes.getBalance(otherUser.getAddress(), link.address)
 
-            await nodes.connect(deployer).liquidate(otherUser.getAddress(), [wftm.address], ["200000000000000000"], link.address)
+            await nodes.connect(deployer).liquidate(otherUser.getAddress(), [wftm.address], ["200000000000000000"], link.address, "0")
         
             const balanceAfter = await nodes.getBalance(otherUser.getAddress(), link.address)
             assert.notEqual(balanceBefore, balanceAfter)
@@ -648,7 +648,7 @@ describe('Nodes Contract', function () {
 
             const balanceBefore = await nodes.getBalance(otherUser.getAddress(), dai.address)
 
-            await nodes.connect(deployer).liquidate(otherUser.getAddress(), [link.address, tortle.address], ["2000000000000000000", "2000000000000000000"], dai.address)
+            await nodes.connect(deployer).liquidate(otherUser.getAddress(), [link.address, tortle.address], ["2000000000000000000", "2000000000000000000"], dai.address, "0")
             
             const balanceAfter = await nodes.getBalance(otherUser.getAddress(), dai.address)
             assert.notEqual(balanceBefore, balanceAfter)
