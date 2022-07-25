@@ -56,11 +56,6 @@ contract TortleUniV2Zap {
             tokenInAmount >= minimumAmount,
             "Tortle: Insignificant input amount"
         );
-        require(
-            IERC20(tokenIn).allowance(msg.sender, address(this)) >=
-                tokenInAmount,
-            "Tortle: Input token is not approved"
-        );
 
         IERC20(tokenIn).safeTransferFrom(
             msg.sender,
