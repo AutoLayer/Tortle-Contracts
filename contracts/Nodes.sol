@@ -174,25 +174,17 @@ contract Nodes is Initializable, ReentrancyGuard {
             swapAmountIn = _getSwapAmount(args.amount, reserveB, reserveA);
         }
 
-        _approve(path[0], address(router), args.amount);
-        uint256[] memory swapedAmounts = router.swapExactTokensForTokens(
+        IUniswapV2Router02 router1 = nodes_.getRouter(path[0], path[1]);
+        _approve(path[0], address(router1), args.amount);
+        uint256[] memory swapedAmounts = router1.swapExactTokensForTokens(
             swapAmountIn,
             args.amountOutMin,
             path,
             address(this),
             block.timestamp
         );
-        _approve(path[1], address(router), swapedAmounts[1]);
-        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = router.addLiquidity(
-            path[0],
-            path[1],
-            args.amount - swapedAmounts[0],
-            swapedAmounts[1],
-            1,
-            1,
-            address(this),
-            block.timestamp
-        );
+        
+        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = _addLiquidity(path[0], path[1], args.amount - swapedAmounts[0], swapedAmounts[1], 1, 1);
 
         // this approve could be made once if we always trust and allow our own vaults (which is the actual case)
         _approve(args.lpToken, args.tortleVault, lpBal);
