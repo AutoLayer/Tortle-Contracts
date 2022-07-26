@@ -76,7 +76,8 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
     }
 
     function getPricePerFullShare() public view returns (uint256) {
-        return totalSupply() == 0 ? 1e18 : (balance() * 1e18) / totalSupply();
+        uint256 decimals = 10 ** ERC20(address(token)).decimals();
+        return totalSupply() == 0 ? decimals : (balance() * decimals) / totalSupply();
     }
 
     function deposit(uint256 _amount) public nonReentrant returns (uint256 shares) {
