@@ -34,7 +34,7 @@ const deployMainNet = async () => {
     
     // Nodes_ Contract
     const Nodes_ = await (
-    await (await hre.ethers.getContractFactory('Nodes_')).connect(deployer).deploy(deployer.getAddress(), uniswapRouter)
+    await (await hre.ethers.getContractFactory('Nodes_')).connect(deployer).deploy(deployer.getAddress(), [uniswapRouter])
     ).deployed()
 
     const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [Batch.address, Nodes_.address, Batch.address, uniswapRouter], {deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall']})
