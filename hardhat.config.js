@@ -1,6 +1,7 @@
 require('@nomiclabs/hardhat-waffle')
 require('@nomiclabs/hardhat-ethers')
 require('@openzeppelin/hardhat-upgrades')
+require('dotenv').config()
 
 task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
   const accounts = await hre.ethers.getSigners()
@@ -51,13 +52,12 @@ module.exports = {
     ftm: {
       url: 'https://rpc.ftm.tools/',
       allowUnlimitedContractSize: true,
-      gasPrice: 62500000000,
-      accounts: [],
+      accounts: [process.env.PRIVATE_KEY],
     },
     testnet: {
       url: 'https://xapi.testnet.fantom.network/lachesis',
       allowUnlimitedContractSize: true,
-      accounts: [],
+      accounts: [process.env.PRIVATE_KEY],
     },
   },
 }
