@@ -342,5 +342,13 @@
         "address1": "0xC5e2B037D30a390e62180970B3aa4E91868764cD",
         "lp": "0x35a60B8c750B4D834A27443f35269A84D06dE391",
         "poolId": "42"
+    },
+    {
+        "token0": "ORBS",
+        "token1": " USDC",
+        "address0": "0x3E01B7E242D5AF8064cB9A8F9468aC0f8683617c",
+        "address1": "0x04068DA6C83AFCFA0e13ba15A6696662335D5B75",
+        "lp": "0x4FaA520fe975228F54b30c6996129950E975BD8f",
+        "poolId": "43"
     }
 ]
