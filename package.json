@@ -6,6 +6,7 @@
   "scripts": {
     "start": "npx hardhat run ./scripts/deployMainNet.js --network ftm",
     "startTestnet": "npx hardhat run ./scripts/deployBatch.js --network testnet",
+    "createVaults": "npx hardhat run ./scripts/vaults/deployVaultMainNet.js --network ftm",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Alex Pinilla",

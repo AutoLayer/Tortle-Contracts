@@ -59,8 +59,6 @@ const deployVaults = async (tokensList) => {
         index++
     } while (index !== tokensList.length);
 
-    // await createVault(tokensList[0])
-    // await createVault(tokensList[1])
     console.log('Final List: ', farmsList)
 }
 
