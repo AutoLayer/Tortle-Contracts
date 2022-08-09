@@ -265,7 +265,7 @@
     },
     {
         "token0": "WFTM",
-        "token1": " WOO",
+        "token1": "WOO",
         "address0": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
         "address1": "0x6626c47c00F1D87902fc13EECfaC3ed06D5E8D8a",
         "lp": "0xa7010b3ba9efb1AF9Fa8a30efe74C16A93891775",
@@ -273,7 +273,7 @@
     },
     {
         "token0": "WFTM",
-        "token1": " MATIC",
+        "token1": "MATIC",
         "address0": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
         "address1": "0x40DF1Ae6074C35047BFF66675488Aa2f9f6384F3",
         "lp": "0x7051C6F0C1F1437498505521a3bD949654923fE1",
@@ -281,7 +281,7 @@
     },
     {
         "token0": "WFTM",
-        "token1": " BRUSH",
+        "token1": "BRUSH",
         "address0": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
         "address1": "0x85dec8c4B2680793661bCA91a8F129607571863d",
         "lp": "0x4EE115137ac73A3e5F99598564905465C101b11F",
@@ -289,7 +289,7 @@
     },
     {
         "token0": "WFTM",
-        "token1": " BEETS",
+        "token1": "BEETS",
         "address0": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
         "address1": "0xF24Bcf4d1e507740041C9cFd2DddB29585aDCe1e",
         "lp": "0x648a7452DA25B4fB4BDB79bADf374a8f8a5ea2b5",
@@ -297,7 +297,7 @@
     },
     {
         "token0": "WFTM",
-        "token1": " MULTI",
+        "token1": "MULTI",
         "address0": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
         "address1": "0x9Fb9a33956351cf4fa040f65A13b835A3C8764E3",
         "lp": "0x297C8990134bf1eE08aE5D8805042fbac8781201",
@@ -305,7 +305,7 @@
     },
     {
         "token0": "WFTM",
-        "token1": " ALPACA",
+        "token1": "ALPACA",
         "address0": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
         "address1": "0xaD996A45fd2373ed0B10Efa4A8eCB9de445A4302",
         "lp": "0xF66D2bf736c05723b62E833A5DD747E24855ff99",
@@ -313,7 +313,7 @@
     },
     {
         "token0": "USDC",
-        "token1": " BOO",
+        "token1": "BOO",
         "address0": "0x04068DA6C83AFCFA0e13ba15A6696662335D5B75",
         "address1": "0x841FAD6EAe12c286d1Fd18d1d525DFfA75C7EFFE",
         "lp": "0xf8Cb2980120469d79958151daa45Eb937c6E1eD6",
@@ -321,7 +321,7 @@
     },
     {
         "token0": "WFTM",
-        "token1": " APE",
+        "token1": "APE",
         "address0": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
         "address1": "0x2d72A97a31Dc920dB03330780d30074626e39C8A",
         "lp": "0xC9FB686f14bDA7e2653cF8F605Dc8551B6a53FD3",
@@ -329,7 +329,7 @@
     },
     {
         "token0": "WFTM",
-        "token1": " beFTM",
+        "token1": "beFTM",
         "address0": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
         "address1": "0x7381eD41F6dE418DdE5e84B55590422a57917886",
         "lp": "0xB5512e3fA8304d33Cdae4a40C21F1d3f70Eba45a",
@@ -337,7 +337,7 @@
     },
     {
         "token0": "USDC",
-        "token1": " TAROT",
+        "token1": "TAROT",
         "address0": "0x04068DA6C83AFCFA0e13ba15A6696662335D5B75",
         "address1": "0xC5e2B037D30a390e62180970B3aa4E91868764cD",
         "lp": "0x35a60B8c750B4D834A27443f35269A84D06dE391",
@@ -345,7 +345,7 @@
     },
     {
         "token0": "ORBS",
-        "token1": " USDC",
+        "token1": "USDC",
         "address0": "0x3E01B7E242D5AF8064cB9A8F9468aC0f8683617c",
         "address1": "0x04068DA6C83AFCFA0e13ba15A6696662335D5B75",
         "lp": "0x4FaA520fe975228F54b30c6996129950E975BD8f",
