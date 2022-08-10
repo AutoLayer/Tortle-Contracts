@@ -1,4 +1,6 @@
 const hre = require('hardhat')
+const fs = require('fs')
+require('dotenv').config()
 
 const deployMainNet = async () => {
     const accounts = await hre.ethers.getSigners()
@@ -40,13 +42,22 @@ const deployMainNet = async () => {
     const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [Batch.address, Nodes_.address, Batch.address, uniswapRouter], {deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall']})
     await ProxyNodes.deployed()
     await Batch.setNodeContract(ProxyNodes.address)
+    
+    const contractsAddresses = {
+      "ProxyNodes": ProxyNodes.address,
+      "Nodes": Nodes.address,
+      "Nodes_": Nodes_.address,
+      "Batch": Batch.address,
+      "StringUtils": StringUtils.address,
+      "AddressToUintIterableMap": AddressToUintIterableMap.address
+    }
 
-    console.log('Proxy Nodes:', ProxyNodes.address)
-    console.log('Nodes:', Nodes.address)
-    console.log('Nodes_:', Nodes_.address)
-    console.log('Batch:', Batch.address)
-    console.log('StringUtils:', StringUtils.address)
-    console.log('AddressToUintIterableMap', AddressToUintIterableMap.address)
+    const data = JSON.stringify(contractsAddresses)
+    fs.writeFile(process.env.CONTRACTS_PATH ? process.env.CONTRACTS_PATH : '/tmp/contractsAddresses.json', data, (err) => {
+        if (err) throw err
+        
+        console.log('JSON data is saved.')
+    })
 }
 
 deployMainNet()

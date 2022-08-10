@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat')
 const fs = require('fs')
+require('dotenv').config()
 const { WEI } = require('../../test/utils')
 const farmsListJSON = require('./shortExampleFarmList.json')
 
@@ -59,10 +60,8 @@ const deployVaults = async (tokensList) => {
     } while (index !== tokensList.length);
 
     const data = JSON.stringify(farmsList)
-    fs.writeFile('./scripts/vaults/vaults.json', data, (err) => {
-        if (err) {
-            throw err
-        }
+    fs.writeFile(process.env.VAULTS_PATH ? process.env.VAULTS_PATH : '/tmp/vaults.json', data, (err) => {
+        if (err) throw err
         
         console.log('JSON data is saved.')
     })
