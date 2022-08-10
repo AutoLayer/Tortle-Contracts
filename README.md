@@ -48,10 +48,8 @@ Smart contract environment for helping the develop, testing, and the deployment 
   sudo apt install nodejs
   ```
   or install from official site https://nodejs.org/en/ 
-   
 
 
-<br>
 
 ### Installation
 
@@ -61,6 +59,16 @@ Smart contract environment for helping the develop, testing, and the deployment 
   npm install
   ```
 
+
+
+### Config
+
+- The following env vars are required:
+  
+  `PRIVATE_KEY`: A wallet private key to use as the main server wallet.
+  `VAULTS_PATH`: It is the path where you want to save the json file with the related information to the vaults that you have just created.
+  `CONTRACTS_PATH`: It is the path where you want to save the json file with the related information to the contracts that you have just created.
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 
@@ -69,6 +77,20 @@ Smart contract environment for helping the develop, testing, and the deployment 
 - To run blockchain hardhat node 
   ```sh
     npx hardhat node
+  ```
+- To deploy the contracts on mainnet
+  ```sh
+    npm start start
+  ```
+
+- To deploy the contracts on testnet
+  ```sh
+    npm start startTestnet
+  ```
+
+- To deploy the vaults contracts on mainnet
+  ```sh
+    npm start createVaults
   ```
 
 - To run the tests
