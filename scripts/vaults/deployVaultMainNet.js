@@ -1,4 +1,5 @@
 const { ethers } = require('hardhat')
+const fs = require('fs')
 const { WEI } = require('../../test/utils')
 const farmsListJSON = require('./shortExampleFarmList.json')
 
@@ -49,8 +50,6 @@ const deployVaults = async (tokensList) => {
         farmObj.address = TortleVault.address
         farmObj.strategy = TortleFarmingStrategy.address
         farmsList.push({...farmObj})
-
-        console.log(farmsList)
     }
 
     let index = 0
@@ -58,6 +57,15 @@ const deployVaults = async (tokensList) => {
         await createVault(tokensList[index])
         index++
     } while (index !== tokensList.length);
+
+    const data = JSON.stringify(farmsList)
+    fs.writeFile('./scripts/vaults/vaults.json', data, (err) => {
+        if (err) {
+            throw err
+        }
+        
+        console.log('JSON data is saved.')
+    })
 
     console.log('Final List: ', farmsList)
 }
