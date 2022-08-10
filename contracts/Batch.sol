@@ -21,16 +21,16 @@ contract Batch {
         bool hasNext;
     }
 
-    event AddFundsForTokens(string id, address tokenInput, uint256 amount);
-    event AddFundsForFTM(string id, uint256 amount);
-    event Split(string id, address tokenInput, uint256 amountIn, uint256 amountOutToken1, uint256 amountOutToken2);
-    event SwapTokens(string id, address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
-    event Liquidate(string id, IERC20[] tokensInput, uint256[] amountsIn, address tokenOutput, uint256 amountOut);
-    event SendToWallet(string id, address tokenOutput, uint256 amountOut);
-    event lpDeposited(address lpToken, uint256 amount);
-    event ttDeposited(address ttVault, uint256 amount);
-    event lpWithdrawed(address lpToken, uint256 amountLp, address tokenDesired, uint256 amountTokenDesired);
-    event ttWithdrawed(address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired);
+    event AddFundsForTokens(string indexed id, address tokenInput, uint256 amount);
+    event AddFundsForFTM(string indexed id, uint256 amount);
+    event Split(string indexed id, address tokenInput, uint256 amountIn, uint256 amountOutToken1, uint256 amountOutToken2);
+    event SwapTokens(string indexed id, address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
+    event Liquidate(string indexed id, IERC20[] tokensInput, uint256[] amountsIn, address tokenOutput, uint256 amountOut);
+    event SendToWallet(string indexed id, address tokenOutput, uint256 amountOut);
+    event lpDeposited(string indexed id, address lpToken, uint256 amount);
+    event ttDeposited(string indexed id, address ttVault, uint256 amount);
+    event lpWithdrawed(string indexed id, address lpToken, uint256 amountLp, address tokenDesired, uint256 amountTokenDesired);
+    event ttWithdrawed(string indexed id, address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired);
 
     constructor(address _owner) {
         owner = _owner;
@@ -79,8 +79,9 @@ contract Batch {
             amount = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
-        uint256 amountTokenDesired = nodes.withdrawFromFarm(args.user, args.arguments);
+        uint256 amountTokenDesired = nodes.withdrawFromFarm(args.user, args.arguments, amount);
         emit ttWithdrawed(
+            args.id,
             StringUtils.parseAddr(args.arguments[2]),
             amount,
             StringUtils.parseAddr(args.arguments[5]),
@@ -97,8 +98,9 @@ contract Batch {
             amount = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
-        uint256 amountTokenDesired = nodes.withdrawFromLp(args.user, args.arguments);
+        uint256 amountTokenDesired = nodes.withdrawFromLp(args.user, args.arguments, amount);
         emit lpWithdrawed(
+            args.id,
             StringUtils.parseAddr(args.arguments[1]),
             amount,
             StringUtils.parseAddr(args.arguments[5]),
@@ -112,6 +114,8 @@ contract Batch {
     function depositOnLp(Function memory args) public onlySelf {
         uint256 amount0 = StringUtils.safeParseInt(args.arguments[3]);
         uint256 amount1 = StringUtils.safeParseInt(args.arguments[4]);
+        uint256 amountOutMin0 = StringUtils.safeParseInt(args.arguments[5]);
+        uint256 amountOutMin1 = StringUtils.safeParseInt(args.arguments[6]);
         address lpToken = StringUtils.parseAddr(args.arguments[0]);
         if (auxStack.length > 0) {
             amount0 = auxStack[auxStack.length - 2];
@@ -125,9 +129,11 @@ contract Batch {
             StringUtils.parseAddr(args.arguments[1]),
             StringUtils.parseAddr(args.arguments[2]),
             amount0,
-            amount1
+            amount1,
+            amountOutMin0,
+            amountOutMin1
         );
-        emit lpDeposited(lpToken, lpRes);
+        emit lpDeposited(args.id, lpToken, lpRes);
         if (args.hasNext) {
             auxStack.push(lpRes);
         }
@@ -144,7 +150,7 @@ contract Batch {
             result[0]--;
         }
 
-        emit lpDeposited(StringUtils.parseAddr(args.arguments[2]), result[1]); // ttVault address and ttAmount
+        emit ttDeposited(args.id, StringUtils.parseAddr(args.arguments[2]), result[1]); // ttVault address and ttAmount
         if (args.hasNext) {
             auxStack.push(result[1]);
         }
@@ -204,7 +210,7 @@ contract Batch {
             _amount = StringUtils.safeParseInt(args.arguments[1]);
         }
 
-        uint256 amountOut = nodes.swapTokens(args.user, IERC20(_token), _amount, _newToken, _amountOutMin);
+        uint256 amountOut = nodes.swapTokens(args.user, _token, _amount, _newToken, _amountOutMin);
         if (args.hasNext) {
             auxStack.push(amountOut);
         }
@@ -213,7 +219,7 @@ contract Batch {
     }
 
     function liquidate(Function memory args) public onlySelf {
-        uint256 _tokenArguments = (args.arguments.length - 1) / 2;
+        uint256 _tokenArguments = (args.arguments.length - 2) / 2;
 
         IERC20[] memory _tokens = new IERC20[](_tokenArguments);
         for (uint256 x = 0; x < _tokenArguments; x++) {
@@ -224,7 +230,7 @@ contract Batch {
 
         uint256[] memory _amounts = new uint256[](_tokenArguments);
         uint256 y;
-        for (uint256 x = _tokenArguments; x < args.arguments.length - 1; x++) {
+        for (uint256 x = _tokenArguments; x < args.arguments.length - 2; x++) {
             uint256 _amount;
             if (auxStack.length > 0) {
                 _amount = auxStack[auxStack.length - 1];
@@ -237,9 +243,10 @@ contract Batch {
             y++;
         }
 
-        address _tokenOutput = StringUtils.parseAddr(args.arguments[args.arguments.length - 1]);
+        address _tokenOutput = StringUtils.parseAddr(args.arguments[args.arguments.length - 2]);
+        uint256 _amountOutMin = StringUtils.safeParseInt(args.arguments[args.arguments.length - 1]);
 
-        uint256 amountOut = nodes.liquidate(args.user, _tokens, _amounts, _tokenOutput);
+        uint256 amountOut = nodes.liquidate(args.user, _tokens, _amounts, _tokenOutput, _amountOutMin);
 
         emit Liquidate(args.id, _tokens, _amounts, _tokenOutput, amountOut);
     }

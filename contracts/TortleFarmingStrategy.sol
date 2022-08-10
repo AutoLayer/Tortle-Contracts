@@ -15,27 +15,27 @@ import "hardhat/console.sol";
 
 contract TortleFarmingStrategy is Ownable, Pausable {
     using SafeERC20 for IERC20;
-    using Address for address;
 
-    address public wftm;
-    address public rewardToken;
-    address public lpToken;
-    address public lpToken0;
-    address public lpToken1;
+    address public immutable wftm;
+    address public immutable rewardToken;
+    address public immutable lpToken;
+    address public immutable lpToken0;
+    address public immutable lpToken1;
 
-    address public uniRouter;
-    address public masterChef;
-    uint8 public poolId;
+    address public immutable uniRouter;
+    address public immutable masterChef;
+    uint8 public immutable poolId;
 
-    address public treasury;
-    address public vault;
+    address public immutable treasury;
+    address public immutable vault;
 
-    uint256 public callFee = 1000;
-    uint256 public treasuryFee = 9000;
-    uint256 public securityFee = 10;
+    uint256 public constant callFee = 1000;
+    uint256 public constant treasuryFee = 9000;
+    uint256 public constant securityFee = 10;
     uint256 public totalFee = 500;
     uint256 public constant MAX_FEE = 500;
     uint256 public constant PERCENT_DIVISOR = 10000;
+    uint256 public slippageFactorMin = 950;
 
     address[] public rewardTokenToWftmRoute;
     address[] public rewardTokenToLp0Route;
@@ -50,6 +50,7 @@ contract TortleFarmingStrategy is Ownable, Pausable {
     event StratHarvest(address indexed harvester);
     event FeesUpdated(uint256 newCallFee, uint256 newTreasuryFee);
     event TotalFeeUpdated(uint256 newFee);
+    event SlippageFactorMinUpdated(uint256 newSlippageFactorMin);
 
     constructor(
         address _lpToken,
@@ -120,30 +121,22 @@ contract TortleFarmingStrategy is Ownable, Pausable {
         IERC20(lpToken).safeTransfer(vault, _amount);
     }
 
-    function harvest() external whenNotPaused {
+    function harvest(uint256 _slippageFactor) external whenNotPaused {
+        require(_slippageFactor <= 1000 && _slippageFactor > slippageFactorMin, 'invalid slippage factor');
         IMasterChef(masterChef).deposit(poolId, 0);
         chargeFees();
-        addLiquidity();
+        addLiquidity(_slippageFactor);
         deposit();
-        if (
-            block.timestamp >=
-            harvestLog[harvestLog.length - 1].timestamp + harvestLogCadence
-        ) {
-            harvestLog.push(
-                Harvest({
-                    timestamp: block.timestamp,
-                    vaultSharePrice: ITortleVault(vault).getPricePerFullShare()
-                })
-            );
+        if (block.timestamp >= harvestLog[harvestLog.length - 1].timestamp + harvestLogCadence) {
+            harvestLog.push(Harvest({timestamp: block.timestamp, vaultSharePrice: ITortleVault(vault).getPricePerFullShare()}));
         }
         lastHarvestTimestamp = block.timestamp;
         emit StratHarvest(msg.sender);
     }
 
     function chargeFees() internal {
-        uint256 toWftm = (IERC20(rewardToken).balanceOf(address(this)) *
-            totalFee) / PERCENT_DIVISOR;
-        swap(toWftm, rewardTokenToWftmRoute);
+        uint256 toWftm = (IERC20(rewardToken).balanceOf(address(this)) * totalFee) / PERCENT_DIVISOR;
+        swap(toWftm, rewardTokenToWftmRoute, slippageFactorMin);
         uint256 wftmBal = IERC20(wftm).balanceOf(address(this));
         uint256 callFeeToUser = (wftmBal * callFee) / PERCENT_DIVISOR;
         uint256 treasuryFeeToVault = (wftmBal * treasuryFee) / PERCENT_DIVISOR;
@@ -151,16 +144,15 @@ contract TortleFarmingStrategy is Ownable, Pausable {
         IERC20(wftm).safeTransfer(treasury, treasuryFeeToVault);
     }
 
-    function addLiquidity() internal {
-        uint256 rewardTokenHalf = IERC20(rewardToken).balanceOf(address(this)) /
-            2;
+    function addLiquidity(uint256 _slippageFactor) internal {
+        uint256 rewardTokenHalf = IERC20(rewardToken).balanceOf(address(this)) / 2;
 
         if (lpToken0 != rewardToken) {
-            swap(rewardTokenHalf, rewardTokenToLp0Route);
+            swap(rewardTokenHalf, rewardTokenToLp0Route, _slippageFactor);
         }
 
         if (lpToken1 != rewardToken) {
-            swap(rewardTokenHalf, rewardTokenToLp1Route);
+            swap(rewardTokenHalf, rewardTokenToLp1Route, _slippageFactor);
         }
         uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
         uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
@@ -169,16 +161,7 @@ contract TortleFarmingStrategy is Ownable, Pausable {
             IERC20(lpToken0).safeApprove(uniRouter, lp0Bal);
             IERC20(lpToken1).safeApprove(uniRouter, 0);
             IERC20(lpToken1).safeApprove(uniRouter, lp1Bal);
-            IUniswapV2Router02(uniRouter).addLiquidity(
-                lpToken0,
-                lpToken1,
-                lp0Bal,
-                lp1Bal,
-                1,
-                1,
-                address(this),
-                block.timestamp
-            );
+            IUniswapV2Router02(uniRouter).addLiquidity(lpToken0, lpToken1, lp0Bal, lp1Bal, 1, 1, address(this), block.timestamp);
         }
     }
 
@@ -191,10 +174,7 @@ contract TortleFarmingStrategy is Ownable, Pausable {
     }
 
     function balanceOfPool() public view returns (uint256) {
-        (uint256 _amount, ) = IMasterChef(masterChef).userInfo(
-            poolId,
-            address(this)
-        );
+        (uint256 _amount, ) = IMasterChef(masterChef).userInfo(poolId, address(this));
         return _amount;
     }
 
@@ -232,36 +212,26 @@ contract TortleFarmingStrategy is Ownable, Pausable {
         return true;
     }
 
-    function updateCallFee(uint256 _callFee) external onlyOwner returns (bool) {
-        callFee = _callFee;
-        treasuryFee = PERCENT_DIVISOR - callFee;
-        emit FeesUpdated(callFee, treasuryFee);
-        return true;
-    }
-
-    function updateTreasury(address newTreasury)
-        external
-        onlyOwner
-        returns (bool)
-    {
-        treasury = newTreasury;
-        return true;
-    }
-
-    function swap(uint256 _amount, address[] memory _path) internal {
+    function swap(
+        uint256 _amount,
+        address[] memory _path,
+        uint256 _slippageFactor
+    ) internal {
         if (_path.length < 2 || _amount == 0) {
             return;
         }
         IERC20(_path[0]).safeApprove(uniRouter, 0);
         IERC20(_path[0]).safeApprove(uniRouter, _amount);
-        IUniswapV2Router02(uniRouter)
-            .swapExactTokensForTokensSupportingFeeOnTransferTokens(
-                _amount,
-                0,
-                _path,
-                address(this),
-                block.timestamp
-            );
+        uint256[] memory amounts = IUniswapV2Router02(uniRouter).getAmountsOut(_amount, _path);
+        uint256 amountOut = amounts[amounts.length - 1];
+
+        IUniswapV2Router02(uniRouter).swapExactTokensForTokensSupportingFeeOnTransferTokens(
+            _amount,
+            (amountOut * _slippageFactor) / 1000,
+            _path,
+            address(this),
+            block.timestamp
+        );
     }
 
     function updateHarvestLogCadence(uint256 _newCadenceInSeconds)
@@ -299,5 +269,10 @@ contract TortleFarmingStrategy is Ownable, Pausable {
         uint256 wftmFee = (profit * totalFee) / PERCENT_DIVISOR;
         callFeeToUser = (wftmFee * callFee) / PERCENT_DIVISOR;
         profit -= wftmFee;
+    }
+
+    function setSlippageFactorMin(uint256 _slippageFactorMin) public onlyOwner {
+        slippageFactorMin = _slippageFactorMin;
+        emit SlippageFactorMinUpdated(slippageFactorMin);
     }
 }

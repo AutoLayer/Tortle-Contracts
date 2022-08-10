@@ -3,12 +3,10 @@
 pragma solidity ^0.8.13;
 
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import '@uniswap/v3-core/contracts/libraries/LowGasSafeMath.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 
 contract TortleTreasury is Ownable {
     using SafeERC20 for IERC20;
-    using LowGasSafeMath for uint256;
 
     address public accountant;
 

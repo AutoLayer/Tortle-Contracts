@@ -6,26 +6,18 @@ import '@openzeppelin/contracts/proxy/utils/Initializable.sol';
 
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 import '@uniswap/lib/contracts/libraries/Babylonian.sol';
+import './lib/UniswapV2Library.sol';
 import './lib/AddressToUintIterableMap.sol';
 import './lib/StringUtils.sol';
 import './interfaces/ITortleVault.sol';
+import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+import './interfaces/IWETH.sol';
 import './Nodes_.sol';
 import './Batch.sol';
 
 contract Nodes is Initializable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
     using AddressToUintIterableMap for AddressToUintIterableMap.Map;
-
-    address public owner;
-    IUniswapV2Router02 router; // Router.
-    address private FTM;
-    Nodes_ public nodes_;
-    Batch private batch;
-    uint256 public constant minimumAmount = 1000;
-
-    mapping(address => mapping(address => uint256)) public userLp;
-    mapping(address => mapping(address => uint256)) public userTt;
-
-    mapping(address => AddressToUintIterableMap.Map) private balance;
 
     struct SplitStruct {
         address user;
@@ -37,6 +29,47 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amountOutMinFirst;
         uint256 amountOutMinSecond;
     }
+    struct _dofot {
+        address lpToken;
+        address tortleVault;
+        address token;
+        uint256 amount;
+        uint256 amountOutMin;
+        uint256 ttAmount; // output
+    }
+
+    struct _doft {
+        address lpToken;
+        address tortleVault;
+        address token0;
+        address token1;
+        uint256 amount0;
+        uint256 amount1;
+    }
+
+    struct _wffot {
+        // withdraw from farm One Token
+        address lpToken;
+        address tortleVault;
+        address token0;
+        address token1;
+        address tokenDesired;
+        uint256 amountTokenDesiredMin;
+        uint256 amount;
+    }
+
+    address public owner;
+    IUniswapV2Router02 router;
+    address private WFTM;
+    Nodes_ public nodes_;
+    Nodes_.SplitStruct private nodes_SplitStruct;
+    Batch private batch;
+    uint256 public constant minimumAmount = 1000;
+
+    mapping(address => mapping(address => uint256)) public userLp;
+    mapping(address => mapping(address => uint256)) public userTt;
+
+    mapping(address => AddressToUintIterableMap.Map) private balance;
 
     event AddFunds(address tokenInput, uint256 amount);
     event Swap(address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
@@ -44,6 +77,11 @@ contract Nodes is Initializable, ReentrancyGuard {
     event Liquidate(address tokenOutput, uint256 amountOut);
     event SendToWallet(address tokenOutput, uint256 amountOut);
     event RecoverAll(address tokenOut, uint256 amountOut);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner || msg.sender == address(batch), 'You must be the owner.');
+        _;
+    }
 
     function initializeConstructor(
         address _owner,
@@ -54,240 +92,11 @@ contract Nodes is Initializable, ReentrancyGuard {
         owner = _owner;
         nodes_ = _nodes_;
         batch = _batch;
-        router = IUniswapV2Router02(_router); // TestNet
-        FTM = router.WETH();
+        router = IUniswapV2Router02(_router);
+        WFTM = router.WETH();
     }
 
-    modifier onlyOwner() {
-        require(msg.sender == owner || msg.sender == address(batch), 'You must be the owner.');
-        _;
-    }
-
-    function setBatch(Batch _batch) public onlyOwner {
-        batch = _batch;
-    }
-
-    /**
-     * @notice Function that allows to add funds to the contract to execute the recipes.
-     * @param _token Contract of the token to be deposited.
-     * @param _user Address of the user who will deposit the tokens.
-     * @param _amount Amount of tokens to be deposited.
-     */
-    function addFundsForTokens(
-        address _user,
-        IERC20 _token,
-        uint256 _amount
-    ) public nonReentrant returns (uint256 amount) {
-        require(_amount > 0, 'Insufficient Balance.');
-
-        uint256 balanceBefore = _token.balanceOf(address(this));
-        _token.transferFrom(_user, address(this), _amount); // Send tokens from investor account to contract account.
-        uint256 balanceAfter = _token.balanceOf(address(this));
-        require(balanceAfter > balanceBefore, 'Transfer Error'); // Checks that the balance of the contract has increased.
-
-        setBalances(_user, address(_token), _amount);
-
-        emit AddFunds(address(_token), _amount);
-        return _amount;
-    }
-
-    /**
-     * @notice Function that allows to add funds to the contract to execute the recipes.
-     * @param _user Address of the user who will deposit the tokens.
-     */
-    function addFundsForFTM(address _user) public payable nonReentrant returns (address token, uint256 amount) {
-        require(msg.value > 0, 'Insufficient Balance.');
-
-        setBalances(_user, FTM, msg.value);
-
-        emit AddFunds(FTM, msg.value);
-        return (FTM, msg.value);
-    }
-
-    /**
-     * @notice Function that allows you to see the balance you have in the contract of a specific token.
-     * @param _user Address of the user who will deposit the tokens.
-     * @param _token Contract of the token from which the balance is to be obtained.
-     */
-    function getBalance(address _user, IERC20 _token) public view returns (uint256) {
-        return balance[_user].get(address(_token));
-    }
-
-    /**
-     * @notice Calculate the percentage of a number.
-     * @param x Number.
-     * @param y Percentage of number.
-     * @param scale Division.
-     */
-    function mulScale(
-        uint256 x,
-        uint256 y,
-        uint128 scale
-    ) internal pure returns (uint256) {
-        uint256 a = x / scale;
-        uint256 b = x % scale;
-        uint256 c = y / scale;
-        uint256 d = y % scale;
-
-        return a * c * scale + a * d + b * c + (b * d) / scale;
-    }
-
-    /**
-     * @notice Function that divides the token you send into two tokens according to the percentage you select.
-     * @param _splitStruct Struct: user, token, amount, firstToken, secondToken, percentageFirstToken, amountOutMinFirst, amountOutMinSecond.
-     */
-    function split(SplitStruct memory _splitStruct)
-        public
-        nonReentrant
-        onlyOwner
-        returns (uint256 amountOutToken1, uint256 amountOutToken2)
-    {
-        address user = _splitStruct.user;
-        address token = _splitStruct.token;
-        uint256 amount = _splitStruct.amount;
-        address firstToken = _splitStruct.firstToken;
-        address secondToken = _splitStruct.secondToken;
-        uint256 percentageFirstToken = _splitStruct.percentageFirstToken;
-        uint256 _amountOutMinFirst = _splitStruct.amountOutMinFirst;
-        uint256 _amountOutMinSecond = _splitStruct.amountOutMinSecond;
-
-        uint256 _userBalance = getBalance(user, IERC20(token));
-        require(amount <= _userBalance, 'Insufficient Balance.');
-
-        if (token == FTM) {
-            payable(address(nodes_)).transfer(amount);
-        } else {
-            IERC20(token).transfer(address(nodes_), amount);
-        }
-
-        (uint256 _amountOutToken1, uint256 _amountOutToken2) = nodes_.split(
-            token,
-            amount,
-            firstToken,
-            secondToken,
-            percentageFirstToken,
-            _amountOutMinFirst,
-            _amountOutMinSecond
-        );
-
-        setBalances(user, firstToken, _amountOutToken1);
-        setBalances(user, secondToken, _amountOutToken2);
-
-        decreaseBalance(user, token, amount);
-
-        emit Split(_amountOutToken1, _amountOutToken2);
-        return (_amountOutToken1, _amountOutToken2);
-    }
-
-    /**
-     * @notice Function that allows to send X amount of tokens and returns the token you want.
-     * @param _user Address of the user running the node.
-     * @param _token Address of the token to be swapped.
-     * @param _amount Amount of Tokens to be swapped.
-     * @param _newToken Contract of the token you wish to receive.
-     * @param _amountOutMin Minimum amount you wish to receive.
-     */
-    function swapTokens(
-        address _user,
-        IERC20 _token,
-        uint256 _amount,
-        address _newToken,
-        uint256 _amountOutMin
-    ) public nonReentrant onlyOwner returns (uint256 amountOut) {
-        uint256 _userBalance = getBalance(_user, _token);
-        require(_amount <= _userBalance, 'Insufficient Balance.');
-
-        if (address(_token) == FTM) {
-            payable(address(nodes_)).transfer(_amount);
-        } else {
-            _token.transfer(address(nodes_), _amount);
-        }
-
-        uint256 _amountOut = nodes_.swapTokens(_token, _amount, _newToken, _amountOutMin);
-
-        setBalances(_user, _newToken, _amountOut);
-
-        decreaseBalance(_user, address(_token), _amount);
-
-        emit Swap(address(_token), _amount, _newToken, _amountOut);
-        return _amountOut;
-    }
-
-    /**
-     * @notice Function that allows to liquidate all tokens in your account by swapping them to a specific token.
-     * @param _user Address of the user whose tokens are to be liquidated.
-     * @param _tokens Array of tokens input.
-     * @param _amounts Array of amounts.
-     * @param _tokenOutput Address of the token to which all tokens are to be swapped.
-     */
-    function liquidate(
-        address _user,
-        IERC20[] memory _tokens,
-        uint256[] memory _amounts,
-        address _tokenOutput
-    ) public nonReentrant onlyOwner returns (uint256 amountOut) {
-        uint256 amount;
-        for (uint256 _i = 0; _i < _tokens.length; _i++) {
-            address tokenInput = address(_tokens[_i]);
-            uint256 amountInput = _amounts[_i];
-            uint256 userBalance = getBalance(_user, IERC20(tokenInput));
-            require(userBalance >= amountInput, 'Insufficient Balance.');
-
-            uint256 _amountOut;
-            if (tokenInput != _tokenOutput) {
-                IERC20(tokenInput).approve(address(router), amountInput);
-
-                uint256[] memory amountsOut;
-                if (tokenInput == FTM) {
-                    address[] memory path = new address[](2);
-                    path[0] = FTM;
-                    path[1] = _tokenOutput;
-
-                    amountsOut = router.swapExactETHForTokens{value: amountInput}(0, path, address(this), block.timestamp);
-
-                    _amountOut = amountsOut[amountsOut.length - 1];
-                } else if (_tokenOutput == FTM) {
-                    address[] memory path = new address[](2);
-                    path[0] = tokenInput;
-                    path[1] = FTM;
-
-                    amountsOut = router.swapExactTokensForETH(amountInput, 0, path, address(this), block.timestamp);
-
-                    _amountOut = amountsOut[amountsOut.length - 1];
-                } else {
-                    address[] memory path = new address[](3);
-                    path[0] = tokenInput;
-                    path[1] = FTM;
-                    path[2] = _tokenOutput;
-
-                    amountsOut = router.swapExactTokensForTokens(amountInput, 0, path, address(this), block.timestamp);
-
-                    _amountOut = amountsOut[amountsOut.length - 1];
-                }
-
-                if (_tokenOutput == FTM) {
-                    payable(_user).transfer(_amountOut);
-                } else {
-                    IERC20(_tokenOutput).transfer(_user, _amountOut);
-                }
-
-                amount += _amountOut;
-            } else {
-                if (_tokenOutput == FTM) {
-                    payable(_user).transfer(amountInput);
-                } else {
-                    IERC20(_tokenOutput).transfer(_user, amountInput);
-                }
-
-                amount += amountInput;
-            }
-
-            decreaseBalance(_user, tokenInput, amountInput);
-        }
-
-        emit Liquidate(_tokenOutput, amount);
-        return amount;
-    }
+    receive() external payable {}
 
     function depositOnLp(
         address user,
@@ -295,11 +104,15 @@ contract Nodes is Initializable, ReentrancyGuard {
         address token0,
         address token1,
         uint256 amount0,
-        uint256 amount1
+        uint256 amount1,
+        uint256 amountOutMin0,
+        uint256 amountOutMin1
     ) external nonReentrant onlyOwner returns (uint256) {
+        IUniswapV2Router02 router1 = nodes_.getRouter(token0, token1);
+        require(lpToken == UniswapV2Library.pairFor(router1.factory(), token0, token1), 'DepositOnLp: Invalid LpToken');
         require(amount0 <= getBalance(user, IERC20(token0)), 'DepositOnLp: Insufficient token0 funds.');
         require(amount1 <= getBalance(user, IERC20(token1)), 'DepositOnLp: Insufficient token1 funds.');
-        (uint256 amount0f, uint256 amount1f, uint256 lpRes) = _addLiquidity(token0, token1, amount0, amount1);
+        (uint256 amount0f, uint256 amount1f, uint256 lpRes) = _addLiquidity(token0, token1, amount0, amount1, amountOutMin0, amountOutMin1);
         userLp[lpToken][user] += lpRes;
         decreaseBalance(user, address(token0), amount0f);
         decreaseBalance(user, address(token1), amount1f);
@@ -325,15 +138,6 @@ contract Nodes is Initializable, ReentrancyGuard {
         userTt[tortleVault][user] += ttShares;
         decreaseBalance(user, address(lpToken), amount);
         result[1] = ttShares;
-    }
-
-    struct _dofot {
-        address lpToken;
-        address tortleVault;
-        address token;
-        uint256 amount;
-        uint256 amountOutMin;
-        uint256 ttAmount; // output
     }
 
     function depositOnFarmOneToken(
@@ -370,7 +174,7 @@ contract Nodes is Initializable, ReentrancyGuard {
             swapAmountIn = _getSwapAmount(args.amount, reserveB, reserveA);
         }
 
-        _approve(path[0], address(router), swapAmountIn + args.amount);
+        _approve(path[0], address(router), args.amount);
         uint256[] memory swapedAmounts = router.swapExactTokensForTokens(
             swapAmountIn,
             args.amountOutMin,
@@ -378,34 +182,16 @@ contract Nodes is Initializable, ReentrancyGuard {
             address(this),
             block.timestamp
         );
-        _approve(path[1], address(router), swapedAmounts[1]);
-        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = router.addLiquidity(
-            path[0],
-            path[1],
-            args.amount - swapedAmounts[0],
-            swapedAmounts[1],
-            1,
-            1,
-            address(this),
-            block.timestamp
-        );
+        
+        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = _addLiquidity(path[0], path[1], args.amount - swapedAmounts[0], swapedAmounts[1], 1, 1);
 
         // this approve could be made once if we always trust and allow our own vaults (which is the actual case)
         _approve(args.lpToken, args.tortleVault, lpBal);
         args.ttAmount = ITortleVault(args.tortleVault).deposit(lpBal);
         userTt[args.tortleVault][user] += args.ttAmount;
         decreaseBalance(user, path[0], swapedAmounts[0] + amount0f);
-        setBalances(user, path[1], swapedAmounts[1] - amount1f);
+        increaseBalance(user, path[1], swapedAmounts[1] - amount1f);
         result[1] = args.ttAmount;
-    }
-
-    struct _doft {
-        address lpToken;
-        address tortleVault;
-        address token0;
-        address token1;
-        uint256 amount0;
-        uint256 amount1;
     }
 
     function depositOnFarmTokens(
@@ -428,7 +214,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         }
         require(args.amount0 <= getBalance(user, IERC20(args.token0)), 'DepositOnLp: Insufficient token0 funds.');
         require(args.amount1 <= getBalance(user, IERC20(args.token1)), 'DepositOnLp: Insufficient token1 funds.');
-        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = _addLiquidity(args.token0, args.token1, args.amount0, args.amount1);
+        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = _addLiquidity(args.token0, args.token1, args.amount0, args.amount1, 0, 0);
         _approve(args.lpToken, args.tortleVault, lpBal);
         uint256 ttAmount = ITortleVault(args.tortleVault).deposit(lpBal);
         userTt[args.tortleVault][user] += ttAmount;
@@ -437,42 +223,28 @@ contract Nodes is Initializable, ReentrancyGuard {
         result[1] = ttAmount;
     }
 
-    struct _wffot {
-        // withdraw from farm One Token
-        address lpToken;
-        address tortleVault;
-        address token0;
-        address token1;
-        address tokenDesired;
-        uint256 amountTokenDesiredMin;
-        uint256 amount;
-    }
-
-    function withdrawFromLp(address user, string[] memory _arguments)
-        external
-        nonReentrant
-        onlyOwner
-        returns (uint256 amountTokenDesired)
-    {
+    function withdrawFromLp(
+        address user,
+        string[] memory _arguments,
+        uint256 amount
+    ) external nonReentrant onlyOwner returns (uint256 amountTokenDesired) {
         _wffot memory args;
         args.lpToken = StringUtils.parseAddr(_arguments[1]);
         args.token0 = StringUtils.parseAddr(_arguments[3]);
         args.token1 = StringUtils.parseAddr(_arguments[4]);
         args.tokenDesired = StringUtils.parseAddr(_arguments[5]);
         args.amountTokenDesiredMin = StringUtils.safeParseInt(_arguments[6]);
-        args.amount = StringUtils.safeParseInt(_arguments[7]);
 
-        require(args.amount <= userLp[args.lpToken][user], 'WithdrawFromLp: Insufficient funds.');
-        userLp[args.lpToken][user] -= args.amount;
-        amountTokenDesired = _withdrawLpAndSwap(user, args, args.amount);
+        require(amount <= userLp[args.lpToken][user], 'WithdrawFromLp: Insufficient funds.');
+        userLp[args.lpToken][user] -= amount;
+        amountTokenDesired = _withdrawLpAndSwap(user, args, amount);
     }
 
-    function withdrawFromFarm(address user, string[] memory _arguments)
-        external
-        nonReentrant
-        onlyOwner
-        returns (uint256 amountTokenDesired)
-    {
+    function withdrawFromFarm(
+        address user,
+        string[] memory _arguments,
+        uint256 amount
+    ) external nonReentrant onlyOwner returns (uint256 amountTokenDesired) {
         // For now it will only allow to withdraw one token, in the future this function will be renamed
         _wffot memory args;
         args.lpToken = StringUtils.parseAddr(_arguments[1]);
@@ -481,13 +253,241 @@ contract Nodes is Initializable, ReentrancyGuard {
         args.token1 = StringUtils.parseAddr(_arguments[4]);
         args.tokenDesired = StringUtils.parseAddr(_arguments[5]);
         args.amountTokenDesiredMin = StringUtils.safeParseInt(_arguments[6]);
-        args.amount = StringUtils.safeParseInt(_arguments[7]);
 
-        require(args.amount <= userTt[args.tortleVault][user], 'WithdrawFromFarm: Insufficient funds.');
+        require(amount <= userTt[args.tortleVault][user], 'WithdrawFromFarm: Insufficient funds.');
 
-        uint256 amountLp = ITortleVault(args.tortleVault).withdraw(args.amount);
-        userTt[args.tortleVault][user] -= args.amount;
+        uint256 amountLp = ITortleVault(args.tortleVault).withdraw(amount);
+        userTt[args.tortleVault][user] -= amount;
         amountTokenDesired = _withdrawLpAndSwap(user, args, amountLp);
+    }
+
+    /**
+     * @notice Function that allows to withdraw tokens to the user's wallet.
+     * @param _user Address of the user who wishes to remove the tokens.
+     * @param _token Token to be withdrawn.
+     * @param _amount Amount of tokens to be withdrawn.
+     */
+    function sendToWallet(
+        address _user,
+        IERC20 _token,
+        uint256 _amount
+    ) public nonReentrant onlyOwner returns (uint256 amount) {
+        uint256 _userBalance = getBalance(_user, _token);
+        require(_userBalance >= _amount, 'Insufficient balance.');
+        
+        if(address(_token) == WFTM) {
+            IWETH(WFTM).withdraw(_amount);
+            payable(_user).transfer(_amount);
+        } else {
+            _token.safeTransfer(_user, _amount);
+        }
+
+        decreaseBalance(_user, address(_token), _amount);
+
+        emit SendToWallet(address(_token), _amount);
+        return _amount;
+    }
+
+    /**
+     * @notice Emergency function that allows to recover all tokens in the state they are in.
+     * @param _tokens Array of the tokens to be withdrawn.
+     * @param _amounts Array of the amounts to be withdrawn.
+     */
+    function recoverAll(IERC20[] memory _tokens, uint256[] memory _amounts) public nonReentrant {
+        require(_tokens.length > 0, 'Enter some address.');
+        require(_tokens.length == _amounts.length, 'The number of tokens and the number of amounts must be the same.');
+
+        for (uint256 _i = 0; _i < _tokens.length; _i++) {
+            IERC20 _tokenAddress = _tokens[_i];
+
+            uint256 _userBalance = getBalance(msg.sender, _tokenAddress);
+            require(_userBalance >= _amounts[_i], 'Insufficient balance.');
+
+            if(address(_tokenAddress) == WFTM) {
+                IWETH(WFTM).withdraw(_amounts[_i]);
+                payable(msg.sender).transfer(_amounts[_i]);
+            } else {
+                _tokenAddress.safeTransfer(msg.sender, _amounts[_i]);
+            }
+            
+            decreaseBalance(msg.sender, address(_tokenAddress), _amounts[_i]);
+
+            emit RecoverAll(address(_tokenAddress), _amounts[_i]);
+        }
+    }
+
+    function setBatch(Batch _batch) public onlyOwner {
+        batch = _batch;
+    }
+
+    /**
+     * @notice Function that allows to add funds to the contract to execute the recipes.
+     * @param _token Contract of the token to be deposited.
+     * @param _user Address of the user who will deposit the tokens.
+     * @param _amount Amount of tokens to be deposited.
+     */
+    function addFundsForTokens(
+        address _user,
+        IERC20 _token,
+        uint256 _amount
+    ) public nonReentrant returns (uint256 amount) {
+        require(_amount > 0, 'Insufficient Balance.');
+
+        uint256 balanceBefore = _token.balanceOf(address(this));
+        _token.safeTransferFrom(_user, address(this), _amount); // Send tokens from investor account to contract account.
+        uint256 balanceAfter = _token.balanceOf(address(this));
+        require(balanceAfter > balanceBefore, 'Transfer Error'); // Checks that the balance of the contract has increased.
+
+        increaseBalance(_user, address(_token), balanceAfter - balanceBefore);
+
+        emit AddFunds(address(_token), _amount);
+        return _amount;
+    }
+
+    /**
+     * @notice Function that allows to add funds to the contract to execute the recipes.
+     * @param _user Address of the user who will deposit the tokens.
+     */
+    function addFundsForFTM(address _user) public payable nonReentrant returns (address token, uint256 amount) {
+        require(msg.value > 0, 'Insufficient Balance.');
+
+        increaseBalance(_user, WFTM, msg.value);
+        IWETH(WFTM).deposit{value: msg.value}();
+
+        emit AddFunds(WFTM, msg.value);
+        return (WFTM, msg.value);
+    }
+
+    /**
+     * @notice Function that allows you to see the balance you have in the contract of a specific token.
+     * @param _user Address of the user who will deposit the tokens.
+     * @param _token Contract of the token from which the balance is to be obtained.
+     */
+    function getBalance(address _user, IERC20 _token) public view returns (uint256) {
+        return balance[_user].get(address(_token));
+    }
+
+    /**
+     * @notice Function that divides the token you send into two tokens according to the percentage you select.
+     * @param _splitStruct Struct: user, token, amount, firstToken, secondToken, percentageFirstToken, amountOutMinFirst, amountOutMinSecond.
+     */
+    function split(SplitStruct memory _splitStruct)
+        public
+        nonReentrant
+        onlyOwner
+        returns (uint256 amountOutToken1, uint256 amountOutToken2)
+    {
+        address user = _splitStruct.user;
+        address token = _splitStruct.token;
+        uint256 amount = _splitStruct.amount;
+
+        uint256 _userBalance = getBalance(user, IERC20(token));
+        require(amount <= _userBalance, 'Insufficient Balance.');
+
+        IERC20(token).safeTransfer(address(nodes_), amount);
+
+        Nodes_.SplitStruct memory newSplitStruct = nodes_SplitStruct;
+        newSplitStruct.token = token;
+        newSplitStruct.amount = amount;
+        newSplitStruct.firstToken = _splitStruct.firstToken;
+        newSplitStruct.secondToken = _splitStruct.secondToken;
+        newSplitStruct.percentageFirstToken = _splitStruct.percentageFirstToken;
+        newSplitStruct.amountOutMinFirst = _splitStruct.amountOutMinFirst;
+        newSplitStruct.amountOutMinSecond = _splitStruct.amountOutMinSecond;
+        (uint256 _amountOutToken1, uint256 _amountOutToken2) = nodes_.split(newSplitStruct);
+
+        increaseBalance(user, _splitStruct.firstToken, _amountOutToken1);
+        increaseBalance(user, _splitStruct.secondToken, _amountOutToken2);
+
+        decreaseBalance(user, token, amount);
+
+        emit Split(_amountOutToken1, _amountOutToken2);
+        return (_amountOutToken1, _amountOutToken2);
+    }
+
+    /**
+     * @notice Function that allows to send X amount of tokens and returns the token you want.
+     * @param _user Address of the user running the node.
+     * @param _token Address of the token to be swapped.
+     * @param _amount Amount of Tokens to be swapped.
+     * @param _newToken Contract of the token you wish to receive.
+     * @param _amountOutMin Minimum amount you wish to receive.
+     */
+    function swapTokens(
+        address _user,
+        address _token,
+        uint256 _amount,
+        address _newToken,
+        uint256 _amountOutMin
+    ) public nonReentrant onlyOwner returns (uint256 amountOut) {
+        uint256 _userBalance = getBalance(_user, IERC20(_token));
+        require(_amount <= _userBalance, 'Insufficient Balance.');
+
+        uint256 _amountOut;
+        if (_token != _newToken) {
+            IERC20(_token).safeTransfer(address(nodes_), _amount);
+
+            _amountOut = nodes_.swapTokens(_token, _amount, _newToken, _amountOutMin);
+
+            increaseBalance(_user, _newToken, _amountOut);
+
+            decreaseBalance(_user, _token, _amount);
+        } else {
+            _amountOut = _amount;
+        }
+
+        emit Swap(_token, _amount, _newToken, _amountOut);
+        return _amountOut;
+    }
+
+    /**
+     * @notice Function that allows to liquidate all tokens in your account by swapping them to a specific token.
+     * @param _user Address of the user whose tokens are to be liquidated.
+     * @param _tokens Array of tokens input.
+     * @param _amounts Array of amounts.
+     * @param _tokenOutput Address of the token to which all tokens are to be swapped.
+     * @param _amountOutMin Minimum amount you wish to receive.
+     */
+    function liquidate(
+        address _user,
+        IERC20[] memory _tokens,
+        uint256[] memory _amounts,
+        address _tokenOutput,
+        uint256 _amountOutMin
+    ) public nonReentrant onlyOwner returns (uint256 amountOut) {
+        require(_tokens.length == _amounts.length, 'The number of tokens and the number of amounts must be the same.');
+
+        uint256 amount;
+        for (uint256 _i = 0; _i < _tokens.length; _i++) {
+            address tokenInput = address(_tokens[_i]);
+            uint256 amountInput = _amounts[_i];
+            uint256 userBalance = getBalance(_user, IERC20(tokenInput));
+            require(userBalance >= amountInput, 'Insufficient Balance.');
+
+            uint256 _amountOut;
+            if (tokenInput != _tokenOutput) {
+                IERC20(tokenInput).safeTransfer(address(nodes_), amountInput);
+
+                _amountOut = nodes_.swapTokens(tokenInput, amountInput, _tokenOutput, _amountOutMin);
+
+                amount += _amountOut;
+            } else {
+                _amountOut = amountInput;
+                amount += amountInput;
+            }
+
+            decreaseBalance(_user, tokenInput, amountInput);
+
+            if(_tokenOutput == WFTM) {
+                IWETH(WFTM).withdraw(_amountOut);
+                payable(_user).transfer(_amountOut);
+            } else {
+                IERC20(_tokenOutput).safeTransfer(_user, _amountOut); 
+            }
+        }
+
+        emit Liquidate(_tokenOutput, amount);
+        return amount;
     }
 
     function _withdrawLpAndSwap(
@@ -495,7 +495,13 @@ contract Nodes is Initializable, ReentrancyGuard {
         _wffot memory args,
         uint256 amountLp
     ) internal returns (uint256 amountTokenDesired) {
-        IERC20(args.lpToken).transfer(args.lpToken, amountLp);
+        IUniswapV2Pair lp = IUniswapV2Pair(args.lpToken);
+        require(
+            (lp.token0() == args.token0 && lp.token1() == args.token1) ||
+                (lp.token0() == args.token1 && lp.token1() == args.token0)
+        );
+        require(args.tokenDesired == args.token0 || args.tokenDesired == args.token1);
+        IERC20(args.lpToken).safeTransfer(args.lpToken, amountLp);
         (uint256 amount0, uint256 amount1) = IUniswapV2Pair(args.lpToken).burn(address(this));
 
         require(amount0 >= minimumAmount, 'UniswapV2Router: INSUFFICIENT_A_AMOUNT');
@@ -518,9 +524,10 @@ contract Nodes is Initializable, ReentrancyGuard {
         path[0] = swapToken;
         path[1] = args.tokenDesired;
 
-        _approve(swapToken, address(router), swapAmount);
+        IUniswapV2Router02 router1 = nodes_.getRouter(swapToken, args.tokenDesired);
+        _approve(swapToken, address(router1), swapAmount);
 
-        uint256[] memory swapedAmounts = router.swapExactTokensForTokens(
+        uint256[] memory swapedAmounts = router1.swapExactTokensForTokens(
             swapAmount,
             args.amountTokenDesiredMin,
             path,
@@ -528,14 +535,16 @@ contract Nodes is Initializable, ReentrancyGuard {
             block.timestamp
         );
         amountTokenDesired += swapedAmounts[1];
-        setBalances(user, args.tokenDesired, amountTokenDesired);
+        increaseBalance(user, args.tokenDesired, amountTokenDesired);
     }
 
     function _addLiquidity(
         address token0,
         address token1,
         uint256 amount0,
-        uint256 amount1
+        uint256 amount1,
+        uint256 amountOutMin0,
+        uint256 amountOutMin1
     )
         internal
         returns (
@@ -544,9 +553,10 @@ contract Nodes is Initializable, ReentrancyGuard {
             uint256 lpRes
         )
     {
-        _approve(token0, address(router), amount0);
-        _approve(token1, address(router), amount1);
-        (amount0f, amount1f, lpRes) = router.addLiquidity(token0, token1, amount0, amount1, 0, 0, address(this), block.timestamp);
+        IUniswapV2Router02 router1 = nodes_.getRouter(token0, token1);
+        _approve(token0, address(router1), amount0);
+        _approve(token1, address(router1), amount1);
+        (amount0f, amount1f, lpRes) = router1.addLiquidity(token0, token1, amount0, amount1, amountOutMin0, amountOutMin1, address(this), block.timestamp);
     }
 
     function _approve(
@@ -554,8 +564,27 @@ contract Nodes is Initializable, ReentrancyGuard {
         address spender,
         uint256 amount
     ) internal {
-        IERC20(token).approve(spender, 0);
-        IERC20(token).approve(spender, amount);
+        IERC20(token).safeApprove(spender, 0);
+        IERC20(token).safeApprove(spender, amount);
+    }
+
+    /**
+     * @notice Calculate the percentage of a number.
+     * @param x Number.
+     * @param y Percentage of number.
+     * @param scale Division.
+     */
+    function mulScale(
+        uint256 x,
+        uint256 y,
+        uint128 scale
+    ) internal pure returns (uint256) {
+        uint256 a = x / scale;
+        uint256 b = x % scale;
+        uint256 c = y / scale;
+        uint256 d = y % scale;
+
+        return a * c * scale + a * d + b * c + (b * d) / scale;
     }
 
     function _getSwapAmount(
@@ -569,7 +598,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         swapAmount = investmentA - (Babylonian.sqrt((halfInvestment * halfInvestment * nominator) / denominator));
     }
 
-    function setBalances(
+    function increaseBalance(
         address _user,
         address _token,
         uint256 _amount
@@ -590,64 +619,4 @@ contract Nodes is Initializable, ReentrancyGuard {
         _userBalance -= _amount;
         balance[_user].set(address(_token), _userBalance);
     }
-
-    /**
-     * @notice Function that allows to withdraw tokens to the user's wallet.
-     * @param _user Address of the user who wishes to remove the tokens.
-     * @param _token Token to be withdrawn.
-     * @param _amount Amount of tokens to be withdrawn.
-     */
-    function sendToWallet(
-        address _user,
-        IERC20 _token,
-        uint256 _amount
-    ) public nonReentrant onlyOwner returns (uint256 amount) {
-        uint256 _userBalance = getBalance(_user, _token);
-        require(_userBalance >= _amount, 'Insufficient balance.');
-
-        if (address(_token) == FTM) {
-            payable(_user).transfer(_amount);
-        } else {
-            _token.transfer(_user, _amount);
-        }
-
-        decreaseBalance(_user, address(_token), _amount);
-
-        emit SendToWallet(address(_token), _amount);
-        return _amount;
-    }
-
-    /**
-     * @notice Emergency function that allows to recover all tokens in the state they are in.
-     * @param _tokens Array of the tokens to be withdrawn.
-     * @param _amounts Array of the amounts to be withdrawn.
-     */
-    function recoverAll(IERC20[] memory _tokens, uint256[] memory _amounts) public nonReentrant {
-        require(_tokens.length > 0, 'Enter some address.');
-
-        for (uint256 _i = 0; _i < _tokens.length; _i++) {
-            IERC20 _tokenAddress = _tokens[_i];
-
-            for (uint256 _x = 0; _x < balance[msg.sender].size(); _x++) {
-                address _tokenUserAddress = balance[msg.sender].getKeyAtIndex(_x);
-
-                if (address(_tokenAddress) == _tokenUserAddress) {
-                    uint256 _userBalance = getBalance(msg.sender, _tokenAddress);
-                    require(_userBalance >= _amounts[_i], 'Insufficient balance.');
-
-                    if (address(_tokenAddress) == FTM) {
-                        payable(msg.sender).transfer(_amounts[_i]);
-                    } else {
-                        _tokenAddress.transfer(msg.sender, _amounts[_i]);
-                    }
-
-                    decreaseBalance(msg.sender, address(_tokenAddress), _amounts[_i]);
-
-                    emit RecoverAll(address(_tokenAddress), _amounts[_i]);
-                }
-            }
-        }
-    }
-
-    receive() external payable {}
 }

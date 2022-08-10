@@ -1,3 +1,7 @@
 node_modules
 artifacts
 cache
+.env
+addresses.json
+vaults.json
+.openzeppelin

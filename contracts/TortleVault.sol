@@ -19,9 +19,9 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
     uint256 public tvlCap;
 
     bool public initialized = false;
-    uint256 public constructionTime;
+    uint256 public immutable constructionTime;
 
-    IERC20 public token;
+    IERC20 public immutable token;
 
     mapping(address => uint256) public cumulativeDeposits;
     mapping(address => uint256) public cumulativeWithdrawals;
@@ -76,7 +76,8 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
     }
 
     function getPricePerFullShare() public view returns (uint256) {
-        return totalSupply() == 0 ? 1e18 : (balance() * 1e18) / totalSupply();
+        uint256 decimals = 10 ** ERC20(address(token)).decimals();
+        return totalSupply() == 0 ? decimals : (balance() * decimals) / totalSupply();
     }
 
     function deposit(uint256 _amount) public nonReentrant returns (uint256 shares) {
