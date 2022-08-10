@@ -3,4 +3,5 @@ artifacts
 cache
 .env
 addresses.json
+vaults.json
 .openzeppelin
