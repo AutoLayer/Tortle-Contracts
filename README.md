@@ -65,9 +65,9 @@ Smart contract environment for helping the develop, testing, and the deployment 
 
 - The following env vars are required:
   
-  `PRIVATE_KEY`: A wallet private key to use as the main server wallet.
-  `VAULTS_PATH`: It is the path where you want to save the json file with the related information to the vaults that you have just created.
-  `CONTRACTS_PATH`: It is the path where you want to save the json file with the related information to the contracts that you have just created.
+  - `PRIVATE_KEY`: A wallet private key to use as the main server wallet.
+  - `VAULTS_PATH`: It is the path where you want to save the json file with the related information to the vaults that you have just created.
+  - `CONTRACTS_PATH`: It is the path where you want to save the json file with the related information to the contracts that you have just created.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
