@@ -11,26 +11,25 @@
   },
   "author": "Alex Pinilla",
   "license": "ISC",
-  "devDependencies": {
+  "devDependencies": {},
+  "dependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",
     "@nomiclabs/hardhat-ganache": "^2.0.1",
     "@nomiclabs/hardhat-waffle": "^2.0.3",
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "@openzeppelin/contracts": "^4.5.0",
-    "chai": "^4.3.6",
-    "ethereum-waffle": "^3.4.4",
-    "ethers": "^5.6.8",
-    "hardhat": "^2.9.2",
-    "web3": "^1.7.1"
-  },
-  "dependencies": {
     "@openzeppelin/hardhat-upgrades": "^1.18.3",
     "@uniswap/lib": "^4.0.1-alpha",
     "@uniswap/v2-core": "^1.0.1",
     "@uniswap/v2-periphery": "^1.1.0-beta.0",
     "@uniswap/v3-core": "^1.0.1",
     "bignumber.js": "^9.0.2",
+    "chai": "^4.3.6",
     "dotenv": "^16.0.1",
-    "fs-extra": "^10.0.1"
+    "ethereum-waffle": "^3.4.4",
+    "ethers": "^5.6.8",
+    "fs-extra": "^10.0.1",
+    "hardhat": "^2.9.2",
+    "web3": "^1.7.5"
   }
 }
