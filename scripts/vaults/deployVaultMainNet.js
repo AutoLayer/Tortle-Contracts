@@ -4,6 +4,8 @@ require('dotenv').config()
 const { WEI } = require('../../test/utils')
 const farmsListJSON = require('./shortExampleFarmList.json')
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
 const deployVaults = async (tokensList) => {
     const VaultDepositFEE = 10
 
@@ -53,11 +55,20 @@ const deployVaults = async (tokensList) => {
         farmsList.push({...farmObj})
     }
 
-    let index = 0
-    do {
-        await createVault(tokensList[index])
-        index++
-    } while (index !== tokensList.length);
+    for(let index = 0; index < tokensList.length; index++) {
+        let retries = 0
+        do {
+            try {
+                await createVault(tokensList[index])
+                break
+            } catch (error) {
+                retries++
+                console.warn(error)
+                await sleep(60000)
+            }
+        } while (retries < 5)
+        if(retries >= 5) throw new Error('Too many errors.')
+    }
 
     const data = JSON.stringify(farmsList)
     fs.writeFile(process.env.VAULTS_PATH ? process.env.VAULTS_PATH : '/tmp/vaults.json', data, (err) => {
