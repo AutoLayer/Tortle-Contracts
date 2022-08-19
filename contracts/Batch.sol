@@ -189,7 +189,7 @@ contract Batch {
         address _token = StringUtils.parseAddr(args.arguments[0]);
         uint256 _amount = StringUtils.safeParseInt(args.arguments[1]);
 
-        uint256 amount = nodes.addFundsForTokens(args.user, IERC20(_token), _amount);
+        uint256 amount = nodes.addFundsForTokens(args.user, _token, _amount);
         if (args.hasNext) {
             auxStack.push(amount);
         }

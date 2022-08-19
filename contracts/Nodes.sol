@@ -59,11 +59,21 @@ contract Nodes is Initializable, ReentrancyGuard {
     }
 
     address public owner;
-    IUniswapV2Router02 router;
-    address private WFTM;
+    address public tortleDojos;
+    address public tortleTreasury;
+    address public tortleDevFund;
     Nodes_ public nodes_;
     Nodes_.SplitStruct private nodes_SplitStruct;
     Batch private batch;
+    address public usdc;
+    IUniswapV2Router02 router;
+    address private WFTM;
+    uint16 public constant slippageFactorMin = 950;
+
+    uint8 public constant TOTAL_FEE = 150; //1.50%
+    uint8 public constant DOJOS_FEE = 50; //0.50%
+    uint8 public constant TREASURY_FEE = 70; //0.70%
+    uint8 public constant DEV_FUND_FEE = 30; //0.30%
     uint256 public constant minimumAmount = 1000;
 
     mapping(address => mapping(address => uint256)) public userLp;
@@ -87,16 +97,22 @@ contract Nodes is Initializable, ReentrancyGuard {
         address _owner,
         Nodes_ _nodes_,
         Batch _batch,
+        address _tortleDojos,
+        address _tortleTrasury,
+        address _tortleDevFund,
+        address _usdc,
         address _router
     ) public initializer {
         owner = _owner;
         nodes_ = _nodes_;
         batch = _batch;
+        tortleDojos = _tortleDojos;
+        tortleTreasury = _tortleTrasury;
+        tortleDevFund = _tortleDevFund;
+        usdc = _usdc;
         router = IUniswapV2Router02(_router);
         WFTM = router.WETH();
     }
-
-    receive() external payable {}
 
     function depositOnLp(
         address user,
@@ -328,19 +344,20 @@ contract Nodes is Initializable, ReentrancyGuard {
      */
     function addFundsForTokens(
         address _user,
-        IERC20 _token,
+        address _token,
         uint256 _amount
     ) public nonReentrant returns (uint256 amount) {
         require(_amount > 0, 'Insufficient Balance.');
 
-        uint256 balanceBefore = _token.balanceOf(address(this));
-        _token.safeTransferFrom(_user, address(this), _amount); // Send tokens from investor account to contract account.
-        uint256 balanceAfter = _token.balanceOf(address(this));
+        uint256 balanceBefore = IERC20(_token).balanceOf(address(this));
+        IERC20(_token).safeTransferFrom(_user, address(this), _amount); // Send tokens from investor account to contract account.
+        uint256 balanceAfter = IERC20(_token).balanceOf(address(this));
         require(balanceAfter > balanceBefore, 'Transfer Error'); // Checks that the balance of the contract has increased.
 
-        increaseBalance(_user, address(_token), balanceAfter - balanceBefore);
+        _amount = chargeFees(_token, balanceAfter - balanceBefore);
+        increaseBalance(_user, _token, _amount);
 
-        emit AddFunds(address(_token), _amount);
+        emit AddFunds(_token, _amount);
         return _amount;
     }
 
@@ -351,11 +368,29 @@ contract Nodes is Initializable, ReentrancyGuard {
     function addFundsForFTM(address _user) public payable nonReentrant returns (address token, uint256 amount) {
         require(msg.value > 0, 'Insufficient Balance.');
 
-        increaseBalance(_user, WFTM, msg.value);
         IWETH(WFTM).deposit{value: msg.value}();
 
-        emit AddFunds(WFTM, msg.value);
-        return (WFTM, msg.value);
+        uint256 _amount = chargeFees(WFTM, msg.value);
+        increaseBalance(_user, WFTM, _amount);
+
+        emit AddFunds(WFTM, _amount);
+        return (WFTM, _amount);
+    }
+
+    function chargeFees(address _token, uint256 _amount) internal returns (uint256 amount) {
+        uint256 _amountFee = mulScale(_amount, TOTAL_FEE, 10000);
+        IERC20(_token).safeTransfer(address(nodes_), _amountFee);
+
+        uint256 _swapedAmountOut = nodes_.swapTokens(_token, _amountFee, usdc, 0);
+
+        uint256 _dojosTokens = mulScale(_swapedAmountOut, DOJOS_FEE, 10000);
+        uint256 _treasuryTokens = mulScale(_swapedAmountOut, TREASURY_FEE, 10000);
+        uint256 _devFundTokens = mulScale(_swapedAmountOut, DEV_FUND_FEE, 10000);
+        IERC20(usdc).safeTransfer(tortleDojos, _dojosTokens);
+        IERC20(usdc).safeTransfer(tortleTreasury, _treasuryTokens);
+        IERC20(usdc).safeTransfer(tortleDevFund, _devFundTokens);
+
+        return _amount - _amountFee;
     }
 
     /**
@@ -619,4 +654,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         _userBalance -= _amount;
         balance[_user].set(address(_token), _userBalance);
     }
+
+    
+    receive() external payable {}
 }
