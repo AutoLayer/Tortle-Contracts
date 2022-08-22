@@ -11,6 +11,7 @@ contract Batch {
     address public owner;
     Nodes public nodes;
     Nodes.SplitStruct private splitStruct;
+    uint8 public constant TOTAL_FEE = 150; //1.50%
     uint256[] public auxStack;
 
     struct Function {
@@ -66,6 +67,8 @@ contract Batch {
 
     function addFundsForFTM(Function memory args) public onlySelf {
         uint256 amount = StringUtils.safeParseInt(args.arguments[0]);
+        uint256 _fee = ((amount * TOTAL_FEE) / 10000);
+        amount -= _fee;
         if (args.hasNext) {
             auxStack.push(amount);
         }
