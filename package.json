@@ -11,7 +11,9 @@
   },
   "author": "Alex Pinilla",
   "license": "ISC",
-  "devDependencies": {},
+  "devDependencies": {
+    "hardhat-contract-sizer": "^2.6.1"
+  },
   "dependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",
     "@nomiclabs/hardhat-ganache": "^2.0.1",
