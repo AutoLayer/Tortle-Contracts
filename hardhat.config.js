@@ -1,6 +1,6 @@
+require('hardhat-contract-sizer');
 require('@nomiclabs/hardhat-waffle')
 require('@nomiclabs/hardhat-ethers')
-require('hardhat-contract-sizer');
 require('@openzeppelin/hardhat-upgrades')
 require('dotenv').config()
 
