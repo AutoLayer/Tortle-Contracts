@@ -11,9 +11,7 @@
   },
   "author": "Alex Pinilla",
   "license": "ISC",
-  "devDependencies": {
-    "hardhat-contract-sizer": "^2.6.1"
-  },
+  "devDependencies": {},
   "dependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",
     "@nomiclabs/hardhat-ganache": "^2.0.1",
@@ -25,6 +23,7 @@
     "@uniswap/v2-core": "^1.0.1",
     "@uniswap/v2-periphery": "^1.1.0-beta.0",
     "@uniswap/v3-core": "^1.0.1",
+    "hardhat-contract-sizer": "^2.5.1",
     "bignumber.js": "^9.0.2",
     "chai": "^4.3.6",
     "dotenv": "^16.0.1",
