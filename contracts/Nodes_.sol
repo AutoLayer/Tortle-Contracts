@@ -8,6 +8,8 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 
+error Nodes___PairDoesNotExist();
+
 contract Nodes_ is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -449,7 +451,7 @@ contract Nodes_ is ReentrancyGuard {
             }
         }
 
-        require(address(router) != address(0), "Pair doesn't exists.");
+        if (address(router) == address(0)) revert Nodes___PairDoesNotExist();
     }
 
     function getRouterOneToken(address _token) public view returns(IUniswapV2Router02 router) {
@@ -466,7 +468,7 @@ contract Nodes_ is ReentrancyGuard {
             }
         }
 
-        require(address(router) != address(0), "Pair doesn't exists.");
+        if (address(router) == address(0)) revert Nodes___PairDoesNotExist();
     }
 
     receive() external payable {}

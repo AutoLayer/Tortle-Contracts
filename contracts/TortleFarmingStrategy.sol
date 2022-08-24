@@ -13,6 +13,11 @@ import "./interfaces/ITortleVault.sol";
 
 import "hardhat/console.sol";
 
+error TortleFarmingStrategy__SenderIsNotVault();
+error TortleFarmingStrategy__InvalidAmount();
+error TortleFarmingStrategy__FeeIsTooHigh();
+error TortleFarmingStrategy__InvalidSlippageFactor();
+
 contract TortleFarmingStrategy is Ownable, Pausable {
     using SafeERC20 for IERC20;
 
@@ -107,12 +112,9 @@ contract TortleFarmingStrategy is Ownable, Pausable {
     }
 
     function withdraw(uint256 _amount) external {
-        require(msg.sender == vault, "!vault");
+        if (msg.sender != vault) revert TortleFarmingStrategy__SenderIsNotVault();
         uint256 lpTokenBalance = IERC20(lpToken).balanceOf(address(this));
-        require(
-            _amount != 0 && _amount <= (balanceOfPool() + lpTokenBalance),
-            "invalid amount"
-        );
+        if (_amount == 0 || _amount > (balanceOfPool() + lpTokenBalance)) revert TortleFarmingStrategy__InvalidAmount();
         _amount -= (_amount * securityFee) / PERCENT_DIVISOR;
 
         if (lpTokenBalance < _amount) {
@@ -122,7 +124,7 @@ contract TortleFarmingStrategy is Ownable, Pausable {
     }
 
     function harvest(uint256 _slippageFactor) external whenNotPaused {
-        require(_slippageFactor <= 1000 && _slippageFactor > slippageFactorMin, 'invalid slippage factor');
+        if (_slippageFactor > 1000 || _slippageFactor <= slippageFactorMin) revert TortleFarmingStrategy__InvalidSlippageFactor();
         IMasterChef(masterChef).deposit(poolId, 0);
         chargeFees();
         addLiquidity(_slippageFactor);
@@ -179,7 +181,7 @@ contract TortleFarmingStrategy is Ownable, Pausable {
     }
 
     function retireStrat() external {
-        require(msg.sender == vault, "!vault");
+        if (msg.sender != vault) revert TortleFarmingStrategy__SenderIsNotVault();
 
         IMasterChef(masterChef).emergencyWithdraw(poolId);
 
@@ -206,7 +208,7 @@ contract TortleFarmingStrategy is Ownable, Pausable {
         onlyOwner
         returns (bool)
     {
-        require(_totalFee <= MAX_FEE, "Fee Too High");
+        if (_totalFee > MAX_FEE) revert TortleFarmingStrategy__FeeIsTooHigh();
         totalFee = _totalFee;
         emit TotalFeeUpdated(totalFee);
         return true;
