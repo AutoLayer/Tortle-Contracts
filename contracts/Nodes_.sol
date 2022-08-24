@@ -389,9 +389,10 @@ contract Nodes_ is ReentrancyGuard {
             _amount = amountsOut[amountsOut.length - 1];
             _tokenIn = FTM;
         }
-        
+
+        IERC20(_tokenIn).safeApprove(address(routerOut), 0);
         IERC20(_tokenIn).safeApprove(address(routerOut), _amount);
-        
+
         uint256 _amountOut;
         if(_tokenIn != _tokenOut) {
             if (_tokenIn == FTM || _tokenOut == FTM) {
