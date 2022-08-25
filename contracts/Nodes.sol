@@ -26,13 +26,10 @@ error Nodes__DepositOnLPInsufficientT1Funds();
 error Nodes__DepositOnFarmTokensInsufficientT0Funds();
 error Nodes__DepositOnFarmTokensInsufficientT1Funds();
 error Nodes__DepositOnFarmLPInsufficientLPTokenFunds();
-error Nodes__DepositOneFarmTokenInsufficientTokenFunds();
 error Nodes__WithdrawFromLPInsufficientFunds();
 error Nodes__WithdrawFromFarmInsufficientFunds();
 error Nodes__UniswapV2RouterInsufficientAAmount();
 error Nodes__UniswapV2RouterInsufficientBAmount();
-error Nodes__InputAmountTooLow();
-error Nodes__LiquidityReservesTooLow();
 
 contract Nodes is Initializable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -175,60 +172,6 @@ contract Nodes is Initializable, ReentrancyGuard {
         userTt[tortleVault][user] += ttShares;
         decreaseBalance(user, address(lpToken), amount);
         result[1] = ttShares;
-    }
-
-    function depositOnFarmOneToken(
-        address user,
-        string[] memory _arguments,
-        uint256[] memory auxStack
-    ) external nonReentrant onlyOwner returns (uint256[] memory result) {
-        _dofot memory args;
-        args.lpToken = StringUtils.parseAddr(_arguments[1]);
-        args.tortleVault = StringUtils.parseAddr(_arguments[2]);
-        args.token = StringUtils.parseAddr(_arguments[3]);
-        args.amount = StringUtils.safeParseInt(_arguments[4]);
-        args.amountOutMin = StringUtils.safeParseInt(_arguments[5]);
-        result = new uint256[](2);
-        if (auxStack.length > 0) {
-            args.amount = auxStack[auxStack.length - 1];
-            result[0] = 1;
-        }
-        if (args.amount < minimumAmount) revert Nodes__InputAmountTooLow();
-        if (args.amount > getBalance(user, IERC20(args.token))) revert Nodes__DepositOneFarmTokenInsufficientTokenFunds();
-
-        (uint256 reserveA, uint256 reserveB, ) = IUniswapV2Pair(args.lpToken).getReserves();
-        if (reserveA < minimumAmount || reserveB < minimumAmount) revert Nodes__LiquidityReservesTooLow();
-
-        address[] memory path = new address[](2);
-        path[0] = args.token;
-
-        uint256 swapAmountIn;
-        if (IUniswapV2Pair(args.lpToken).token0() == args.token) {
-            path[1] = IUniswapV2Pair(args.lpToken).token1();
-            swapAmountIn = _getSwapAmount(args.amount, reserveA, reserveB);
-        } else {
-            path[1] = IUniswapV2Pair(args.lpToken).token0();
-            swapAmountIn = _getSwapAmount(args.amount, reserveB, reserveA);
-        }
-
-        _approve(path[0], address(router), args.amount);
-        uint256[] memory swapedAmounts = router.swapExactTokensForTokens(
-            swapAmountIn,
-            args.amountOutMin,
-            path,
-            address(this),
-            block.timestamp
-        );
-        
-        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = _addLiquidity(path[0], path[1], args.amount - swapedAmounts[0], swapedAmounts[1], 1, 1);
-
-        // this approve could be made once if we always trust and allow our own vaults (which is the actual case)
-        _approve(args.lpToken, args.tortleVault, lpBal);
-        args.ttAmount = ITortleVault(args.tortleVault).deposit(lpBal);
-        userTt[args.tortleVault][user] += args.ttAmount;
-        decreaseBalance(user, path[0], swapedAmounts[0] + amount0f);
-        increaseBalance(user, path[1], swapedAmounts[1] - amount1f);
-        result[1] = args.ttAmount;
     }
 
     function depositOnFarmTokens(
