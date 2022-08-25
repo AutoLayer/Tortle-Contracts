@@ -10,6 +10,14 @@ import "@uniswap/v3-core/contracts/libraries/LowGasSafeMath.sol";
 import "./interfaces/IWETH.sol";
 import "./interfaces/ITortleVault.sol";
 
+error TortleUniV2Zap__InputAmountTooLow();
+error TortleUniV2Zap__TokenIsNotPresentInLiquidityPar();
+error TortleUniV2Zap__RouterInsuficientAAmount();
+error TortleUniV2Zap__RouterInsuficientBAmount();
+error TortleUniV2Zap__IncompatibleLiquidityPairFactory();
+error TortleUniV2Zap__LiquidityPairReservesTooLow();
+error TortleUniV2Zap__ETHTransferFailed();
+
 contract TortleUniV2Zap {
     using LowGasSafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -36,13 +44,8 @@ contract TortleUniV2Zap {
         external
         payable
     {
-        require(
-            msg.value >= minimumAmount,
-            "Tortle: Insignificant input amount"
-        );
-
+        if (msg.value < minimumAmount) revert TortleUniV2Zap__InputAmountTooLow();
         IWETH(WETH).deposit{value: msg.value}();
-
         _swapAndStake(tortleVault, tokenAmountOutMin, WETH);
     }
 
@@ -52,17 +55,12 @@ contract TortleUniV2Zap {
         address tokenIn,
         uint256 tokenInAmount
     ) external {
-        require(
-            tokenInAmount >= minimumAmount,
-            "Tortle: Insignificant input amount"
-        );
-
+        if (tokenInAmount < minimumAmount) revert TortleUniV2Zap__InputAmountTooLow();
         IERC20(tokenIn).safeTransferFrom(
             msg.sender,
             address(this),
             tokenInAmount
         );
-
         _swapAndStake(tortleVault, tokenAmountOutMin, tokenIn);
     }
 
@@ -98,11 +96,8 @@ contract TortleUniV2Zap {
         (ITortleVault vault, IUniswapV2Pair pair) = _getVaultPair(tortleVault);
         address token0 = pair.token0();
         address token1 = pair.token1();
-        require(
-            token0 == desiredToken || token1 == desiredToken,
-            "Tortle: desired token not present in liquidity pair"
-        );
-
+        if (token0 != desiredToken && token1 != desiredToken) revert TortleUniV2Zap__TokenIsNotPresentInLiquidityPar();
+       
         vault.safeTransferFrom(msg.sender, address(this), withdrawAmount);
         vault.withdraw(withdrawAmount);
         _removeLiquidity(address(pair), address(this));
@@ -128,14 +123,8 @@ contract TortleUniV2Zap {
         IERC20(pair).safeTransfer(pair, IERC20(pair).balanceOf(address(this)));
         (uint256 amount0, uint256 amount1) = IUniswapV2Pair(pair).burn(to);
 
-        require(
-            amount0 >= minimumAmount,
-            "UniswapV2Router: INSUFFICIENT_A_AMOUNT"
-        );
-        require(
-            amount1 >= minimumAmount,
-            "UniswapV2Router: INSUFFICIENT_B_AMOUNT"
-        );
+        if (amount0 < minimumAmount) revert TortleUniV2Zap__RouterInsuficientAAmount();
+        if (amount1 < minimumAmount) revert TortleUniV2Zap__RouterInsuficientBAmount();
     }
 
     function _getVaultPair(address tortleVault)
@@ -145,10 +134,7 @@ contract TortleUniV2Zap {
     {
         vault = ITortleVault(tortleVault);
         pair = IUniswapV2Pair(vault.token());
-        require(
-            pair.factory() == router.factory(),
-            "Tortle: Incompatible liquidity pair factory"
-        );
+        if (pair.factory() != router.factory()) revert TortleUniV2Zap__IncompatibleLiquidityPairFactory();
     }
 
     function _swapAndStake(
@@ -159,16 +145,10 @@ contract TortleUniV2Zap {
         (ITortleVault vault, IUniswapV2Pair pair) = _getVaultPair(tortleVault);
 
         (uint256 reserveA, uint256 reserveB, ) = pair.getReserves();
-        require(
-            reserveA > minimumAmount && reserveB > minimumAmount,
-            "Tortle: Liquidity pair reserves too low"
-        );
+        if (reserveA < minimumAmount || reserveB < minimumAmount) revert TortleUniV2Zap__LiquidityPairReservesTooLow();
 
         bool isInputA = pair.token0() == tokenIn;
-        require(
-            isInputA || pair.token1() == tokenIn,
-            "Tortle: Input token not present in liquidity pair"
-        );
+        if (!isInputA && pair.token1() != tokenIn) revert TortleUniV2Zap__TokenIsNotPresentInLiquidityPar();
 
         address[] memory path = new address[](2);
         path[0] = tokenIn;
@@ -218,7 +198,7 @@ contract TortleUniV2Zap {
                     (bool success, ) = msg.sender.call{value: balance}(
                         new bytes(0)
                     );
-                    require(success, "Tortle: ETH transfer failed");
+                    if (!success) revert TortleUniV2Zap__ETHTransferFailed();
                 } else {
                     IERC20(tokens[i]).safeTransfer(msg.sender, balance);
                 }
@@ -265,10 +245,7 @@ contract TortleUniV2Zap {
         (, IUniswapV2Pair pair) = _getVaultPair(tortleVault);
 
         bool isInputA = pair.token0() == tokenIn;
-        require(
-            isInputA || pair.token1() == tokenIn,
-            "Tortle: Input token not present in liquidity pair"
-        );
+        if (!isInputA && pair.token1() != tokenIn) revert TortleUniV2Zap__TokenIsNotPresentInLiquidityPar();
 
         (uint256 reserveA, uint256 reserveB, ) = pair.getReserves();
         (reserveA, reserveB) = isInputA

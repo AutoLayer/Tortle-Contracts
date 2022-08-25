@@ -15,6 +15,25 @@ import './interfaces/IWETH.sol';
 import './Nodes_.sol';
 import './Batch.sol';
 
+error Nodes__InsufficientBalance();
+error Nodes__EmptyArray();
+error Nodes__InvalidArrayLength();
+error Nodes__TransferFailed();
+error Nodes__WithdrawLpAndSwapError();
+error Nodes__DepositOnLPInvalidLPToken();
+error Nodes__DepositOnLPInsufficientT0Funds();
+error Nodes__DepositOnLPInsufficientT1Funds();
+error Nodes__DepositOnFarmTokensInsufficientT0Funds();
+error Nodes__DepositOnFarmTokensInsufficientT1Funds();
+error Nodes__DepositOnFarmLPInsufficientLPTokenFunds();
+error Nodes__DepositOneFarmTokenInsufficientTokenFunds();
+error Nodes__WithdrawFromLPInsufficientFunds();
+error Nodes__WithdrawFromFarmInsufficientFunds();
+error Nodes__UniswapV2RouterInsufficientAAmount();
+error Nodes__UniswapV2RouterInsufficientBAmount();
+error Nodes__InputAmountTooLow();
+error Nodes__LiquidityReservesTooLow();
+
 contract Nodes is Initializable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using AddressToUintIterableMap for AddressToUintIterableMap.Map;
@@ -125,9 +144,11 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amountOutMin1
     ) external nonReentrant onlyOwner returns (uint256) {
         IUniswapV2Router02 router1 = nodes_.getRouter(token0, token1);
-        require(lpToken == IUniswapV2Factory(IUniswapV2Router02(router1).factory()).getPair(token0, token1), 'DepositOnLp: Invalid LpToken');
-        require(amount0 <= getBalance(user, IERC20(token0)), 'DepositOnLp: Insufficient token0 funds.');
-        require(amount1 <= getBalance(user, IERC20(token1)), 'DepositOnLp: Insufficient token1 funds.');
+
+        if (lpToken != IUniswapV2Factory(IUniswapV2Router02(router1).factory()).getPair(token0, token1)) revert  Nodes__DepositOnLPInvalidLPToken();
+        if (amount0 > getBalance(user, IERC20(token0))) revert Nodes__DepositOnLPInsufficientT0Funds();
+        if (amount1 > getBalance(user, IERC20(token1))) revert Nodes__DepositOnLPInsufficientT1Funds();
+    
         (uint256 amount0f, uint256 amount1f, uint256 lpRes) = _addLiquidity(token0, token1, amount0, amount1, amountOutMin0, amountOutMin1);
         userLp[lpToken][user] += lpRes;
         decreaseBalance(user, address(token0), amount0f);
@@ -148,7 +169,7 @@ contract Nodes is Initializable, ReentrancyGuard {
             amount = auxStack[auxStack.length - 1];
             result[0] = 1;
         }
-        require(amount <= getBalance(user, IERC20(lpToken)), 'depositOnFarmLp: Insufficient lpToken funds.');
+        if (amount > getBalance(user, IERC20(lpToken))) revert Nodes__DepositOnFarmLPInsufficientLPTokenFunds();
         _approve(lpToken, tortleVault, amount);
         uint256 ttShares = ITortleVault(tortleVault).deposit(amount);
         userTt[tortleVault][user] += ttShares;
@@ -172,11 +193,11 @@ contract Nodes is Initializable, ReentrancyGuard {
             args.amount = auxStack[auxStack.length - 1];
             result[0] = 1;
         }
-        require(args.amount >= minimumAmount, 'Tortle: Insignificant input amount');
-        require(args.amount <= getBalance(user, IERC20(args.token)), 'depositOnFarmOneToken: Insufficient token funds.');
+        if (args.amount < minimumAmount) revert Nodes__InputAmountTooLow();
+        if (args.amount > getBalance(user, IERC20(args.token))) revert Nodes__DepositOneFarmTokenInsufficientTokenFunds();
 
         (uint256 reserveA, uint256 reserveB, ) = IUniswapV2Pair(args.lpToken).getReserves();
-        require(reserveA > minimumAmount && reserveB > minimumAmount, 'Tortle: Liquidity lp reserves too low');
+        if (reserveA < minimumAmount || reserveB < minimumAmount) revert Nodes__LiquidityReservesTooLow();
 
         address[] memory path = new address[](2);
         path[0] = args.token;
@@ -228,8 +249,9 @@ contract Nodes is Initializable, ReentrancyGuard {
             args.amount1 = auxStack[auxStack.length - 1];
             result[0] = 2;
         }
-        require(args.amount0 <= getBalance(user, IERC20(args.token0)), 'DepositOnLp: Insufficient token0 funds.');
-        require(args.amount1 <= getBalance(user, IERC20(args.token1)), 'DepositOnLp: Insufficient token1 funds.');
+
+        if (args.amount0 > getBalance(user, IERC20(args.token0))) revert Nodes__DepositOnFarmTokensInsufficientT0Funds();
+        if (args.amount1 > getBalance(user, IERC20(args.token1))) revert Nodes__DepositOnFarmTokensInsufficientT1Funds();
         (uint256 amount0f, uint256 amount1f, uint256 lpBal) = _addLiquidity(args.token0, args.token1, args.amount0, args.amount1, 0, 0);
         _approve(args.lpToken, args.tortleVault, lpBal);
         uint256 ttAmount = ITortleVault(args.tortleVault).deposit(lpBal);
@@ -251,7 +273,8 @@ contract Nodes is Initializable, ReentrancyGuard {
         args.tokenDesired = StringUtils.parseAddr(_arguments[5]);
         args.amountTokenDesiredMin = StringUtils.safeParseInt(_arguments[6]);
 
-        require(amount <= userLp[args.lpToken][user], 'WithdrawFromLp: Insufficient funds.');
+        if (amount > userLp[args.lpToken][user]) revert Nodes__WithdrawFromLPInsufficientFunds();
+
         userLp[args.lpToken][user] -= amount;
         amountTokenDesired = _withdrawLpAndSwap(user, args, amount);
     }
@@ -270,7 +293,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         args.tokenDesired = StringUtils.parseAddr(_arguments[5]);
         args.amountTokenDesiredMin = StringUtils.safeParseInt(_arguments[6]);
 
-        require(amount <= userTt[args.tortleVault][user], 'WithdrawFromFarm: Insufficient funds.');
+        if (amount > userTt[args.tortleVault][user]) revert Nodes__WithdrawFromFarmInsufficientFunds();
 
         uint256 amountLp = ITortleVault(args.tortleVault).withdraw(amount);
         userTt[args.tortleVault][user] -= amount;
@@ -289,7 +312,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 _amount
     ) public nonReentrant onlyOwner returns (uint256 amount) {
         uint256 _userBalance = getBalance(_user, _token);
-        require(_userBalance >= _amount, 'Insufficient balance.');
+        if (_userBalance < _amount) revert Nodes__InsufficientBalance();
         
         if(address(_token) == WFTM) {
             IWETH(WFTM).withdraw(_amount);
@@ -310,14 +333,14 @@ contract Nodes is Initializable, ReentrancyGuard {
      * @param _amounts Array of the amounts to be withdrawn.
      */
     function recoverAll(IERC20[] memory _tokens, uint256[] memory _amounts) public nonReentrant {
-        require(_tokens.length > 0, 'Enter some address.');
-        require(_tokens.length == _amounts.length, 'The number of tokens and the number of amounts must be the same.');
+        if (_tokens.length <= 0) revert Nodes__EmptyArray();
+        if (_tokens.length != _amounts.length) revert Nodes__InvalidArrayLength();
 
         for (uint256 _i = 0; _i < _tokens.length; _i++) {
             IERC20 _tokenAddress = _tokens[_i];
 
             uint256 _userBalance = getBalance(msg.sender, _tokenAddress);
-            require(_userBalance >= _amounts[_i], 'Insufficient balance.');
+            if (_userBalance < _amounts[_i]) revert Nodes__InsufficientBalance();
 
             if(address(_tokenAddress) == WFTM) {
                 IWETH(WFTM).withdraw(_amounts[_i]);
@@ -347,12 +370,12 @@ contract Nodes is Initializable, ReentrancyGuard {
         address _token,
         uint256 _amount
     ) public nonReentrant returns (uint256 amount) {
-        require(_amount > 0, 'Insufficient Balance.');
+        if (_amount <= 0) revert Nodes__InsufficientBalance();
 
         uint256 balanceBefore = IERC20(_token).balanceOf(address(this));
         IERC20(_token).safeTransferFrom(_user, address(this), _amount); // Send tokens from investor account to contract account.
         uint256 balanceAfter = IERC20(_token).balanceOf(address(this));
-        require(balanceAfter > balanceBefore, 'Transfer Error'); // Checks that the balance of the contract has increased.
+        if (balanceAfter <= balanceBefore) revert Nodes__TransferFailed(); // Checks that the balance of the contract has increased.
 
         _amount = chargeFees(_token, balanceAfter - balanceBefore);
         increaseBalance(_user, _token, _amount);
@@ -366,7 +389,7 @@ contract Nodes is Initializable, ReentrancyGuard {
      * @param _user Address of the user who will deposit the tokens.
      */
     function addFundsForFTM(address _user) public payable nonReentrant returns (address token, uint256 amount) {
-        require(msg.value > 0, 'Insufficient Balance.');
+        if (msg.value <= 0) revert Nodes__InsufficientBalance();
 
         IWETH(WFTM).deposit{value: msg.value}();
 
@@ -417,7 +440,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amount = _splitStruct.amount;
 
         uint256 _userBalance = getBalance(user, IERC20(token));
-        require(amount <= _userBalance, 'Insufficient Balance.');
+        if (amount > _userBalance) revert Nodes__InsufficientBalance();
 
         IERC20(token).safeTransfer(address(nodes_), amount);
 
@@ -456,7 +479,8 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 _amountOutMin
     ) public nonReentrant onlyOwner returns (uint256 amountOut) {
         uint256 _userBalance = getBalance(_user, IERC20(_token));
-        require(_amount <= _userBalance, 'Insufficient Balance.');
+
+        if (_amount > _userBalance) revert Nodes__InsufficientBalance();
 
         uint256 _amountOut;
         if (_token != _newToken) {
@@ -490,14 +514,14 @@ contract Nodes is Initializable, ReentrancyGuard {
         address _tokenOutput,
         uint256 _amountOutMin
     ) public nonReentrant onlyOwner returns (uint256 amountOut) {
-        require(_tokens.length == _amounts.length, 'The number of tokens and the number of amounts must be the same.');
+        if (_tokens.length != _amounts.length) revert Nodes__InvalidArrayLength();
 
         uint256 amount;
         for (uint256 _i = 0; _i < _tokens.length; _i++) {
             address tokenInput = address(_tokens[_i]);
             uint256 amountInput = _amounts[_i];
             uint256 userBalance = getBalance(_user, IERC20(tokenInput));
-            require(userBalance >= amountInput, 'Insufficient Balance.');
+            if (userBalance < amountInput) revert Nodes__InsufficientBalance();
 
             uint256 _amountOut;
             if (tokenInput != _tokenOutput) {
@@ -531,16 +555,13 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amountLp
     ) internal returns (uint256 amountTokenDesired) {
         IUniswapV2Pair lp = IUniswapV2Pair(args.lpToken);
-        require(
-            (lp.token0() == args.token0 && lp.token1() == args.token1) ||
-                (lp.token0() == args.token1 && lp.token1() == args.token0)
-        );
-        require(args.tokenDesired == args.token0 || args.tokenDesired == args.token1);
+        if ((lp.token0() != args.token0 || lp.token1() != args.token1) && (lp.token0() != args.token1 || lp.token1() != args.token0)) revert Nodes__WithdrawLpAndSwapError();
+        if (args.tokenDesired != args.token0 && args.tokenDesired != args.token1) revert Nodes__WithdrawLpAndSwapError();
         IERC20(args.lpToken).safeTransfer(args.lpToken, amountLp);
         (uint256 amount0, uint256 amount1) = IUniswapV2Pair(args.lpToken).burn(address(this));
 
-        require(amount0 >= minimumAmount, 'UniswapV2Router: INSUFFICIENT_A_AMOUNT');
-        require(amount1 >= minimumAmount, 'UniswapV2Router: INSUFFICIENT_B_AMOUNT');
+        if (amount0 < minimumAmount) revert Nodes__UniswapV2RouterInsufficientAAmount();
+        if (amount1 < minimumAmount) revert Nodes__UniswapV2RouterInsufficientBAmount();
 
         uint256 swapAmount;
         address swapToken;
@@ -649,7 +670,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 _amount
     ) private {
         uint256 _userBalance = getBalance(_user, IERC20(_token));
-        require(_userBalance >= _amount, 'Insufficient Balance.');
+        if (_userBalance < _amount) revert Nodes__InsufficientBalance();
 
         _userBalance -= _amount;
         balance[_user].set(address(_token), _userBalance);

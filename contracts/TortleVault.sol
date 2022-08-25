@@ -9,6 +9,10 @@ import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import 'hardhat/console.sol';
 
+error TortleVault__ContractAlreadyInitialized();
+error TortleVault__InvalidAmount();
+error TortleVault__VaultIsFull();
+
 contract TortleVault is ERC20, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -44,13 +48,6 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
         tvlCap = _tvlCap;
     }
 
-    function inCaseTokensGetStuck(address _token) external onlyOwner {
-        require(_token != address(token), '!token');
-
-        uint256 amount = IERC20(_token).balanceOf(address(this));
-        IERC20(_token).safeTransfer(msg.sender, amount);
-    }
-
     function depositAll() external {
         deposit(token.balanceOf(msg.sender));
     }
@@ -64,8 +61,7 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
     }
 
     function initialize(address _strategy) public onlyOwner returns (bool) {
-        require(!initialized, 'Contract is already initialized.');
-        require(block.timestamp <= (constructionTime + 1200), 'initialization period over');
+        if(initialized) revert TortleVault__ContractAlreadyInitialized();
         strategy = _strategy;
         initialized = true;
         return true;
@@ -82,9 +78,9 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
     
     function deposit(uint256 _amount) public nonReentrant returns (uint256 shares) {
         uint256 vaultBalStart = token.balanceOf(address(this));
-        require(_amount != 0, 'please provide amount');
+        if (_amount == 0) revert TortleVault__InvalidAmount();
         uint256 _pool = vaultBalStart + IStrategy(strategy).balanceOf();
-        require(_pool + _amount <= tvlCap, 'vault is full!');
+        if (_pool + _amount > tvlCap) revert TortleVault__VaultIsFull();
 
         token.safeTransferFrom(msg.sender, address(this), _amount);
         _amount = token.balanceOf(address(this)) - vaultBalStart;
@@ -104,7 +100,7 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
     }
 
     function withdraw(uint256 _shares) public nonReentrant returns (uint256 r) {
-        require(_shares > 0, 'please provide amount');
+        if (_shares <= 0) revert TortleVault__InvalidAmount();
         uint256 tokenBalStart = token.balanceOf(address(this));
         r = ((IStrategy(strategy).balanceOf() + tokenBalStart) * _shares) / totalSupply();
         _burn(msg.sender, _shares);

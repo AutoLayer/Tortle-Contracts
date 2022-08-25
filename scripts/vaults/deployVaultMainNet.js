@@ -14,7 +14,7 @@ const deployVaults = async (tokensList) => {
     let wftm = "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"
     let boo = "0x841FAD6EAe12c286d1Fd18d1d525DFfA75C7EFFE"
     let masterChefV2 = "0x18b4f774fdC7BF685daeeF66c2990b1dDd9ea6aD"
-    let tortleTreasury = "0x8844C3CB1408Ccc719ad1EA48689C8db7a590186"
+    let tortleTreasury = "0x62E02F6D24690B5578710a009Ca4993c1aF96aF4"
 
     const _TortleVault = await hre.ethers.getContractFactory('TortleVault')
     const _TortleFarmingsStrategy = await hre.ethers.getContractFactory('TortleFarmingStrategy')
@@ -24,7 +24,7 @@ const deployVaults = async (tokensList) => {
 
     const createVault = async (farm) => {
         const lpToken = await uniswapFactory.getPair(farm.address0, farm.address1) // token0/token1
-        
+
         let TortleVault = await (
             await _TortleVault.deploy(lpToken, `${farm.token0}-${farm.token1} Spooky Vault`, `tt${farm.token0}${farm.token1}`, VaultDepositFEE, WEI(9999999))
         ).deployed()
@@ -46,16 +46,16 @@ const deployVaults = async (tokensList) => {
 
         const tx = await TortleVault.initialize(TortleFarmingStrategy.address)
         await tx.wait(6)
-        
+
         farmObj.poolId = farm.poolId
         farmObj.token0 = farm.token0
         farmObj.token1 = farm.token1
         farmObj.address = TortleVault.address
         farmObj.strategy = TortleFarmingStrategy.address
-        farmsList.push({...farmObj})
+        farmsList.push({ ...farmObj })
     }
 
-    for(let index = 0; index < tokensList.length; index++) {
+    for (let index = 0; index < tokensList.length; index++) {
         let retries = 0
         do {
             try {
@@ -67,13 +67,13 @@ const deployVaults = async (tokensList) => {
                 await sleep(60000)
             }
         } while (retries < 5)
-        if(retries >= 5) throw new Error('Too many errors.')
+        if (retries >= 5) throw new Error('Too many errors.')
     }
 
     const data = JSON.stringify(farmsList)
     fs.writeFile(process.env.VAULTS_PATH ? process.env.VAULTS_PATH : '/tmp/vaults.json', data, (err) => {
         if (err) throw err
-        
+
         console.log('JSON data is saved.')
     })
 
