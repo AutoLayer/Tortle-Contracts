@@ -103,6 +103,7 @@ contract Nodes_ is ReentrancyGuard {
         uint256 _secondTokenAmount = _amount - _firstTokenAmount; // Amount of second token.
 
         if(routerOutFirstToken == routerOutSecondToken && address(routerOutFirstToken) != address(0) && address(routerOutSecondToken) != address(0)) {
+            IERC20(_token).safeApprove(address(routerOutFirstToken), 0);
             IERC20(_token).safeApprove(address(routerOutFirstToken), _amount);
         } else {
             if(address(routerOutFirstToken) != address(0)) {
@@ -391,9 +392,10 @@ contract Nodes_ is ReentrancyGuard {
             _amount = amountsOut[amountsOut.length - 1];
             _tokenIn = FTM;
         }
-        
+
+        IERC20(_tokenIn).safeApprove(address(routerOut), 0);
         IERC20(_tokenIn).safeApprove(address(routerOut), _amount);
-        
+
         uint256 _amountOut;
         if(_tokenIn != _tokenOut) {
             if (_tokenIn == FTM || _tokenOut == FTM) {
