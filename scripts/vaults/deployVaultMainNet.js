@@ -14,7 +14,7 @@ const deployVaults = async (tokensList) => {
     let wftm = "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"
     let boo = "0x841FAD6EAe12c286d1Fd18d1d525DFfA75C7EFFE"
     let masterChefV2 = "0x18b4f774fdC7BF685daeeF66c2990b1dDd9ea6aD"
-    let tortleTreasury = "0x62E02F6D24690B5578710a009Ca4993c1aF96aF4"
+    let tortleTreasury = process.env.TREASURY_ADDRESS
 
     const _TortleVault = await hre.ethers.getContractFactory('TortleVault')
     const _TortleFarmingsStrategy = await hre.ethers.getContractFactory('TortleFarmingStrategy')
