@@ -7,14 +7,18 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
+import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
+import 'hardhat/console.sol';
 
-error Nodes___PairDoesNotExist();
+error Nodes__PairDoesNotExist();
+error Nodes__InsufficientReserve();
 
 contract Nodes_ is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     address public immutable owner;
     address private immutable FTM;
+    address private immutable USDC;
     address[] public routers;
     uint256 public constant minimumAmount = 1000;
 
@@ -28,10 +32,11 @@ contract Nodes_ is ReentrancyGuard {
         uint256 amountOutMinSecond;
     }
 
-    constructor(address _owner, address[] memory _routers) {
+    constructor(address _owner, address _usdc, address[] memory _routers) {
         owner = _owner;
         routers = _routers;
         FTM = IUniswapV2Router02(_routers[0]).WETH();
+        USDC = _usdc;
     }
 
     /**
@@ -369,15 +374,17 @@ contract Nodes_ is ReentrancyGuard {
         uint256 _amount,
         address _tokenOut,
         uint256 _amountOutMin
-    ) public nonReentrant returns (uint256 amountOut) {
+    ) public nonReentrant returns (uint256 _amountOut) {
         IUniswapV2Router02 routerIn = getRouterOneToken(_tokenIn);
         IUniswapV2Router02 routerOut = getRouterOneToken(_tokenOut);
-
+        
+        address[] memory path;
         uint256[] memory amountsOut;
+
         if(_tokenIn != FTM && routerIn != routerOut) {
             IERC20(_tokenIn).safeApprove(address(routerIn), _amount);
 
-            address[] memory path = new address[](2);
+            path = new address[](2);
             path[0] = _tokenIn;
             path[1] = FTM;
 
@@ -396,43 +403,62 @@ contract Nodes_ is ReentrancyGuard {
         IERC20(_tokenIn).safeApprove(address(routerOut), 0);
         IERC20(_tokenIn).safeApprove(address(routerOut), _amount);
 
-        uint256 _amountOut;
         if(_tokenIn != _tokenOut) {
-            if (_tokenIn == FTM || _tokenOut == FTM) {
-                address[] memory path = new address[](2);
+            address tokenInPool_ = _getTokenPool(_amount, _tokenIn, routerOut);
+            address tokenOutPool_ = _getTokenPool(_amount, _tokenOut, routerOut);
+            if (_tokenIn == tokenOutPool_ || _tokenOut == tokenInPool_) {
+                path = new address[](2);
                 path[0] = _tokenIn;
                 path[1] = _tokenOut;
-
-                amountsOut = routerOut.swapExactTokensForTokens(
-                    _amount,
-                    _amountOutMin,
-                    path,
-                    address(msg.sender),
-                    block.timestamp
-                );
-
-                _amountOut = amountsOut[amountsOut.length - 1];
-            } else {
-                address[] memory path = new address[](3);
+            } else if(tokenInPool_ != tokenOutPool_) {
+                path = new address[](4);
                 path[0] = _tokenIn;
-                path[1] = FTM;
+                path[1] = tokenInPool_;
+                path[2] = tokenOutPool_;
+                path[3] = _tokenOut;
+            } else {
+                path = new address[](3);
+                path[0] = _tokenIn;
+                path[1] = tokenInPool_;
                 path[2] = _tokenOut;
-
-                amountsOut = routerOut.swapExactTokensForTokens(
-                    _amount,
-                    _amountOutMin,
-                    path,
-                    address(msg.sender),
-                    block.timestamp
-                );
-
-                _amountOut = amountsOut[amountsOut.length - 1];
             }
+            
+            amountsOut = routerOut.swapExactTokensForTokens(
+                _amount,
+                _amountOutMin,
+                path,
+                address(msg.sender),
+                block.timestamp
+            );
+
+            _amountOut = amountsOut[amountsOut.length - 1];
         } else {
             _amountOut = _amount;
         }
+    }
 
-        return _amountOut;
+    function _getTokenPool(uint256 _amount, address _token, IUniswapV2Router02 _router) internal view returns(address tokenPool) {
+        address wftmLpToken = IUniswapV2Factory(IUniswapV2Router02(_router).factory()).getPair(FTM, _token);
+        address usdcLpToken = IUniswapV2Factory(IUniswapV2Router02(_router).factory()).getPair(USDC, _token);
+        
+        uint256 _totalAmountOutWftm;
+        uint256 _totalAmountOutUsdc;
+        if(wftmLpToken != address(0)) {
+            (uint256 reserveWftmA, uint256 reserveWftmB, ) = IUniswapV2Pair(wftmLpToken).getReserves();
+            _totalAmountOutWftm = IUniswapV2Router02(_router).quote(_amount, reserveWftmA, reserveWftmB);
+        }
+        if(usdcLpToken != address(0)) {
+            (uint256 reserveUsdcA, uint256 reserveUsdcB, ) = IUniswapV2Pair(usdcLpToken).getReserves();
+            _totalAmountOutUsdc = IUniswapV2Router02(_router).quote(_amount, reserveUsdcA, reserveUsdcB);
+        }
+
+        if(_totalAmountOutWftm >= _totalAmountOutUsdc) {
+            if (_totalAmountOutWftm < minimumAmount) revert Nodes__InsufficientReserve();
+            tokenPool = FTM;
+        } else {
+            if (_totalAmountOutUsdc < minimumAmount) revert Nodes__InsufficientReserve();
+            tokenPool = USDC;
+        }
     }
 
     function getRouter(address _token0, address _token1) public view returns(IUniswapV2Router02 router) {
@@ -453,7 +479,7 @@ contract Nodes_ is ReentrancyGuard {
             }
         }
 
-        if (address(router) == address(0)) revert Nodes___PairDoesNotExist();
+        if (address(router) == address(0)) revert Nodes__PairDoesNotExist();
     }
 
     function getRouterOneToken(address _token) public view returns(IUniswapV2Router02 router) {
@@ -464,13 +490,16 @@ contract Nodes_ is ReentrancyGuard {
                 break;
             } else {
                 pair = IUniswapV2Factory(IUniswapV2Router02(routers[i]).factory()).getPair(_token, FTM);
+                if(pair == address(0)) {
+                    pair = IUniswapV2Factory(IUniswapV2Router02(routers[i]).factory()).getPair(_token, USDC);
+                }
             }
             if(pair != address(0)) {
                 router = IUniswapV2Router02(routers[i]);
             }
         }
 
-        if (address(router) == address(0)) revert Nodes___PairDoesNotExist();
+        if (address(router) == address(0)) revert Nodes__PairDoesNotExist();
     }
 
     receive() external payable {}
