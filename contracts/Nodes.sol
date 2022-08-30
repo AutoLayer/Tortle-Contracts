@@ -45,14 +45,6 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amountOutMinFirst;
         uint256 amountOutMinSecond;
     }
-    struct _dofot {
-        address lpToken;
-        address tortleVault;
-        address token;
-        uint256 amount;
-        uint256 amountOutMin;
-        uint256 ttAmount; // output
-    }
 
     struct _doft {
         address lpToken;
@@ -84,7 +76,6 @@ contract Nodes is Initializable, ReentrancyGuard {
     address public usdc;
     IUniswapV2Router02 router;
     address private WFTM;
-    uint16 public constant slippageFactorMin = 950;
 
     uint8 public constant TOTAL_FEE = 150; //1.50%
     uint8 public constant DOJOS_FEE = 50; //0.50%
@@ -148,8 +139,10 @@ contract Nodes is Initializable, ReentrancyGuard {
     
         (uint256 amount0f, uint256 amount1f, uint256 lpRes) = _addLiquidity(token0, token1, amount0, amount1, amountOutMin0, amountOutMin1);
         userLp[lpToken][user] += lpRes;
+
         decreaseBalance(user, address(token0), amount0f);
         decreaseBalance(user, address(token1), amount1f);
+
         return lpRes;
     }
 
@@ -382,32 +375,36 @@ contract Nodes is Initializable, ReentrancyGuard {
         onlyOwner
         returns (uint256 amountOutToken1, uint256 amountOutToken2)
     {
-        address user = _splitStruct.user;
-        address token = _splitStruct.token;
-        uint256 amount = _splitStruct.amount;
+        address user_ = _splitStruct.user;
+        address token_ = _splitStruct.token;
+        uint256 amount_ = _splitStruct.amount;
+        address firstToken_ = _splitStruct.firstToken;
+        address secondToken_ = _splitStruct.secondToken;
+        uint256 amountOutMinFirst_ = _splitStruct.amountOutMinFirst;
+        uint256 amountOutMinSecond_ = _splitStruct.amountOutMinSecond;
 
-        uint256 _userBalance = getBalance(user, IERC20(token));
-        if (amount > _userBalance) revert Nodes__InsufficientBalance();
+        uint256 _userBalance = getBalance(user_, IERC20(token_));
+        if (amount_ > _userBalance) revert Nodes__InsufficientBalance();
 
-        IERC20(token).safeTransfer(address(nodes_), amount);
+        uint256 _firstTokenAmount = mulScale(amount_, _splitStruct.percentageFirstToken, 10000);
+        uint256 _secondTokenAmount = amount_ - _firstTokenAmount;
 
-        Nodes_.SplitStruct memory newSplitStruct = nodes_SplitStruct;
-        newSplitStruct.token = token;
-        newSplitStruct.amount = amount;
-        newSplitStruct.firstToken = _splitStruct.firstToken;
-        newSplitStruct.secondToken = _splitStruct.secondToken;
-        newSplitStruct.percentageFirstToken = _splitStruct.percentageFirstToken;
-        newSplitStruct.amountOutMinFirst = _splitStruct.amountOutMinFirst;
-        newSplitStruct.amountOutMinSecond = _splitStruct.amountOutMinSecond;
-        (uint256 _amountOutToken1, uint256 _amountOutToken2) = nodes_.split(newSplitStruct);
+        if (token_ != firstToken_) {
+            IERC20(token_).safeTransfer(address(nodes_), _firstTokenAmount);
+            amountOutToken1 = nodes_.swapTokens(token_, _firstTokenAmount, firstToken_, amountOutMinFirst_);
+        } else amountOutToken1 = _firstTokenAmount;
 
-        increaseBalance(user, _splitStruct.firstToken, _amountOutToken1);
-        increaseBalance(user, _splitStruct.secondToken, _amountOutToken2);
+        if (token_ != secondToken_) {
+            IERC20(token_).safeTransfer(address(nodes_), _secondTokenAmount);
+            amountOutToken2 = nodes_.swapTokens(token_, _secondTokenAmount, secondToken_, amountOutMinSecond_);
+        } else amountOutToken2 = _secondTokenAmount;
 
-        decreaseBalance(user, token, amount);
+        increaseBalance(user_, firstToken_, amountOutToken1);
+        increaseBalance(user_, secondToken_, amountOutToken2);
 
-        emit Split(_amountOutToken1, _amountOutToken2);
-        return (_amountOutToken1, _amountOutToken2);
+        decreaseBalance(user_, token_, amount_);
+
+        emit Split(amountOutToken1, amountOutToken2);
     }
 
     /**
@@ -429,21 +426,17 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         if (_amount > _userBalance) revert Nodes__InsufficientBalance();
 
-        uint256 _amountOut;
         if (_token != _newToken) {
             IERC20(_token).safeTransfer(address(nodes_), _amount);
 
-            _amountOut = nodes_.swapTokens(_token, _amount, _newToken, _amountOutMin);
+            amountOut = nodes_.swapTokens(_token, _amount, _newToken, _amountOutMin);
 
-            increaseBalance(_user, _newToken, _amountOut);
+            increaseBalance(_user, _newToken, amountOut);
 
             decreaseBalance(_user, _token, _amount);
-        } else {
-            _amountOut = _amount;
-        }
+        } else amountOut = _amount;
 
-        emit Swap(_token, _amount, _newToken, _amountOut);
-        return _amountOut;
+        emit Swap(_token, _amount, _newToken, amountOut);
     }
 
     /**
@@ -588,17 +581,6 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 d = y % scale;
 
         return a * c * scale + a * d + b * c + (b * d) / scale;
-    }
-
-    function _getSwapAmount(
-        uint256 investmentA,
-        uint256 reserveA,
-        uint256 reserveB
-    ) private view returns (uint256 swapAmount) {
-        uint256 halfInvestment = investmentA / 2;
-        uint256 nominator = router.getAmountOut(halfInvestment, reserveA, reserveB);
-        uint256 denominator = router.quote(halfInvestment, reserveA + halfInvestment, reserveB - nominator);
-        swapAmount = investmentA - (Babylonian.sqrt((halfInvestment * halfInvestment * nominator) / denominator));
     }
 
     function increaseBalance(
