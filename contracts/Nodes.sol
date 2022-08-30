@@ -511,22 +511,10 @@ contract Nodes is Initializable, ReentrancyGuard {
             swapAmount = amount1;
             amountTokenDesired += amount0;
         }
-
-        address[] memory path = new address[](2);
-        path[0] = swapToken;
-        path[1] = args.tokenDesired;
-
-        IUniswapV2Router02 router1 = nodes_.getRouter(swapToken, args.tokenDesired);
-        _approve(swapToken, address(router1), swapAmount);
-
-        uint256[] memory swapedAmounts = router1.swapExactTokensForTokens(
-            swapAmount,
-            args.amountTokenDesiredMin,
-            path,
-            address(this),
-            block.timestamp
-        );
-        amountTokenDesired += swapedAmounts[1];
+        
+        IERC20(swapToken).safeTransfer(address(nodes_), swapAmount);
+        amountTokenDesired += nodes_.swapTokens(swapToken, swapAmount, args.tokenDesired, args.amountTokenDesiredMin);
+        
         increaseBalance(user, args.tokenDesired, amountTokenDesired);
     }
 
