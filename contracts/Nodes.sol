@@ -71,7 +71,6 @@ contract Nodes is Initializable, ReentrancyGuard {
     address public tortleTreasury;
     address public tortleDevFund;
     Nodes_ public nodes_;
-    Nodes_.SplitStruct private nodes_SplitStruct;
     Batch private batch;
     address public usdc;
     IUniswapV2Router02 router;
@@ -246,7 +245,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         address _user,
         IERC20 _token,
         uint256 _amount
-    ) public nonReentrant onlyOwner returns (uint256 amount) {
+    ) public nonReentrant onlyOwner returns (uint256) {
         uint256 _userBalance = getBalance(_user, _token);
         if (_userBalance < _amount) revert Nodes__InsufficientBalance();
         
@@ -281,9 +280,7 @@ contract Nodes is Initializable, ReentrancyGuard {
             if(address(_tokenAddress) == WFTM) {
                 IWETH(WFTM).withdraw(_amounts[_i]);
                 payable(msg.sender).transfer(_amounts[_i]);
-            } else {
-                _tokenAddress.safeTransfer(msg.sender, _amounts[_i]);
-            }
+            } else _tokenAddress.safeTransfer(msg.sender, _amounts[_i]);
             
             decreaseBalance(msg.sender, address(_tokenAddress), _amounts[_i]);
 
@@ -313,11 +310,10 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 balanceAfter = IERC20(_token).balanceOf(address(this));
         if (balanceAfter <= balanceBefore) revert Nodes__TransferFailed(); // Checks that the balance of the contract has increased.
 
-        _amount = chargeFees(_token, balanceAfter - balanceBefore);
-        increaseBalance(_user, _token, _amount);
+        amount = chargeFees(_token, balanceAfter - balanceBefore);
+        increaseBalance(_user, _token, amount);
 
-        emit AddFunds(_token, _amount);
-        return _amount;
+        emit AddFunds(_token, amount);
     }
 
     /**
@@ -336,7 +332,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         return (WFTM, _amount);
     }
 
-    function chargeFees(address _token, uint256 _amount) internal returns (uint256 amount) {
+    function chargeFees(address _token, uint256 _amount) internal returns (uint256) {
         uint256 _amountFee = mulScale(_amount, TOTAL_FEE, 10000);
 
         uint256 _swapedAmountOut;
@@ -453,7 +449,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256[] memory _amounts,
         address _tokenOutput,
         uint256 _amountOutMin
-    ) public nonReentrant onlyOwner returns (uint256 amountOut) {
+    ) public nonReentrant onlyOwner returns (uint256) {
         if (_tokens.length != _amounts.length) revert Nodes__InvalidArrayLength();
 
         uint256 amount;
