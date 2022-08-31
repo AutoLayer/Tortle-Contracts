@@ -1,6 +1,6 @@
 const { assert } = require('chai')
 const { ethers } = require('hardhat')
-const { addLiquidityETH } = require('./helpers')
+const { addLiquidityETH, addLiquidity } = require('./helpers')
 
 describe('Nodes Contract', function () {
     let accounts
@@ -25,6 +25,8 @@ describe('Nodes Contract', function () {
     let uniswapRouter
     let uniswapRouter2
     let pairLinkDai
+    const amount = "2000000000000000000"
+    const amountWithoutFees = (Number(amount) - (amount * 0.015)).toString()
 
     beforeEach(async() => {
         accounts = await ethers.getSigners()
@@ -76,8 +78,11 @@ describe('Nodes Contract', function () {
         // Router1
         await link.connect(deployer).approve(uniswapRouter.address, '5000000000000000000000000000')
         await dai.connect(deployer).approve(uniswapRouter.address, '5000000000000000000000000000')
+        await usdc.connect(deployer).approve(uniswapRouter.address, '5000000000000000000000000000')
+        await addLiquidity(uniswapRouter, [usdc.address, dai.address], [liquidity, liquidity], [0, 0], deployer.getAddress())
         await addLiquidityETH(uniswapRouter, link.address, liquidity, 0, 0, deployer.getAddress())
         await addLiquidityETH(uniswapRouter, dai.address, liquidity, 0, 0, deployer.getAddress())
+        await addLiquidityETH(uniswapRouter, usdc.address, liquidity, 0, 0, deployer.getAddress())
         // Router 2
         await tortle.connect(deployer).approve(uniswapRouter2.address, '5000000000000000000000000000')
         await boo.connect(deployer).approve(uniswapRouter2.address, '5000000000000000000000000000')
@@ -87,7 +92,7 @@ describe('Nodes Contract', function () {
         pairLinkDai = await uniswapFactory.getPair(link.address, wftm.address)
         
         const _Nodes_ = await hre.ethers.getContractFactory('Nodes_')
-        nodes_ = await (await _Nodes_.deploy(deployer.getAddress(), [uniswapRouter.address, uniswapRouter2.address])).deployed()
+        nodes_ = await (await _Nodes_.deploy(deployer.getAddress(), usdc.address, [uniswapRouter.address, uniswapRouter2.address])).deployed()
         
         const _StringUtils = await hre.ethers.getContractFactory('StringUtils')
         stringUtils = await (await _StringUtils.deploy()).deployed()
@@ -114,11 +119,13 @@ describe('Nodes Contract', function () {
         await batch.setNodeContract(nodes.address)
         
         await link.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000')
-        await dai.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000') 
+        await dai.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000')
+        await usdc.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000') 
         await tortle.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000')
         await boo.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000')
         await link.connect(otherUser).approve(nodes.address, '50000000000000000000000')
         await dai.connect(otherUser).approve(nodes.address, '50000000000000000000000')
+        await usdc.connect(otherUser).approve(nodes.address, '50000000000000000000000')
         await tortle.connect(otherUser).approve(nodes.address, '50000000000000000000000')
         await boo.connect(otherUser).approve(nodes.address, '50000000000000000000000')
     });
@@ -127,11 +134,11 @@ describe('Nodes Contract', function () {
         it('Add tokens', async () => {
             const balanceBefore = await nodes.getBalance(otherUser.getAddress(), link.address)
 
-            const result = await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, "2000000000000000000");
+            const result = await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, amount);
             
             let receipt = await result.wait()
-            assert.equal(receipt.events[2].args.tokenInput, link.address);
-            assert.equal(receipt.events[2].args.amount, "2000000000000000000");
+            assert.equal(receipt.events[16].args.tokenInput, link.address);
+            assert.equal(receipt.events[16].args.amount.toString(), amountWithoutFees);
 
             const balanceAfter = await nodes.getBalance(otherUser.getAddress(), link.address)
             assert.notEqual(balanceBefore, balanceAfter)
@@ -140,11 +147,11 @@ describe('Nodes Contract', function () {
         it('Add fantom', async () => {
             const balanceBefore = await nodes.getBalance(otherUser.getAddress(), wftm.address)
             
-            const result = await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: "200000000000000000" });
+            const result = await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: amount });
             
             let receipt = await result.wait()
-            assert.equal(receipt.events[1].args.tokenInput, wftm.address);
-            assert.equal(receipt.events[1].args.amount, "200000000000000000");
+            assert.equal(receipt.events[12].args.tokenInput, wftm.address);
+            assert.equal(receipt.events[12].args.amount.toString(), amountWithoutFees);
 
             const balanceAfter = await nodes.getBalance(otherUser.getAddress(), wftm.address)
             assert.notEqual(balanceBefore, balanceAfter)
@@ -154,14 +161,14 @@ describe('Nodes Contract', function () {
     describe('Split', async() => {
         describe('Split from TokenRouterA', async() => {
             beforeEach(async () => { 
-                await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, "2000000000000000000");
+                await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, amount);
             })
     
             it('Split tokenRouterA to tokenRouterA/tokenRouterA', async() => {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), dai.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), link.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: link.address, amount: "2000000000000000000", firstToken: dai.address, secondToken: link.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: link.address, amount: amountWithoutFees, firstToken: dai.address, secondToken: link.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), dai.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), link.address)
@@ -173,7 +180,7 @@ describe('Nodes Contract', function () {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), link.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), boo.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: link.address, amount: "2000000000000000000", firstToken: link.address, secondToken: boo.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: link.address, amount: amountWithoutFees, firstToken: link.address, secondToken: boo.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), link.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), boo.address)
@@ -185,7 +192,7 @@ describe('Nodes Contract', function () {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), tortle.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), boo.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: link.address, amount: "2000000000000000000", firstToken: tortle.address, secondToken: boo.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: link.address, amount: amountWithoutFees, firstToken: tortle.address, secondToken: boo.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), tortle.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), boo.address)
@@ -197,7 +204,7 @@ describe('Nodes Contract', function () {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), dai.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: link.address, amount: "2000000000000000000", firstToken: dai.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: link.address, amount: amountWithoutFees, firstToken: dai.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), dai.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
@@ -209,7 +216,7 @@ describe('Nodes Contract', function () {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), dai.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: link.address, amount: "2000000000000000000", firstToken: wftm.address, secondToken: dai.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: link.address, amount: amountWithoutFees, firstToken: wftm.address, secondToken: dai.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), dai.address)
@@ -221,7 +228,7 @@ describe('Nodes Contract', function () {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), boo.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: link.address, amount: "2000000000000000000", firstToken: boo.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: link.address, amount: amountWithoutFees, firstToken: boo.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), boo.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
@@ -233,7 +240,7 @@ describe('Nodes Contract', function () {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), tortle.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: link.address, amount: "2000000000000000000", firstToken: wftm.address, secondToken: tortle.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: link.address, amount: amountWithoutFees, firstToken: wftm.address, secondToken: tortle.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), tortle.address)
@@ -244,14 +251,14 @@ describe('Nodes Contract', function () {
 
         describe('Split from TokenRouterB', async() => {
             beforeEach(async () => { 
-                await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), tortle.address, "2000000000000000000");
+                await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), tortle.address, amount);
             })
 
             it('Split tokenRouterB to tokenRouterB/tokenRouterB', async() => {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), tortle.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), boo.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: tortle.address, amount: "2000000000000000000", firstToken: tortle.address, secondToken: boo.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: tortle.address, amount: amountWithoutFees, firstToken: tortle.address, secondToken: boo.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), tortle.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), boo.address)
@@ -263,7 +270,7 @@ describe('Nodes Contract', function () {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), link.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), boo.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: tortle.address, amount: "2000000000000000000", firstToken: link.address, secondToken: boo.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: tortle.address, amount: amountWithoutFees, firstToken: link.address, secondToken: boo.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), link.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), boo.address)
@@ -275,7 +282,7 @@ describe('Nodes Contract', function () {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), link.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), dai.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: tortle.address, amount: "2000000000000000000", firstToken: link.address, secondToken: dai.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: tortle.address, amount: amountWithoutFees, firstToken: link.address, secondToken: dai.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), link.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), dai.address)
@@ -287,7 +294,7 @@ describe('Nodes Contract', function () {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), dai.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: tortle.address, amount: "2000000000000000000", firstToken: dai.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: tortle.address, amount: amountWithoutFees, firstToken: dai.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), dai.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
@@ -299,7 +306,7 @@ describe('Nodes Contract', function () {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), dai.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: tortle.address, amount: "2000000000000000000", firstToken: wftm.address, secondToken: dai.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: tortle.address, amount: amountWithoutFees, firstToken: wftm.address, secondToken: dai.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), dai.address)
@@ -311,7 +318,7 @@ describe('Nodes Contract', function () {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), boo.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: tortle.address, amount: "2000000000000000000", firstToken: boo.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: tortle.address, amount: amountWithoutFees, firstToken: boo.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), boo.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
@@ -323,7 +330,7 @@ describe('Nodes Contract', function () {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), tortle.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: tortle.address, amount: "2000000000000000000", firstToken: wftm.address, secondToken: tortle.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: tortle.address, amount: amountWithoutFees, firstToken: wftm.address, secondToken: tortle.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), tortle.address)
@@ -334,14 +341,14 @@ describe('Nodes Contract', function () {
     
         describe('Split from FTM', async() => {
             beforeEach(async () => { 
-                await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: "200000000000000000" });
+                await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: amount });
             })
     
             it('Split ftm to tokenRouterA/tokenRouterA', async () => {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), dai.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), link.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: wftm.address, amount: "200000000000000000", firstToken: dai.address, secondToken: link.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: wftm.address, amount: amountWithoutFees, firstToken: dai.address, secondToken: link.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), dai.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), link.address)
@@ -353,7 +360,7 @@ describe('Nodes Contract', function () {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), tortle.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), boo.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: wftm.address, amount: "200000000000000000", firstToken: tortle.address, secondToken: boo.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: wftm.address, amount: amountWithoutFees, firstToken: tortle.address, secondToken: boo.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), tortle.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), boo.address)
@@ -365,7 +372,7 @@ describe('Nodes Contract', function () {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), dai.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), tortle.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: wftm.address, amount: "200000000000000000", firstToken: dai.address, secondToken: tortle.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: wftm.address, amount: amountWithoutFees, firstToken: dai.address, secondToken: tortle.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), dai.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), tortle.address)
@@ -377,7 +384,7 @@ describe('Nodes Contract', function () {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), link.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: wftm.address, amount: "200000000000000000", firstToken: wftm.address, secondToken: link.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: wftm.address, amount: amountWithoutFees, firstToken: wftm.address, secondToken: link.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), link.address)
@@ -389,7 +396,7 @@ describe('Nodes Contract', function () {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), boo.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: wftm.address, amount: "200000000000000000", firstToken: wftm.address, secondToken: boo.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: wftm.address, amount: amountWithoutFees, firstToken: wftm.address, secondToken: boo.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), boo.address)
@@ -401,7 +408,7 @@ describe('Nodes Contract', function () {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), dai.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: wftm.address, amount: "200000000000000000", firstToken: dai.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: wftm.address, amount: amountWithoutFees, firstToken: dai.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), dai.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
@@ -413,7 +420,7 @@ describe('Nodes Contract', function () {
                 const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), tortle.address)
                 const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
     
-                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: wftm.address, amount: "200000000000000000", firstToken: tortle.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+                await nodes.connect(deployer).split({user: otherUser.getAddress(), token: wftm.address, amount: amountWithoutFees, firstToken: tortle.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
                 
                 const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), tortle.address)
                 const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
@@ -425,130 +432,60 @@ describe('Nodes Contract', function () {
 
     describe('Swap', async() => {
         describe('From TokenRouterA', async() => {
+            beforeEach(async () => { 
+                await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, amount);
+            })
+
             it('Swap tokenRouterA/tokenRouterA', async () => {
-                await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, "2000000000000000000");
-                
                 const balanceBefore = await nodes.getBalance(otherUser.getAddress(), dai.address)
 
-                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), link.address, "2000000000000000000", dai.address, "0")
+                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), link.address, amountWithoutFees, dai.address, "0")
                 
                 let receipt = await result.wait()
-                assert.equal(receipt.events[10].args.tokenInput, link.address);
-                assert.equal(receipt.events[10].args.amountIn, "2000000000000000000");
-                assert.equal(receipt.events[10].args.tokenOutput, dai.address);
+                assert.equal(receipt.events[14].args.tokenInput, link.address);
+                assert.equal(receipt.events[14].args.amountIn.toString(), amountWithoutFees);
+                assert.equal(receipt.events[14].args.tokenOutput, dai.address);
 
                 const balanceAfter = await nodes.getBalance(otherUser.getAddress(), dai.address)
                 assert.notEqual(balanceBefore, balanceAfter)
             });  
 
-            xit('Swap tokenRouterA/tokenRouterB', async () => {
-                await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, "2000000000000000000");
-                
+            it('Swap tokenRouterA/tokenRouterB', async () => {
                 const balanceBefore = await nodes.getBalance(otherUser.getAddress(), boo.address)
     
-                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), link.address, "2000000000000000000", boo.address, "0")
+                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), link.address, amountWithoutFees, boo.address, "0")
                 
                 let receipt = await result.wait()
-                assert.equal(receipt.events[13].args.tokenInput, link.address);
-                assert.equal(receipt.events[13].args.amountIn, "2000000000000000000");
-                assert.equal(receipt.events[13].args.tokenOutput, boo.address);
+                assert.equal(receipt.events[14].args.tokenInput, link.address);
+                assert.equal(receipt.events[14].args.amountIn.toString(), amountWithoutFees);
+                assert.equal(receipt.events[14].args.tokenOutput, boo.address);
     
                 const balanceAfter = await nodes.getBalance(otherUser.getAddress(), boo.address)
                 assert.notEqual(balanceBefore, balanceAfter)
             });
 
-            xit('Swap tokenRouterA/sameTokenRouterA', async () => {
-                await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, "2000000000000000000");
-                
+            it('Swap tokenRouterA/sameTokenRouterA', async () => {
                 const balanceBefore = await nodes.getBalance(otherUser.getAddress(), link.address)
     
-                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), link.address, "2000000000000000000", link.address, "0")
+                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), link.address, amountWithoutFees, link.address, "0")
                 
                 let receipt = await result.wait()
                 assert.equal(receipt.events[0].args.tokenInput, link.address);
-                assert.equal(receipt.events[0].args.amountIn, "2000000000000000000");
+                assert.equal(receipt.events[0].args.amountIn.toString(), amountWithoutFees);
                 assert.equal(receipt.events[0].args.tokenOutput, link.address);
     
                 const balanceAfter = await nodes.getBalance(otherUser.getAddress(), link.address)
                 assert.equal(balanceBefore.toString(), balanceAfter.toString())
             });
 
-            xit('Swap tokenRouterA/ftm', async () => {
-                await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, "2000000000000000000");
-                
+            it('Swap tokenRouterA/ftm', async () => {
                 const balanceBefore = await nodes.getBalance(otherUser.getAddress(), wftm.address)
     
-                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), link.address, "2000000000000000000", wftm.address, "0")
+                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), link.address, amountWithoutFees, wftm.address, "0")
                 
                 let receipt = await result.wait()
-                assert.equal(receipt.events[7].args.tokenInput, link.address);
-                assert.equal(receipt.events[7].args.amountIn, "2000000000000000000");
-                assert.equal(receipt.events[7].args.tokenOutput, wftm.address);
-    
-                const balanceAfter = await nodes.getBalance(otherUser.getAddress(), wftm.address)
-                assert.notEqual(balanceBefore, balanceAfter)
-            });
-        })
-
-        xdescribe('From TokenRouterB', async() => {
-            it('Swap tokenRouterB/tokenRouterB', async () => {
-                await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), tortle.address, "2000000000000000000");
-                
-                const balanceBefore = await nodes.getBalance(otherUser.getAddress(), boo.address)
-    
-                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), tortle.address, "2000000000000000000", boo.address, "0")
-                
-                let receipt = await result.wait()
-                assert.equal(receipt.events[10].args.tokenInput, tortle.address);
-                assert.equal(receipt.events[10].args.amountIn, "2000000000000000000");
-                assert.equal(receipt.events[10].args.tokenOutput, boo.address);
-    
-                const balanceAfter = await nodes.getBalance(otherUser.getAddress(), boo.address)
-                assert.notEqual(balanceBefore, balanceAfter)
-            });
-
-            it('Swap tokenRouterB/tokenRouterA', async () => {
-                await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), boo.address, "2000000000000000000");
-                
-                const balanceBefore = await nodes.getBalance(otherUser.getAddress(), dai.address)
-    
-                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), boo.address, "2000000000000000000", dai.address, "0")
-                
-                let receipt = await result.wait()
-                assert.equal(receipt.events[13].args.tokenInput, boo.address);
-                assert.equal(receipt.events[13].args.amountIn, "2000000000000000000");
-                assert.equal(receipt.events[13].args.tokenOutput, dai.address);
-    
-                const balanceAfter = await nodes.getBalance(otherUser.getAddress(), dai.address)
-                assert.notEqual(balanceBefore, balanceAfter)
-            });
-
-            it('Swap tokenRouterB/sameTokenRouterB', async () => {
-                await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), tortle.address, "2000000000000000000");
-                
-                const balanceBefore = await nodes.getBalance(otherUser.getAddress(), tortle.address)
-    
-                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), tortle.address, "2000000000000000000", tortle.address, "0")
-                
-                let receipt = await result.wait()
-                assert.equal(receipt.events[0].args.tokenInput, tortle.address);
-                assert.equal(receipt.events[0].args.amountIn, "2000000000000000000");
-                assert.equal(receipt.events[0].args.tokenOutput, tortle.address);
-    
-                const balanceAfter = await nodes.getBalance(otherUser.getAddress(), tortle.address)
-                assert.equal(balanceBefore.toString(), balanceAfter.toString())
-            });
-
-            it('Swap tokenRouterB/ftm', async () => {
-                await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), boo.address, "2000000000000000000");
-                
-                const balanceBefore = await nodes.getBalance(otherUser.getAddress(), wftm.address)
-    
-                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), boo.address, "2000000000000000000", wftm.address, "0")
-                
-                let receipt = await result.wait()
-                assert.equal(receipt.events[8].args.tokenInput, boo.address);
-                assert.equal(receipt.events[8].args.amountIn, "2000000000000000000");
+                assert.equal(receipt.events[8].args.tokenInput, link.address);
+                assert.equal(receipt.events[8].args.amountIn.toString(), amountWithoutFees);
                 assert.equal(receipt.events[8].args.tokenOutput, wftm.address);
     
                 const balanceAfter = await nodes.getBalance(otherUser.getAddress(), wftm.address)
@@ -556,49 +493,109 @@ describe('Nodes Contract', function () {
             });
         })
 
-        xdescribe('From FTM', async() => {
-            it('Swap ftm/tokenRouterA', async () => {
-                await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: "200000000000000000" });
-                
-                const balanceBefore = await nodes.getBalance(otherUser.getAddress(), link.address)
-                
-                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), wftm.address, "200000000000000000", link.address, "0")
+        describe('From TokenRouterB', async() => {
+            beforeEach(async () => { 
+                await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), tortle.address, amount);
+            })
+
+            it('Swap tokenRouterB/tokenRouterB', async () => {
+                const balanceBefore = await nodes.getBalance(otherUser.getAddress(), boo.address)
+    
+                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), tortle.address, amountWithoutFees, boo.address, "0")
                 
                 let receipt = await result.wait()
-                assert.equal(receipt.events[7].args.tokenInput, wftm.address);
-                assert.equal(receipt.events[7].args.amountIn, "200000000000000000");
-                assert.equal(receipt.events[7].args.tokenOutput, link.address);
+                assert.equal(receipt.events[11].args.tokenInput, tortle.address);
+                assert.equal(receipt.events[11].args.amountIn.toString(), amountWithoutFees);
+                assert.equal(receipt.events[11].args.tokenOutput, boo.address);
+    
+                const balanceAfter = await nodes.getBalance(otherUser.getAddress(), boo.address)
+                assert.notEqual(balanceBefore, balanceAfter)
+            });
+
+            it('Swap tokenRouterB/tokenRouterA', async () => {
+                const balanceBefore = await nodes.getBalance(otherUser.getAddress(), dai.address)
+    
+                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), tortle.address, amountWithoutFees, dai.address, "0")
+                
+                let receipt = await result.wait()
+                assert.equal(receipt.events[17].args.tokenInput, tortle.address);
+                assert.equal(receipt.events[17].args.amountIn.toString(), amountWithoutFees);
+                assert.equal(receipt.events[17].args.tokenOutput, dai.address);
+    
+                const balanceAfter = await nodes.getBalance(otherUser.getAddress(), dai.address)
+                assert.notEqual(balanceBefore, balanceAfter)
+            });
+
+            it('Swap tokenRouterB/sameTokenRouterB', async () => {
+                const balanceBefore = await nodes.getBalance(otherUser.getAddress(), tortle.address)
+    
+                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), tortle.address, amountWithoutFees, tortle.address, "0")
+                
+                let receipt = await result.wait()
+                assert.equal(receipt.events[0].args.tokenInput, tortle.address);
+                assert.equal(receipt.events[0].args.amountIn.toString(), amountWithoutFees);
+                assert.equal(receipt.events[0].args.tokenOutput, tortle.address);
+    
+                const balanceAfter = await nodes.getBalance(otherUser.getAddress(), tortle.address)
+                assert.equal(balanceBefore.toString(), balanceAfter.toString())
+            });
+
+            it('Swap tokenRouterB/ftm', async () => {
+                const balanceBefore = await nodes.getBalance(otherUser.getAddress(), wftm.address)
+    
+                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), tortle.address, amountWithoutFees, wftm.address, "0")
+                
+                let receipt = await result.wait()
+                assert.equal(receipt.events[10].args.tokenInput, tortle.address);
+                assert.equal(receipt.events[10].args.amountIn.toString(), amountWithoutFees);
+                assert.equal(receipt.events[10].args.tokenOutput, wftm.address);
+    
+                const balanceAfter = await nodes.getBalance(otherUser.getAddress(), wftm.address)
+                assert.notEqual(balanceBefore, balanceAfter)
+            });
+        })
+
+        describe('From FTM', async() => {
+            beforeEach(async () => { 
+                await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: amount });
+            })
+
+            it('Swap ftm/tokenRouterA', async () => {
+                const balanceBefore = await nodes.getBalance(otherUser.getAddress(), link.address)
+                
+                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), wftm.address, amountWithoutFees, link.address, "0")
+                
+                let receipt = await result.wait()
+                assert.equal(receipt.events[8].args.tokenInput, wftm.address);
+                assert.equal(receipt.events[8].args.amountIn.toString(), amountWithoutFees);
+                assert.equal(receipt.events[8].args.tokenOutput, link.address);
 
                 const balanceAfter = await nodes.getBalance(otherUser.getAddress(), link.address)
                 assert.notEqual(balanceBefore, balanceAfter)
             });
 
             it('Swap ftm/tokenRouterB', async () => {
-                await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: "200000000000000000" });
-                
                 const balanceBefore = await nodes.getBalance(otherUser.getAddress(), tortle.address)
                 
-                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), wftm.address, "200000000000000000", tortle.address, "0")
+                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), wftm.address, amountWithoutFees, tortle.address, "0")
                 
                 let receipt = await result.wait()
-                assert.equal(receipt.events[7].args.tokenInput, wftm.address);
-                assert.equal(receipt.events[7].args.amountIn, "200000000000000000");
-                assert.equal(receipt.events[7].args.tokenOutput, tortle.address);
+                assert.equal(receipt.events[8].args.tokenInput, wftm.address);
+                assert.equal(receipt.events[8].args.amountIn, amountWithoutFees);
+                assert.equal(receipt.events[8].args.tokenOutput, tortle.address);
 
                 const balanceAfter = await nodes.getBalance(otherUser.getAddress(), tortle.address)
                 assert.notEqual(balanceBefore, balanceAfter)
             });
 
             it('Swap ftm/ftm', async () => {
-                await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: "200000000000000000" });
-                
                 const balanceBefore = await nodes.getBalance(otherUser.getAddress(), wftm.address)
 
-                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), wftm.address, "200000000000000000", wftm.address, "0")
+                const result = await nodes.connect(deployer).swapTokens(otherUser.getAddress(), wftm.address, amountWithoutFees, wftm.address, "0")
                 
                 let receipt = await result.wait()
                 assert.equal(receipt.events[0].args.tokenInput, wftm.address);
-                assert.equal(receipt.events[0].args.amountIn, "200000000000000000");
+                assert.equal(receipt.events[0].args.amountIn.toString(), amountWithoutFees);
                 assert.equal(receipt.events[0].args.tokenOutput, wftm.address);
 
                 const balanceAfter = await nodes.getBalance(otherUser.getAddress(), wftm.address)
@@ -609,57 +606,57 @@ describe('Nodes Contract', function () {
 
     describe('DepositOnLP', async() => {
         it('DepositOnLP', async () => {
-            await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: "200000000000000000" });
+            await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: amount });
 
-            await nodes.connect(deployer).split({user: otherUser.getAddress(), token: wftm.address, amount: "200000000000000000", firstToken: link.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
+            await nodes.connect(deployer).split({user: otherUser.getAddress(), token: wftm.address, amount: amountWithoutFees, firstToken: link.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"});
             const balanceToken0 = await nodes.getBalance(otherUser.getAddress(), link.address) 
             const balanceToken1 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
-            console.log(pairLinkDai)
+
             await nodes.connect(deployer).depositOnLp(otherUser.getAddress(), pairLinkDai, link.address, wftm.address, balanceToken0.toString(), balanceToken1.toString(), "0", "0")
         });
     });
 
     describe('Liquidate', async() => {
         it('Liquidate token to token', async () => {
-            await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, "2000000000000000000");
+            await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, amount);
 
             const balanceBefore = await nodes.getBalance(otherUser.getAddress(), dai.address)
 
-            await nodes.connect(deployer).liquidate(otherUser.getAddress(), [link.address], ["2000000000000000000"], dai.address, "0")
+            await nodes.connect(deployer).liquidate(otherUser.getAddress(), [link.address], [amountWithoutFees], dai.address, "0")
             
             const balanceAfter = await nodes.getBalance(otherUser.getAddress(), dai.address)
             assert.notEqual(balanceBefore, balanceAfter)
         });
         
         it('Liquidate token to ftm', async () => {
-            await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, "2000000000000000000");
+            await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, amount);
             
             const balanceBefore = await nodes.getBalance(otherUser.getAddress(), wftm.address)
             
-            await nodes.liquidate(otherUser.getAddress(), [link.address], ["2000000000000000000"], wftm.address, "0")
+            await nodes.liquidate(otherUser.getAddress(), [link.address], [amountWithoutFees], wftm.address, "0")
             
             const balanceAfter = await nodes.getBalance(otherUser.getAddress(), wftm.address)
             assert.notEqual(balanceBefore, balanceAfter)
         });
 
         it('Liquidate ftm to token', async () => {
-            await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: "200000000000000000" });
+            await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: amount });
             
             const balanceBefore = await nodes.getBalance(otherUser.getAddress(), link.address)
 
-            await nodes.connect(deployer).liquidate(otherUser.getAddress(), [wftm.address], ["200000000000000000"], link.address, "0")
+            await nodes.connect(deployer).liquidate(otherUser.getAddress(), [wftm.address], [amountWithoutFees], link.address, "0")
         
             const balanceAfter = await nodes.getBalance(otherUser.getAddress(), link.address)
             assert.notEqual(balanceBefore, balanceAfter)
         });
 
         it('Liquidate tokens to token', async () => {
-            await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, "2000000000000000000");
-            await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), tortle.address, "2000000000000000000");
+            await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, amount);
+            await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), tortle.address, amount);
 
             const balanceBefore = await nodes.getBalance(otherUser.getAddress(), dai.address)
 
-            await nodes.connect(deployer).liquidate(otherUser.getAddress(), [link.address, tortle.address], ["2000000000000000000", "2000000000000000000"], dai.address, "0")
+            await nodes.connect(deployer).liquidate(otherUser.getAddress(), [link.address, tortle.address], [amountWithoutFees, amountWithoutFees], dai.address, "0")
             
             const balanceAfter = await nodes.getBalance(otherUser.getAddress(), dai.address)
             assert.notEqual(balanceBefore, balanceAfter)
@@ -668,35 +665,35 @@ describe('Nodes Contract', function () {
 
     describe('Send to Wallet', async() => {
         it('Send token to wallet', async () => {
-            await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, "2000000000000000000");
+            await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, amount);
 
-            const result = await nodes.connect(deployer).sendToWallet(otherUser.getAddress(), link.address, "2000000000000000000")
+            const result = await nodes.connect(deployer).sendToWallet(otherUser.getAddress(), link.address, amountWithoutFees)
             
             let receipt = await result.wait()
             assert.equal(receipt.events[1].args.tokenOutput, link.address);
-            assert.equal(receipt.events[1].args.amountOut, "2000000000000000000");
+            assert.equal(receipt.events[1].args.amountOut, amountWithoutFees);
         });
 
         it('Send ftm to wallet', async () => {
-            await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: "200000000000000000" });
+            await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: amount });
 
-            const result = await nodes.sendToWallet(otherUser.getAddress(), wftm.address, "200000000000000000")
+            const result = await nodes.sendToWallet(otherUser.getAddress(), wftm.address, amountWithoutFees)
             
             let receipt = await result.wait()
             assert.equal(receipt.events[1].args.tokenOutput, wftm.address);
-            assert.equal(receipt.events[1].args.amountOut, "200000000000000000");
+            assert.equal(receipt.events[1].args.amountOut, amountWithoutFees);
         });
     });
 
     describe('Recover All', async() => {
         it('Recover tokens', async () => {
-            await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, "2000000000000000000");
-            await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), dai.address, "2000000000000000000");
+            await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, amount);
+            await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), dai.address, amount);
 
             const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), link.address)
             const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), dai.address)
 
-            await nodes.connect(otherUser).recoverAll([link.address, dai.address], ["2000000000000000000", "2000000000000000000"])
+            await nodes.connect(otherUser).recoverAll([link.address, dai.address], [amountWithoutFees, amountWithoutFees])
             
             const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), link.address)
             const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), dai.address)
@@ -705,13 +702,13 @@ describe('Nodes Contract', function () {
         });
 
         it('Recover token and ftm', async () => {
-            await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, "2000000000000000000");
-            await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: "200000000000000000" });
+            await nodes.connect(deployer).addFundsForTokens(otherUser.getAddress(), link.address, amount);
+            await nodes.connect(deployer).addFundsForFTM(otherUser.getAddress(), { value: amount });
 
             const balanceBeforeToken1 = await nodes.getBalance(otherUser.getAddress(), link.address)
             const balanceBeforeToken2 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
 
-            await nodes.connect(otherUser).recoverAll([link.address, wftm.address], ["2000000000000000000", "200000000000000000"])
+            await nodes.connect(otherUser).recoverAll([link.address, wftm.address], [amountWithoutFees, amountWithoutFees])
             
             const balanceAfterToken1 = await nodes.getBalance(otherUser.getAddress(), link.address)
             const balanceAfterToken2 = await nodes.getBalance(otherUser.getAddress(), wftm.address)
