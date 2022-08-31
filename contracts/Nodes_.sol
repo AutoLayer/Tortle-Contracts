@@ -10,7 +10,6 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 
 error Nodes__PairDoesNotExist();
-error Nodes__InsufficientReserve();
 
 contract Nodes_ is ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -19,7 +18,6 @@ contract Nodes_ is ReentrancyGuard {
     address private immutable FTM;
     address private immutable USDC;
     address[] public routers;
-    uint256 public constant minimumAmount = 1000;
 
     constructor(address _owner, address _usdc, address[] memory _routers) {
         owner = _owner;
@@ -139,10 +137,8 @@ contract Nodes_ is ReentrancyGuard {
         }
 
         if(_totalAmountOutWftm >= _totalAmountOutUsdc) {
-            if (_totalAmountOutWftm < minimumAmount) revert Nodes__InsufficientReserve();
             tokenPool = FTM;
         } else {
-            if (_totalAmountOutUsdc < minimumAmount) revert Nodes__InsufficientReserve();
             tokenPool = USDC;
         }
     }
