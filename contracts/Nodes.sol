@@ -3,7 +3,6 @@
 pragma solidity ^0.8.6;
 
 import '@openzeppelin/contracts/proxy/utils/Initializable.sol';
-
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 import '@uniswap/lib/contracts/libraries/Babylonian.sol';
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
@@ -120,6 +119,17 @@ contract Nodes is Initializable, ReentrancyGuard {
         WFTM = router.WETH();
     }
 
+    /**
+    * @notice Function used to deposit tokens on a lpPool and get lptoken
+    * @param user Address of the user.
+    * @param lpToken Address of the lpToken
+    * @param token0 Address of the first token that is going to be deposited
+    * @param token1 Address of the second token that is going to be deposited
+    * @param amount0 Amount of token0
+    * @param amount1 Amount of token1
+    * @param amountOutMin0 Minimum amount of token0
+    * @param amountOutMin0 Minimum amount of token1
+    */
     function depositOnLp(
         address user,
         address lpToken,
@@ -145,6 +155,11 @@ contract Nodes is Initializable, ReentrancyGuard {
         return lpRes;
     }
 
+    /**
+    * @notice Function used to deposit tokens on a LP Farm
+    * @param _arguments Information needed to complete farm deposit
+    * @param auxStack Contains information of the amounts that are going to be deposited 
+    */
     function depositOnFarmLp(
         address user,
         string[] memory _arguments,
@@ -166,6 +181,11 @@ contract Nodes is Initializable, ReentrancyGuard {
         result[1] = ttShares;
     }
 
+    /**
+    * @notice Function used to deposit tokens on a farm
+    * @param _arguments Information needed to complete farm deposit
+    * @param auxStack Contains information of the amounts that are going to be deposited 
+    */
     function depositOnFarmTokens(
         address user,
         string[] memory _arguments,
@@ -196,6 +216,11 @@ contract Nodes is Initializable, ReentrancyGuard {
         result[1] = ttAmount;
     }
 
+    /**
+    * @notice Function used to withdraw tokens from a LPfarm
+    * @param _arguments Information needed to complete farm deposit
+    * @param amount Amount of LPTokens desired to withdraw
+    */
     function withdrawFromLp(
         address user,
         string[] memory _arguments,
@@ -214,6 +239,11 @@ contract Nodes is Initializable, ReentrancyGuard {
         amountTokenDesired = _withdrawLpAndSwap(user, args, amount);
     }
 
+    /**
+    * @notice Function used to withdraw tokens from a farm
+    * @param _arguments Information needed to complete farm deposit
+    * @param amount Amount of tokens desired to withdraw
+    */
     function withdrawFromFarm(
         address user,
         string[] memory _arguments,
@@ -236,11 +266,11 @@ contract Nodes is Initializable, ReentrancyGuard {
     }
 
     /**
-     * @notice Function that allows to withdraw tokens to the user's wallet.
-     * @param _user Address of the user who wishes to remove the tokens.
-     * @param _token Token to be withdrawn.
-     * @param _amount Amount of tokens to be withdrawn.
-     */
+    * @notice Function that allows to withdraw tokens to the user's wallet.
+    * @param _user Address of the user who wishes to remove the tokens.
+    * @param _token Token to be withdrawn.
+    * @param _amount Amount of tokens to be withdrawn.
+    */
     function sendToWallet(
         address _user,
         IERC20 _token,
@@ -317,9 +347,9 @@ contract Nodes is Initializable, ReentrancyGuard {
     }
 
     /**
-     * @notice Function that allows to add funds to the contract to execute the recipes.
-     * @param _user Address of the user who will deposit the tokens.
-     */
+    * @notice Function that allows to add funds to the contract to execute the recipes.
+    * @param _user Address of the user who will deposit the tokens.
+    */
     function addFundsForFTM(address _user) public payable nonReentrant returns (address token, uint256 amount) {
         if (msg.value <= 0) revert Nodes__InsufficientBalance();
 
@@ -332,6 +362,11 @@ contract Nodes is Initializable, ReentrancyGuard {
         return (WFTM, _amount);
     }
 
+    /**
+    * @notice Function used to charge the correspoding fees (returns the amount - fees)
+    * @param _token Address of the token used as fees
+    * @param _amount Amount of the token that is wanted to calculate its fees
+    */
     function chargeFees(address _token, uint256 _amount) internal returns (uint256) {
         uint256 _amountFee = mulScale(_amount, TOTAL_FEE, 10000);
 
@@ -353,18 +388,18 @@ contract Nodes is Initializable, ReentrancyGuard {
     }
 
     /**
-     * @notice Function that allows you to see the balance you have in the contract of a specific token.
-     * @param _user Address of the user who will deposit the tokens.
-     * @param _token Contract of the token from which the balance is to be obtained.
-     */
+    * @notice Function that allows you to see the balance you have in the contract of a specific token.
+    * @param _user Address of the user who will deposit the tokens.
+    * @param _token Contract of the token from which the balance is to be obtained.
+    */
     function getBalance(address _user, IERC20 _token) public view returns (uint256) {
         return balance[_user].get(address(_token));
     }
 
     /**
-     * @notice Function that divides the token you send into two tokens according to the percentage you select.
-     * @param _splitStruct Struct: user, token, amount, firstToken, secondToken, percentageFirstToken, amountOutMinFirst, amountOutMinSecond.
-     */
+    * @notice Function that divides the token you send into two tokens according to the percentage you select.
+    * @param _splitStruct Struct: user, token, amount, firstToken, secondToken, percentageFirstToken, amountOutMinFirst, amountOutMinSecond.
+    */
     function split(SplitStruct memory _splitStruct)
         public
         nonReentrant
@@ -485,6 +520,12 @@ contract Nodes is Initializable, ReentrancyGuard {
         return amount;
     }
 
+    /**
+     * @notice Function used to withdraw and swap a token
+     * @param user Address of the user whose tokens are to be swapped.
+     * @param args Information needed to execute
+     * @param amountLp Amount of LpTokens wanted to be executed.
+     */
     function _withdrawLpAndSwap(
         address user,
         _wffot memory args,
@@ -518,6 +559,15 @@ contract Nodes is Initializable, ReentrancyGuard {
         increaseBalance(user, args.tokenDesired, amountTokenDesired);
     }
 
+    /**
+    * @notice Function used to add liquidity
+    * @param token0 Address of the first token that is going to be added
+    * @param token1 Address of the second token that is going to be added
+    * @param amount0 Amount of token0
+    * @param amount1 Amount of token1
+    * @param amountOutMin0 Minimum amount of token0
+    * @param amountOutMin0 Minimum amount of token1
+    */
     function _addLiquidity(
         address token0,
         address token1,
@@ -539,6 +589,12 @@ contract Nodes is Initializable, ReentrancyGuard {
         (amount0f, amount1f, lpRes) = router1.addLiquidity(token0, token1, amount0, amount1, amountOutMin0, amountOutMin1, address(this), block.timestamp);
     }
 
+    /**
+     * @notice Approve of a token
+     * @param token Address of the token wanted to be approved
+     * @param spender Address that is wanted to be approved to spend the token
+     * @param amount Amount of the token that is wanted to be approved.
+     */
     function _approve(
         address token,
         address spender,
@@ -567,6 +623,12 @@ contract Nodes is Initializable, ReentrancyGuard {
         return a * c * scale + a * d + b * c + (b * d) / scale;
     }
 
+    /**
+     * @notice Increase balance of a token for a user
+     * @param _user Address of the user that is wanted to increase its balance of a token
+     * @param _token Address of the token that is wanted to be increased
+     * @param _amount Amount of the token that is wanted to be increased
+     */
     function increaseBalance(
         address _user,
         address _token,
@@ -577,6 +639,12 @@ contract Nodes is Initializable, ReentrancyGuard {
         balance[_user].set(address(_token), _userBalance);
     }
 
+    /**
+     * @notice Decrease balance of a token for a user
+     * @param _user Address of the user that is wanted to decrease its balance of a token
+     * @param _token Address of the token that is wanted to be decreased
+     * @param _amount Amount of the token that is wanted to be decreased
+     */
     function decreaseBalance(
         address _user,
         address _token,
