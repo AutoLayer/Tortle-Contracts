@@ -1,12 +1,13 @@
 const { assert } = require('chai')
 const { ethers } = require('hardhat')
-const { addLiquidityETH } = require('./helpers')
+const { addLiquidityETH, addLiquidity } = require('./helpers')
 
 describe('Nodes_ Contract', function () {
     let accounts
     let deployer
     let otherUser
     let wftm
+    let usdc
     let dai
     let link
     let tortle
@@ -23,6 +24,10 @@ describe('Nodes_ Contract', function () {
         otherUser = accounts[1]
 
         wftm = await (await (await hre.ethers.getContractFactory('WrappedFtm')).deploy()).deployed()
+
+        usdc = await (
+        await (await hre.ethers.getContractFactory('WERC10')).deploy('USDC', 'USDC', 18, deployer.getAddress())
+        ).deployed()
 
         dai = await (
         await (await hre.ethers.getContractFactory('WERC10')).deploy('Dai Stablecoin', 'DAI', 18, deployer.getAddress())
@@ -60,8 +65,11 @@ describe('Nodes_ Contract', function () {
         // Router1
         await link.connect(deployer).approve(uniswapRouter.address, '5000000000000000000000000000')
         await dai.connect(deployer).approve(uniswapRouter.address, '5000000000000000000000000000')
+        await usdc.connect(deployer).approve(uniswapRouter.address, '5000000000000000000000000000')
+        await addLiquidity(uniswapRouter, [usdc.address, dai.address], [liquidity, liquidity], [0, 0], deployer.getAddress())
         await addLiquidityETH(uniswapRouter, link.address, liquidity, 0, 0, deployer.getAddress())
         await addLiquidityETH(uniswapRouter, dai.address, liquidity, 0, 0, deployer.getAddress())
+        await addLiquidityETH(uniswapRouter, usdc.address, liquidity, 0, 0, deployer.getAddress())
         // Router 2
         await tortle.connect(deployer).approve(uniswapRouter2.address, '5000000000000000000000000000')
         await boo.connect(deployer).approve(uniswapRouter2.address, '5000000000000000000000000000')
@@ -69,11 +77,12 @@ describe('Nodes_ Contract', function () {
         await addLiquidityETH(uniswapRouter2, boo.address, liquidity, 0, 0, deployer.getAddress())
         
         const _Nodes_ = await hre.ethers.getContractFactory('Nodes_')
-        nodes_ = await (await _Nodes_.deploy(deployer.getAddress(), [uniswapRouter.address, uniswapRouter2.address])).deployed()
+        nodes_ = await (await _Nodes_.deploy(deployer.getAddress(), usdc.address, [uniswapRouter.address, uniswapRouter2.address])).deployed()
 
         await wftm.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000')
         await link.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000')
-        await dai.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000') 
+        await dai.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000')
+        await usdc.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000')
         await tortle.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000')
         await boo.connect(deployer).transfer(otherUser.getAddress(), '50000000000000000000000')
     });
@@ -138,307 +147,5 @@ describe('Nodes_ Contract', function () {
             const balanceAfter = await wftm.balanceOf(otherUser.getAddress())
             assert.notEqual(balanceBefore, balanceAfter)
         });
-    });
-
-    describe('Splits', async () => {
-        describe('From tokenRouterA', async() => {
-            it('Split tokenRouterA to tokenRouterA/tokenRouterA', async () => {
-                const balanceBeforeToken1 = await dai.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await link.balanceOf(otherUser.getAddress())
-
-                await link.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
-                await nodes_.connect(otherUser).split({token: link.address, amount: "2000000000000000000", firstToken: dai.address, secondToken: link.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await dai.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await link.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            });
-
-            it('Split tokenRouterA to tokenRouterB/tokenRouterA', async () => {
-                const balanceBeforeToken1 = await tortle.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await dai.balanceOf(otherUser.getAddress())
-
-                await link.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
-                await nodes_.connect(otherUser).split({token: link.address, amount: "2000000000000000000", firstToken: tortle.address, secondToken: dai.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await tortle.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await dai.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            });
-
-            it('Split tokenRouterA to tokenRouterB/tokenRouterB', async () => {
-                const balanceBeforeToken1 = await tortle.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await boo.balanceOf(otherUser.getAddress())
-
-                await link.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
-                await nodes_.connect(otherUser).split({token: link.address, amount: "2000000000000000000", firstToken: tortle.address, secondToken: boo.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await tortle.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await boo.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            }); 
-
-            it('Split tokenRouterA to tokenRouterA/ftm', async () => {
-                const balanceBeforeToken1 = await dai.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await wftm.balanceOf(otherUser.getAddress())
-    
-                await link.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
-                await nodes_.connect(otherUser).split({token: link.address, amount: "2000000000000000000", firstToken: dai.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await dai.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await wftm.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            });
-
-            it('Split tokenRouterA to ftm/tokenRouterA', async () => {
-                const balanceBeforeToken1 = await wftm.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await dai.balanceOf(otherUser.getAddress())
-    
-                await link.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
-                await nodes_.connect(otherUser).split({token: link.address, amount: "2000000000000000000", firstToken: wftm.address, secondToken: dai.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await wftm.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await dai.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            });
-
-            it('Split tokenRouterA to tokenRouterB/ftm', async () => {
-                const balanceBeforeToken1 = await boo.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await wftm.balanceOf(otherUser.getAddress())
-    
-                await link.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
-                await nodes_.connect(otherUser).split({token: link.address, amount: "2000000000000000000", firstToken: boo.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await boo.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await wftm.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            });
-
-            it('Split tokenRouterA to ftm/tokenRouterB', async () => {
-                const balanceBeforeToken1 = await wftm.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await boo.balanceOf(otherUser.getAddress())
-    
-                await link.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
-                await nodes_.connect(otherUser).split({token: link.address, amount: "2000000000000000000", firstToken: wftm.address, secondToken: boo.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await wftm.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await boo.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            });
-
-            it('Split tokenRouterA to ftm/ftm', async () => {
-                const balanceBeforeToken = await wftm.balanceOf(otherUser.getAddress())
-    
-                await link.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
-                await nodes_.connect(otherUser).split({token: link.address, amount: "2000000000000000000", firstToken: wftm.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken = await wftm.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken, balanceAfterToken)
-            });
-        })
-        
-        describe('From tokenRouterB', async() => {
-            it('Split tokenRouterB to tokenRouterB/tokenRouterB', async () => {
-                const balanceBeforeToken1 = await tortle.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await boo.balanceOf(otherUser.getAddress())
-
-                await tortle.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
-                await nodes_.connect(otherUser).split({token: tortle.address, amount: "2000000000000000000", firstToken: tortle.address, secondToken: boo.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await tortle.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await boo.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            });
-
-            it('Split tokenRouterB to tokenRouterA/tokenRouterB', async () => {
-                const balanceBeforeToken1 = await dai.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await boo.balanceOf(otherUser.getAddress())
-
-                await tortle.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
-                await nodes_.connect(otherUser).split({token: tortle.address, amount: "2000000000000000000", firstToken: dai.address, secondToken: boo.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await dai.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await boo.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            });
-
-            it('Split tokenRouterB to tokenRouterA/tokenRouterA', async () => {
-                const balanceBeforeToken1 = await dai.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await link.balanceOf(otherUser.getAddress())
-
-                await boo.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
-                await nodes_.connect(otherUser).split({token: boo.address, amount: "2000000000000000000", firstToken: dai.address, secondToken: link.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await dai.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await link.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            }); 
-
-            it('Split tokenRouterB to tokenRouterB/ftm', async () => {
-                const balanceBeforeToken1 = await boo.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await wftm.balanceOf(otherUser.getAddress())
-    
-                await tortle.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
-                await nodes_.connect(otherUser).split({token: tortle.address, amount: "2000000000000000000", firstToken: boo.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await boo.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await wftm.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            });
-
-            it('Split tokenRouterB to ftm/tokenRouterB', async () => {
-                const balanceBeforeToken1 = await wftm.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await tortle.balanceOf(otherUser.getAddress())
-    
-                await boo.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
-                await nodes_.connect(otherUser).split({token: boo.address, amount: "2000000000000000000", firstToken: wftm.address, secondToken: tortle.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await wftm.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await tortle.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            });
-
-            it('Split tokenRouterB to tokenRouterA/ftm', async () => {
-                const balanceBeforeToken1 = await link.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await wftm.balanceOf(otherUser.getAddress())
-    
-                await tortle.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
-                await nodes_.connect(otherUser).split({token: tortle.address, amount: "2000000000000000000", firstToken: link.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await link.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await wftm.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            });
-
-            it('Split tokenRouterB to ftm/tokenRouterA', async () => {
-                const balanceBeforeToken1 = await wftm.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await dai.balanceOf(otherUser.getAddress())
-    
-                await boo.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
-                await nodes_.connect(otherUser).split({token: boo.address, amount: "2000000000000000000", firstToken: wftm.address, secondToken: dai.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await wftm.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await dai.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            });
-
-            it('Split tokenRouterB to ftm/ftm', async () => {
-                const balanceBeforeToken = await wftm.balanceOf(otherUser.getAddress())
-    
-                await boo.connect(otherUser).transfer(nodes_.address, "2000000000000000000")
-                await nodes_.connect(otherUser).split({token: boo.address, amount: "2000000000000000000", firstToken: wftm.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken = await wftm.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken, balanceAfterToken)
-            });
-        })
-
-        describe('From FTM', async() => {
-            it('Split ftm to tokenRouterA/tokenRouterA', async () => {
-                const balanceBeforeToken1 = await link.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await dai.balanceOf(otherUser.getAddress())
-
-                await wftm.connect(otherUser).transfer(nodes_.address, '1000000000000000000')
-                await nodes_.connect(otherUser).split({token: wftm.address, amount: "1000000000000000000", firstToken: link.address, secondToken: tortle.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await link.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await dai.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            });
-
-            it('Split ftm to tokenRouterB/tokenRouterB', async () => {
-                const balanceBeforeToken1 = await tortle.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await boo.balanceOf(otherUser.getAddress())
-
-                await wftm.connect(otherUser).transfer(nodes_.address, '1000000000000000000')
-                await nodes_.connect(otherUser).split({token: wftm.address, amount: "1000000000000000000", firstToken: tortle.address, secondToken: boo.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await tortle.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await boo.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            });
-
-            it('Split ftm to tokenRouterA/tokenRouterB', async () => {
-                const balanceBeforeToken1 = await link.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await tortle.balanceOf(otherUser.getAddress())
-
-                await wftm.connect(otherUser).transfer(nodes_.address, '1000000000000000000')
-                await nodes_.connect(otherUser).split({token: wftm.address, amount: "1000000000000000000", firstToken: link.address, secondToken: tortle.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await link.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await tortle.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            });
-
-            it('Split ftm to ftm/tokenRouterA', async () => {
-                const balanceBeforeToken1 = await wftm.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await dai.balanceOf(otherUser.getAddress())
-                
-                await wftm.connect(otherUser).transfer(nodes_.address, '1000000000000000000')
-                await nodes_.connect(otherUser).split({token: wftm.address, amount: "1000000000000000000", firstToken: wftm.address, secondToken: dai.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await wftm.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await dai.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            });
-
-            it('Split ftm to ftm/tokenRouterB', async () => {
-                const balanceBeforeToken1 = await wftm.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await boo.balanceOf(otherUser.getAddress())
-                
-                await wftm.connect(otherUser).transfer(nodes_.address, '1000000000000000000')
-                await nodes_.connect(otherUser).split({token: wftm.address, amount: "1000000000000000000", firstToken: wftm.address, secondToken: boo.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await wftm.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await boo.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            });
-
-            it('Split ftm to tokenRouterA/ftm', async () => {
-                const balanceBeforeToken1 = await dai.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await wftm.balanceOf(otherUser.getAddress())
-                
-                await wftm.connect(otherUser).transfer(nodes_.address, '1000000000000000000')
-                await nodes_.connect(otherUser).split({token: wftm.address, amount: "1000000000000000000", firstToken: dai.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await dai.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = wftm.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            });
-
-            it('Split ftm to tokenRouterB/ftm', async () => {
-                const balanceBeforeToken1 = await tortle.balanceOf(otherUser.getAddress())
-                const balanceBeforeToken2 = await wftm.balanceOf(otherUser.getAddress())
-                
-                await wftm.connect(otherUser).transfer(nodes_.address, '1000000000000000000')
-                await nodes_.connect(otherUser).split({token: wftm.address, amount: "1000000000000000000", firstToken: tortle.address, secondToken: wftm.address, percentageFirstToken: "5000", amountOutMinFirst: "0", amountOutMinSecond: "0"})
-            
-                const balanceAfterToken1 = await tortle.balanceOf(otherUser.getAddress())
-                const balanceAfterToken2 = await wftm.balanceOf(otherUser.getAddress())
-                assert.notEqual(balanceBeforeToken1, balanceAfterToken1)
-                assert.notEqual(balanceBeforeToken2, balanceAfterToken2)
-            });
-        })
-        
     });
 });
