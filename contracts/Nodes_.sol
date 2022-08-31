@@ -121,6 +121,12 @@ contract Nodes_ is ReentrancyGuard {
         }
     }
 
+    /**
+    * @notice Function used to, given a token, get wich pool has more liquidity (FTM or UDSC)
+    * @param _amount Amount of input tokens
+    * @param _token  Address of input token
+    * @param _router Router used to get pair tokens information
+    */
     function _getTokenPool(uint256 _amount, address _token, IUniswapV2Router02 _router) internal view returns(address tokenPool) {
         address wftmLpToken = IUniswapV2Factory(IUniswapV2Router02(_router).factory()).getPair(FTM, _token);
         address usdcLpToken = IUniswapV2Factory(IUniswapV2Router02(_router).factory()).getPair(USDC, _token);
@@ -143,6 +149,11 @@ contract Nodes_ is ReentrancyGuard {
         }
     }
 
+    /**
+    * @notice Function used to get a router of 2 tokens. It tries to get its main router
+    * @param _token0 Address of the first token
+    * @param _token1 Address of the second token
+    */
     function getRouter(address _token0, address _token1) public view returns(IUniswapV2Router02 router) {
         address pairToken0;
         address pairToken1;
@@ -164,6 +175,10 @@ contract Nodes_ is ReentrancyGuard {
         if (address(router) == address(0)) revert Nodes__PairDoesNotExist();
     }
 
+    /**
+    * @notice Function used to get the router of a tokens. It tries to get its main router.
+    * @param _token Address of the token
+    */
     function getRouterOneToken(address _token) public view returns(IUniswapV2Router02 router) {
         address pair;
         for(uint8 i = 0; i < routers.length; i++) {
