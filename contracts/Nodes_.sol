@@ -87,8 +87,8 @@ contract Nodes_ is ReentrancyGuard {
         IERC20(_tokenIn).safeApprove(address(routerOut), _amount);
 
         if(_tokenIn != _tokenOut) {
-            address tokenInPool_ = _getTokenPool(_amount, _tokenIn, routerOut);
-            address tokenOutPool_ = _getTokenPool(_amount, _tokenOut, routerOut);
+            address tokenInPool_ = _getTokenPool(_tokenIn, routerOut);
+            address tokenOutPool_ = _getTokenPool(_tokenOut, routerOut);
             if (_tokenIn == tokenOutPool_ || _tokenOut == tokenInPool_) {
                 path = new address[](2);
                 path[0] = _tokenIn;
@@ -123,26 +123,26 @@ contract Nodes_ is ReentrancyGuard {
 
     /**
     * @notice Function used to, given a token, get wich pool has more liquidity (FTM or UDSC)
-    * @param _amount Amount of input tokens
     * @param _token  Address of input token
     * @param _router Router used to get pair tokens information
     */
-    function _getTokenPool(uint256 _amount, address _token, IUniswapV2Router02 _router) internal view returns(address tokenPool) {
-        address wftmLpToken = IUniswapV2Factory(IUniswapV2Router02(_router).factory()).getPair(FTM, _token);
-        address usdcLpToken = IUniswapV2Factory(IUniswapV2Router02(_router).factory()).getPair(USDC, _token);
+    function _getTokenPool(address _token, IUniswapV2Router02 _router) internal view returns(address tokenPool) {
+        address wftmTokenLp = IUniswapV2Factory(IUniswapV2Router02(_router).factory()).getPair(FTM, _token);
+        address usdcTokenLp = IUniswapV2Factory(IUniswapV2Router02(_router).factory()).getPair(USDC, _token);
+        address wftmUsdcLp = IUniswapV2Factory(IUniswapV2Router02(_router).factory()).getPair(FTM, USDC);
         
-        uint256 _totalAmountOutWftm;
-        uint256 _totalAmountOutUsdc;
-        if(wftmLpToken != address(0)) {
-            (uint256 reserveWftmA, uint256 reserveWftmB, ) = IUniswapV2Pair(wftmLpToken).getReserves();
-            _totalAmountOutWftm = IUniswapV2Router02(_router).quote(_amount, reserveWftmA, reserveWftmB);
+        uint256 reserveWftmA_;
+        uint256 usdcToWftmAmount_;
+        if(wftmTokenLp != address(0)) {
+            (reserveWftmA_,, ) = IUniswapV2Pair(wftmTokenLp).getReserves();
         }
-        if(usdcLpToken != address(0)) {
-            (uint256 reserveUsdcA, uint256 reserveUsdcB, ) = IUniswapV2Pair(usdcLpToken).getReserves();
-            _totalAmountOutUsdc = IUniswapV2Router02(_router).quote(_amount, reserveUsdcA, reserveUsdcB);
+        if(usdcTokenLp != address(0)) {
+            (uint256 reserveUsdcA,, ) = IUniswapV2Pair(usdcTokenLp).getReserves();
+            (uint256 reserveWftmUsdcA, uint256 reserveWftmUsdcB, ) = IUniswapV2Pair(wftmUsdcLp).getReserves();
+            usdcToWftmAmount_ = IUniswapV2Router02(_router).getAmountOut(reserveUsdcA, reserveWftmUsdcA, reserveWftmUsdcB);
         }
 
-        if(_totalAmountOutWftm >= _totalAmountOutUsdc) {
+        if(reserveWftmA_ >= usdcToWftmAmount_) {
             tokenPool = FTM;
         } else {
             tokenPool = USDC;
