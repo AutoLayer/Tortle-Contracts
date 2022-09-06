@@ -15,6 +15,7 @@ contract Batch {
     uint256[] public auxStack;
 
     struct Function {
+        string recipeId;
         string id;
         string functionName;
         address user;
@@ -22,16 +23,16 @@ contract Batch {
         bool hasNext;
     }
 
-    event AddFundsForTokens(string indexed id, address tokenInput, uint256 amount);
-    event AddFundsForFTM(string indexed id, uint256 amount);
-    event Split(string indexed id, address tokenInput, uint256 amountIn, uint256 amountOutToken1, uint256 amountOutToken2);
-    event SwapTokens(string indexed id, address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
-    event Liquidate(string indexed id, IERC20[] tokensInput, uint256[] amountsIn, address tokenOutput, uint256 amountOut);
-    event SendToWallet(string indexed id, address tokenOutput, uint256 amountOut);
-    event lpDeposited(string indexed id, address lpToken, uint256 amount);
-    event ttDeposited(string indexed id, address ttVault, uint256 amount);
-    event lpWithdrawed(string indexed id, address lpToken, uint256 amountLp, address tokenDesired, uint256 amountTokenDesired);
-    event ttWithdrawed(string indexed id, address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired);
+    event AddFundsForTokens(string indexed recipeId, string indexed id, address tokenInput, uint256 amount);
+    event AddFundsForFTM(string indexed recipeId, string indexed id, uint256 amount);
+    event Split(string indexed recipeId, string indexed id, address tokenInput, uint256 amountIn, uint256 amountOutToken1, uint256 amountOutToken2);
+    event SwapTokens(string indexed recipeId, string indexed id, address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
+    event Liquidate(string indexed recipeId, string indexed id, IERC20[] tokensInput, uint256[] amountsIn, address tokenOutput, uint256 amountOut);
+    event SendToWallet(string indexed recipeId, string indexed id, address tokenOutput, uint256 amountOut);
+    event lpDeposited(string indexed recipeId, string indexed id, address lpToken, uint256 amount);
+    event ttDeposited(string indexed recipeId, string indexed id, address ttVault, uint256 amount);
+    event lpWithdrawed(string indexed recipeId, string indexed id, address lpToken, uint256 amountLp, address tokenDesired, uint256 amountTokenDesired);
+    event ttWithdrawed(string indexed recipeId, string indexed id, address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired);
 
     constructor(address _owner) {
         owner = _owner;
@@ -73,7 +74,7 @@ contract Batch {
             auxStack.push(amount);
         }
 
-        emit AddFundsForFTM(args.id, amount);
+        emit AddFundsForFTM(args.recipeId, args.id, amount);
     }
 
     function withdrawFromFarm(Function memory args) public onlySelf {
@@ -84,6 +85,7 @@ contract Batch {
         }
         uint256 amountTokenDesired = nodes.withdrawFromFarm(args.user, args.arguments, amount);
         emit ttWithdrawed(
+            args.recipeId,
             args.id,
             StringUtils.parseAddr(args.arguments[2]),
             amount,
@@ -103,6 +105,7 @@ contract Batch {
         }
         uint256 amountTokenDesired = nodes.withdrawFromLp(args.user, args.arguments, amount);
         emit lpWithdrawed(
+            args.recipeId,
             args.id,
             StringUtils.parseAddr(args.arguments[1]),
             amount,
@@ -136,7 +139,7 @@ contract Batch {
             amountOutMin0,
             amountOutMin1
         );
-        emit lpDeposited(args.id, lpToken, lpRes);
+        emit lpDeposited(args.recipeId, args.id, lpToken, lpRes);
         if (args.hasNext) {
             auxStack.push(lpRes);
         }
@@ -153,7 +156,7 @@ contract Batch {
             result[0]--;
         }
 
-        emit ttDeposited(args.id, StringUtils.parseAddr(args.arguments[2]), result[1]); // ttVault address and ttAmount
+        emit ttDeposited(args.recipeId, args.id, StringUtils.parseAddr(args.arguments[2]), result[1]); // ttVault address and ttAmount
         if (args.hasNext) {
             auxStack.push(result[1]);
         }
@@ -185,7 +188,7 @@ contract Batch {
         if (StringUtils.equal(_secondTokenHasNext, 'y')) {
             auxStack.push(amountOutToken2);
         }
-        emit Split(args.id, _splitStruct.token, _splitStruct.amount, amountOutToken1, amountOutToken2);
+        emit Split(args.recipeId, args.id, _splitStruct.token, _splitStruct.amount, amountOutToken1, amountOutToken2);
     }
 
     function addFundsForTokens(Function memory args) public onlySelf {
@@ -197,7 +200,7 @@ contract Batch {
             auxStack.push(amount);
         }
 
-        emit AddFundsForTokens(args.id, _token, amount);
+        emit AddFundsForTokens(args.recipeId, args.id, _token, amount);
     }
 
     function swapTokens(Function memory args) public onlySelf {
@@ -218,7 +221,7 @@ contract Batch {
             auxStack.push(amountOut);
         }
 
-        emit SwapTokens(args.id, _token, _amount, _newToken, amountOut);
+        emit SwapTokens(args.recipeId, args.id, _token, _amount, _newToken, amountOut);
     }
 
     function liquidate(Function memory args) public onlySelf {
@@ -251,7 +254,7 @@ contract Batch {
 
         uint256 amountOut = nodes.liquidate(args.user, _tokens, _amounts, _tokenOutput, _amountOutMin);
 
-        emit Liquidate(args.id, _tokens, _amounts, _tokenOutput, amountOut);
+        emit Liquidate(args.recipeId, args.id, _tokens, _amounts, _tokenOutput, amountOut);
     }
 
     function sendToWallet(Function memory args) public onlySelf {
@@ -267,7 +270,7 @@ contract Batch {
 
         uint256 amount = nodes.sendToWallet(args.user, IERC20(_token), _amount);
 
-        emit SendToWallet(args.id, _token, amount);
+        emit SendToWallet(args.recipeId, args.id, _token, amount);
     }
 
     receive() external payable {}

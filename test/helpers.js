@@ -15,8 +15,9 @@ const beefIn = async (vault, token, TortleUniV2Zap, account, amount) => {
   return await (await TortleUniV2Zap.connect(account).beefIn(vault.address, 0, token.address, amount)).wait()
 }
 
-const createNode = (id, functionName, user, arguments, hasNext) => {
+const createNode = (recipeId, id, functionName, user, arguments, hasNext) => {
   return {
+    recipeId,
     id,
     functionName,
     user,
