@@ -25,7 +25,7 @@ contract Batch {
 
     event AddFundsForTokens(string indexed recipeId, string indexed id, address tokenInput, uint256 amount);
     event AddFundsForFTM(string indexed recipeId, string indexed id, uint256 amount);
-    event Split(string indexed recipeId, string indexed id, address tokenInput, uint256 amountIn, uint256 amountOutToken1, uint256 amountOutToken2);
+    event Split(string indexed recipeId, string indexed id, address tokenInput, uint256 amountIn, address tokenOutput1, uint256 amountOutToken1, address tokenOutput2, uint256 amountOutToken2);
     event SwapTokens(string indexed recipeId, string indexed id, address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
     event Liquidate(string indexed recipeId, string indexed id, IERC20[] tokensInput, uint256[] amountsIn, address tokenOutput, uint256 amountOut);
     event SendToWallet(string indexed recipeId, string indexed id, address tokenOutput, uint256 amountOut);
@@ -188,7 +188,7 @@ contract Batch {
         if (StringUtils.equal(_secondTokenHasNext, 'y')) {
             auxStack.push(amountOutToken2);
         }
-        emit Split(args.recipeId, args.id, _splitStruct.token, _splitStruct.amount, amountOutToken1, amountOutToken2);
+        emit Split(args.recipeId, args.id, _splitStruct.token, _splitStruct.amount, _splitStruct.firstToken, amountOutToken1, _splitStruct.secondToken, amountOutToken2);
     }
 
     function addFundsForTokens(Function memory args) public onlySelf {

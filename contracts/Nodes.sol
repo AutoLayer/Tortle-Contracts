@@ -88,7 +88,7 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     event AddFunds(address tokenInput, uint256 amount);
     event Swap(address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
-    event Split(uint256 amountOutToken1, uint256 amountOutToken2);
+    event Split(address tokenOutput1, uint256 amountOutToken1, address tokenOutput2, uint256 amountOutToken2);
     event Liquidate(address tokenOutput, uint256 amountOut);
     event SendToWallet(address tokenOutput, uint256 amountOut);
     event RecoverAll(address tokenOut, uint256 amountOut);
@@ -435,7 +435,7 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         decreaseBalance(user_, token_, amount_);
 
-        emit Split(amountOutToken1, amountOutToken2);
+        emit Split(firstToken_, amountOutToken1, secondToken_, amountOutToken2);
     }
 
     /**
