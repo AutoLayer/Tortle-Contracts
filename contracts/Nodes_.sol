@@ -148,18 +148,31 @@ contract Nodes_ is ReentrancyGuard {
             usdcToWftmAmount_ = IUniswapV2Router02(_router).getAmountOut(reservePairA1_, reserveWftmUsdcA, reserveWftmUsdcB);
         }
         if(ethTokenLp != address(0)) {
-            (,reservePairA2_, ) = IUniswapV2Pair(ethTokenLp).getReserves();
+            (reservePairA1_,reservePairA2_, ) = IUniswapV2Pair(ethTokenLp).getReserves();
             (uint256 reservePairEthA, uint256 reservePairEthB, ) = IUniswapV2Pair(wftmEthLp).getReserves();
             ethToWftmAmount_ = IUniswapV2Router02(_router).getAmountOut(reservePairA2_, reservePairEthB, reservePairEthA);
         }
 
-        if((reserveWftmA_ >= usdcToWftmAmount_) && (reserveWftmA_ >= ethToWftmAmount_)) tokenPool = FTM;
-        else if (((reserveWftmA_ >= usdcToWftmAmount_) || (reserveWftmA_ >= ethToWftmAmount_)) && ((reserveWftmA_ < ethToWftmAmount_) || (reserveWftmA_ < usdcToWftmAmount_))) {
-            if (ethToWftmAmount_ >= usdcToWftmAmount_)  tokenPool = ETH;
-            else tokenPool = USDC;
+        if((reserveWftmA_ >= usdcToWftmAmount_) && (reserveWftmA_ >= ethToWftmAmount_)) {
+            tokenPool = FTM;
+        } else if (reserveWftmA_ >= usdcToWftmAmount_) {
+            if (reserveWftmA_ < ethToWftmAmount_) {
+                tokenPool = ETH;
+            } else {
+                tokenPool = FTM;
+            }
+        } else if (reserveWftmA_ >= ethToWftmAmount_) {
+            if (reserveWftmA_ < usdcToWftmAmount_) {
+                tokenPool = USDC;
+            } else {
+                tokenPool = FTM;
+            }
         } else {
-            if (ethToWftmAmount_ >= usdcToWftmAmount_) tokenPool = ETH;
-            else tokenPool = USDC;
+            if (ethToWftmAmount_ >= usdcToWftmAmount_) {
+                tokenPool = ETH;
+            } else { 
+                tokenPool = USDC;
+            }
         }
     }
 
