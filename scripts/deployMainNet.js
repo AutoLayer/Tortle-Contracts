@@ -11,6 +11,7 @@ const deployMainNet = async () => {
 
   const uniswapRouter = "0xF491e7B69E4244ad4002BC14e878a34207E38c29"
   const usdc = "0x04068da6c83afcfa0e13ba15a6696662335d5b75"
+  const weth = "0x74b23882a30290451a17c44f4f05243b6b58c76d"
 
   const StringUtils = await (await (await hre.ethers.getContractFactory('StringUtils')).connect(deployer).deploy()).deployed()
   const AddressToUintIterableMap = await (
@@ -40,7 +41,7 @@ const deployMainNet = async () => {
 
   // Nodes_ Contract
   const Nodes_ = await (
-    await (await hre.ethers.getContractFactory('Nodes_')).connect(deployer).deploy(deployer.getAddress(), usdc, [uniswapRouter])
+    await (await hre.ethers.getContractFactory('Nodes_')).connect(deployer).deploy(deployer.getAddress(), usdc, weth, [uniswapRouter])
   ).deployed()
 
   const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [Batch.address, Nodes_.address, Batch.address, dojos, treasury, devFund, usdc, uniswapRouter], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
