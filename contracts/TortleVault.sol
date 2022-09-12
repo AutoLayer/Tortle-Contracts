@@ -49,11 +49,11 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
     }
 
     function depositAll() external {
-        deposit(token.balanceOf(msg.sender));
+        deposit(msg.sender, token.balanceOf(msg.sender));
     }
 
     function withdrawAll() external {
-        withdraw(balanceOf(msg.sender));
+        withdraw(msg.sender, balanceOf(msg.sender));
     }
 
     function removeTvlCap() external onlyOwner {
@@ -76,7 +76,7 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
         return totalSupply() == 0 ? decimals : (balance() * decimals) / totalSupply();
     }
     
-    function deposit(uint256 _amount) public nonReentrant returns (uint256 shares) {
+    function deposit(address _user, uint256 _amount) public nonReentrant returns (uint256 shares) {
         uint256 vaultBalStart = token.balanceOf(address(this));
         if (_amount == 0) revert TortleVault__InvalidAmount();
         uint256 _pool = vaultBalStart + IStrategy(strategy).balanceOf();
@@ -91,7 +91,7 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
         }
         _mint(msg.sender, shares);
         earn();
-        incrementDeposits(_amount);
+        incrementDeposits(_user, _amount);
     }
 
     function earn() public {
@@ -99,7 +99,7 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
         IStrategy(strategy).deposit();
     }
 
-    function withdraw(uint256 _shares) public nonReentrant returns (uint256 r) {
+    function withdraw(address _user, uint256 _shares) public nonReentrant returns (uint256 r) {
         if (_shares <= 0) revert TortleVault__InvalidAmount();
         uint256 tokenBalStart = token.balanceOf(address(this));
         r = ((IStrategy(strategy).balanceOf() + tokenBalStart) * _shares) / totalSupply();
@@ -112,8 +112,8 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
                 r = tokenBalStart + _diff;
             }
         }
-        token.safeTransfer(msg.sender, r);
-        incrementWithdrawals(r);
+        token.safeTransfer(_user, r);
+        incrementWithdrawals(_user, r);
     }
 
     function updateDepositFee(uint256 fee) public onlyOwner {
@@ -125,17 +125,17 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
         emit TvlCapUpdated(tvlCap);
     }
 
-    function incrementDeposits(uint256 _amount) internal returns (bool) {
-        uint256 newTotal = cumulativeDeposits[tx.origin] + _amount;
-        cumulativeDeposits[tx.origin] = newTotal;
-        emit DepositsIncremented(tx.origin, _amount, newTotal);
+    function incrementDeposits(address _user, uint256 _amount) internal returns (bool) {
+        uint256 newTotal = cumulativeDeposits[_user] + _amount;
+        cumulativeDeposits[_user] = newTotal;
+        emit DepositsIncremented(_user, _amount, newTotal);
         return true;
     }
 
-    function incrementWithdrawals(uint256 _amount) internal returns (bool) {
-        uint256 newTotal = cumulativeWithdrawals[tx.origin] + _amount;
-        cumulativeWithdrawals[tx.origin] = newTotal;
-        emit WithdrawalsIncremented(tx.origin, _amount, newTotal);
+    function incrementWithdrawals(address _user, uint256 _amount) internal returns (bool) {
+        uint256 newTotal = cumulativeWithdrawals[_user] + _amount;
+        cumulativeWithdrawals[_user] = newTotal;
+        emit WithdrawalsIncremented(_user, _amount, newTotal);
         return true;
     }
 }
