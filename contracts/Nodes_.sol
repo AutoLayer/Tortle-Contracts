@@ -17,13 +17,15 @@ contract Nodes_ is ReentrancyGuard {
     address public immutable owner;
     address private immutable FTM;
     address private immutable USDC;
+    address private immutable ETH;
     address[] public routers;
 
-    constructor(address _owner, address _usdc, address[] memory _routers) {
+    constructor(address _owner, address _usdc, address _eth, address[] memory _routers) {
         owner = _owner;
         routers = _routers;
         FTM = IUniswapV2Router02(_routers[0]).WETH();
         USDC = _usdc;
+        ETH = _eth;
     }
 
     /**
@@ -130,22 +132,34 @@ contract Nodes_ is ReentrancyGuard {
         address wftmTokenLp = IUniswapV2Factory(IUniswapV2Router02(_router).factory()).getPair(FTM, _token);
         address usdcTokenLp = IUniswapV2Factory(IUniswapV2Router02(_router).factory()).getPair(USDC, _token);
         address wftmUsdcLp = IUniswapV2Factory(IUniswapV2Router02(_router).factory()).getPair(FTM, USDC);
+        address ethTokenLp = IUniswapV2Factory(IUniswapV2Router02(_router).factory()).getPair(ETH, _token);
+        address wftmEthLp = IUniswapV2Factory(IUniswapV2Router02(_router).factory()).getPair(FTM, ETH);
         
         uint256 reserveWftmA_;
+        uint256 reservePairA1_;
+        uint256 reservePairA2_;
         uint256 usdcToWftmAmount_;
-        if(wftmTokenLp != address(0)) {
-            (reserveWftmA_,, ) = IUniswapV2Pair(wftmTokenLp).getReserves();
-        }
+        uint256 ethToWftmAmount_;
+        if(wftmTokenLp != address(0)) { (reserveWftmA_,, ) = IUniswapV2Pair(wftmTokenLp).getReserves(); }
+        
         if(usdcTokenLp != address(0)) {
-            (uint256 reserveUsdcA,, ) = IUniswapV2Pair(usdcTokenLp).getReserves();
+            (reservePairA1_,, ) = IUniswapV2Pair(usdcTokenLp).getReserves();
             (uint256 reserveWftmUsdcA, uint256 reserveWftmUsdcB, ) = IUniswapV2Pair(wftmUsdcLp).getReserves();
-            usdcToWftmAmount_ = IUniswapV2Router02(_router).getAmountOut(reserveUsdcA, reserveWftmUsdcA, reserveWftmUsdcB);
+            usdcToWftmAmount_ = IUniswapV2Router02(_router).getAmountOut(reservePairA1_, reserveWftmUsdcA, reserveWftmUsdcB);
+        }
+        if(ethTokenLp != address(0)) {
+            (,reservePairA2_, ) = IUniswapV2Pair(ethTokenLp).getReserves();
+            (uint256 reservePairEthA, uint256 reservePairEthB, ) = IUniswapV2Pair(wftmEthLp).getReserves();
+            ethToWftmAmount_ = IUniswapV2Router02(_router).getAmountOut(reservePairA2_, reservePairEthB, reservePairEthA);
         }
 
-        if(reserveWftmA_ >= usdcToWftmAmount_) {
-            tokenPool = FTM;
+        if((reserveWftmA_ >= usdcToWftmAmount_) && (reserveWftmA_ >= ethToWftmAmount_)) tokenPool = FTM;
+        else if (((reserveWftmA_ >= usdcToWftmAmount_) || (reserveWftmA_ >= ethToWftmAmount_)) && ((reserveWftmA_ < ethToWftmAmount_) || (reserveWftmA_ < usdcToWftmAmount_))) {
+            if (ethToWftmAmount_ >= usdcToWftmAmount_)  tokenPool = ETH;
+            else tokenPool = USDC;
         } else {
-            tokenPool = USDC;
+            if (ethToWftmAmount_ >= usdcToWftmAmount_) tokenPool = ETH;
+            else tokenPool = USDC;
         }
     }
 
