@@ -72,7 +72,7 @@ contract TortleUniV2Zap {
             address(this),
             withdrawAmount
         );
-        vault.withdraw(withdrawAmount);
+        vault.withdraw(msg.sender, withdrawAmount);
 
         if (pair.token0() != WETH && pair.token1() != WETH) {
             return _removeLiquidity(address(pair), msg.sender);
@@ -99,7 +99,7 @@ contract TortleUniV2Zap {
         if (token0 != desiredToken && token1 != desiredToken) revert TortleUniV2Zap__TokenIsNotPresentInLiquidityPar();
        
         vault.safeTransferFrom(msg.sender, address(this), withdrawAmount);
-        vault.withdraw(withdrawAmount);
+        vault.withdraw(msg.sender, withdrawAmount);
         _removeLiquidity(address(pair), address(this));
 
         address swapToken = token1 == desiredToken ? token0 : token1;
@@ -182,7 +182,7 @@ contract TortleUniV2Zap {
             block.timestamp
         );
         _approveTokenIfNeeded(address(pair), address(vault));
-        vault.deposit(amountLiquidity);
+        vault.deposit(msg.sender, amountLiquidity);
 
         vault.safeTransfer(msg.sender, vault.balanceOf(address(this)));
         _returnAssets(path);

@@ -115,7 +115,6 @@ contract TortleFarmingStrategy is Ownable, Pausable {
         if (msg.sender != vault) revert TortleFarmingStrategy__SenderIsNotVault();
         uint256 lpTokenBalance = IERC20(lpToken).balanceOf(address(this));
         if (_amount == 0 || _amount > (balanceOfPool() + lpTokenBalance)) revert TortleFarmingStrategy__InvalidAmount();
-        _amount -= (_amount * securityFee) / PERCENT_DIVISOR;
 
         if (lpTokenBalance < _amount) {
             IMasterChef(masterChef).withdraw(poolId, _amount - lpTokenBalance);

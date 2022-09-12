@@ -77,18 +77,15 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
     }
     
     function deposit(address _user, uint256 _amount) public nonReentrant returns (uint256 shares) {
-        uint256 vaultBalStart = token.balanceOf(address(this));
         if (_amount == 0) revert TortleVault__InvalidAmount();
+        uint256 vaultBalStart = token.balanceOf(address(this));
         uint256 _pool = vaultBalStart + IStrategy(strategy).balanceOf();
         if (_pool + _amount > tvlCap) revert TortleVault__VaultIsFull();
 
         token.safeTransferFrom(msg.sender, address(this), _amount);
         _amount = token.balanceOf(address(this)) - vaultBalStart;
-        uint256 _amountAfterDeposit = (_amount * (PERCENT_DIVISOR - depositFee)) / PERCENT_DIVISOR;
-        shares = _amountAfterDeposit;
-        if (totalSupply() != 0) {
-            shares = (_amountAfterDeposit * totalSupply()) / _pool;
-        }
+        shares = _amount;
+        if (totalSupply() != 0) shares = (_amount * totalSupply()) / _pool;
         _mint(msg.sender, shares);
         earn();
         incrementDeposits(_user, _amount);
@@ -112,7 +109,7 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
                 r = tokenBalStart + _diff;
             }
         }
-        token.safeTransfer(_user, r);
+        token.safeTransfer(msg.sender, r);
         incrementWithdrawals(_user, r);
     }
 
