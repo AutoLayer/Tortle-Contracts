@@ -175,7 +175,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         }
         if (amount > getBalance(user, IERC20(lpToken))) revert Nodes__DepositOnFarmLPInsufficientLPTokenFunds();
         _approve(lpToken, tortleVault, amount);
-        uint256 ttShares = ITortleVault(tortleVault).deposit(amount);
+        uint256 ttShares = ITortleVault(tortleVault).deposit(user, amount);
         userTt[tortleVault][user] += ttShares;
         decreaseBalance(user, address(lpToken), amount);
         result[1] = ttShares;
@@ -209,7 +209,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         if (args.amount1 > getBalance(user, IERC20(args.token1))) revert Nodes__DepositOnFarmTokensInsufficientT1Funds();
         (uint256 amount0f, uint256 amount1f, uint256 lpBal) = _addLiquidity(args.token0, args.token1, args.amount0, args.amount1, 0, 0);
         _approve(args.lpToken, args.tortleVault, lpBal);
-        uint256 ttAmount = ITortleVault(args.tortleVault).deposit(lpBal);
+        uint256 ttAmount = ITortleVault(args.tortleVault).deposit(user, lpBal);
         userTt[args.tortleVault][user] += ttAmount;
         decreaseBalance(user, address(args.token0), amount0f);
         decreaseBalance(user, address(args.token1), amount1f);
@@ -260,7 +260,7 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         if (amount > userTt[args.tortleVault][user]) revert Nodes__WithdrawFromFarmInsufficientFunds();
 
-        uint256 amountLp = ITortleVault(args.tortleVault).withdraw(amount);
+        uint256 amountLp = ITortleVault(args.tortleVault).withdraw(user, amount);
         userTt[args.tortleVault][user] -= amount;
         amountTokenDesired = _withdrawLpAndSwap(user, args, amountLp);
     }
