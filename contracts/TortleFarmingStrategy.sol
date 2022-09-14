@@ -34,9 +34,6 @@ contract TortleFarmingStrategy is Ownable, Pausable {
     address public immutable treasury;
     address public immutable vault;
 
-    uint256 public constant callFee = 1000;
-    uint256 public totalFee = 500;
-    uint256 public constant MAX_FEE = 500;
     uint256 public constant PERCENT_DIVISOR = 10000;
     uint256 public slippageFactorMin = 950;
 
@@ -51,7 +48,6 @@ contract TortleFarmingStrategy is Ownable, Pausable {
     uint256 public harvestLogCadence;
     uint256 public lastHarvestTimestamp;
     event StratHarvest(address indexed harvester);
-    event TotalFeeUpdated(uint256 newFee);
     event SlippageFactorMinUpdated(uint256 newSlippageFactorMin);
 
     constructor(
@@ -188,17 +184,6 @@ contract TortleFarmingStrategy is Ownable, Pausable {
         deposit();
     }
 
-    function updateTotalFee(uint256 _totalFee)
-        external
-        onlyOwner
-        returns (bool)
-    {
-        if (_totalFee > MAX_FEE) revert TortleFarmingStrategy__FeeIsTooHigh();
-        totalFee = _totalFee;
-        emit TotalFeeUpdated(totalFee);
-        return true;
-    }
-
     function swap(
         uint256 _amount,
         address[] memory _path,
@@ -235,7 +220,7 @@ contract TortleFarmingStrategy is Ownable, Pausable {
     function estimateHarvest()
         external
         view
-        returns (uint256 profit, uint256 callFeeToUser)
+        returns (uint256 profit)
     {
         uint256 pendingReward = IMasterChef(masterChef).pendingBOO(
             poolId,
@@ -252,10 +237,6 @@ contract TortleFarmingStrategy is Ownable, Pausable {
         }
 
         profit += IERC20(wftm).balanceOf(address(this));
-
-        uint256 wftmFee = (profit * totalFee) / PERCENT_DIVISOR;
-        callFeeToUser = (wftmFee * callFee) / PERCENT_DIVISOR;
-        profit -= wftmFee;
     }
 
     function setSlippageFactorMin(uint256 _slippageFactorMin) public onlyOwner {
