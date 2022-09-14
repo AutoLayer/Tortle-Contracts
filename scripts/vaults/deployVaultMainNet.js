@@ -7,8 +7,6 @@ const farmsListJSON = require('./shortExampleFarmList.json')
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 const deployVaults = async (tokensList) => {
-    const VaultDepositFEE = 10
-
     const uniswapRouter = "0xF491e7B69E4244ad4002BC14e878a34207E38c29"
     const uniswapFactory = await ethers.getContractAt('UniswapV2Factory', "0x152eE697f2E276fA89E96742e9bB9aB1F2E61bE3")
     let wftm = "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"
@@ -26,7 +24,7 @@ const deployVaults = async (tokensList) => {
         const lpToken = await uniswapFactory.getPair(farm.address0, farm.address1) // token0/token1
 
         let TortleVault = await (
-            await _TortleVault.deploy(lpToken, `${farm.token0}-${farm.token1} Spooky Vault`, `tt${farm.token0}${farm.token1}`, VaultDepositFEE, WEI(9999999))
+            await _TortleVault.deploy(lpToken, `${farm.token0}-${farm.token1} Spooky Vault`, `tt${farm.token0}${farm.token1}`, WEI(9999999))
         ).deployed()
         console.log('TortleVault Address: ', TortleVault.address)
 
