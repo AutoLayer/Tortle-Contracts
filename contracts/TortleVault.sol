@@ -18,7 +18,6 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
 
     address public strategy;
 
-    uint256 public depositFee;
     uint256 public constant PERCENT_DIVISOR = 10000;
     uint256 public tvlCap;
 
@@ -39,12 +38,10 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
         address _token,
         string memory _name,
         string memory _symbol,
-        uint256 _depositFee,
         uint256 _tvlCap
     ) ERC20(string(_name), string(_symbol)) {
         token = IERC20(_token);
         constructionTime = block.timestamp;
-        depositFee = _depositFee;
         tvlCap = _tvlCap;
     }
 
@@ -111,10 +108,6 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
         }
         token.safeTransfer(msg.sender, r);
         incrementWithdrawals(_user, r);
-    }
-
-    function updateDepositFee(uint256 fee) public onlyOwner {
-        depositFee = fee;
     }
 
     function updateTvlCap(uint256 _newTvlCap) public onlyOwner {
