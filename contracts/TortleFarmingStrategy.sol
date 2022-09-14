@@ -35,8 +35,6 @@ contract TortleFarmingStrategy is Ownable, Pausable {
     address public immutable vault;
 
     uint256 public constant callFee = 1000;
-    uint256 public constant treasuryFee = 9000;
-    uint256 public constant securityFee = 10;
     uint256 public totalFee = 500;
     uint256 public constant MAX_FEE = 500;
     uint256 public constant PERCENT_DIVISOR = 10000;
@@ -53,7 +51,6 @@ contract TortleFarmingStrategy is Ownable, Pausable {
     uint256 public harvestLogCadence;
     uint256 public lastHarvestTimestamp;
     event StratHarvest(address indexed harvester);
-    event FeesUpdated(uint256 newCallFee, uint256 newTreasuryFee);
     event TotalFeeUpdated(uint256 newFee);
     event SlippageFactorMinUpdated(uint256 newSlippageFactorMin);
 
@@ -125,7 +122,6 @@ contract TortleFarmingStrategy is Ownable, Pausable {
     function harvest(uint256 _slippageFactor) external whenNotPaused {
         if (_slippageFactor > 1000 || _slippageFactor <= slippageFactorMin) revert TortleFarmingStrategy__InvalidSlippageFactor();
         IMasterChef(masterChef).deposit(poolId, 0);
-        chargeFees();
         addLiquidity(_slippageFactor);
         deposit();
         if (block.timestamp >= harvestLog[harvestLog.length - 1].timestamp + harvestLogCadence) {
@@ -133,16 +129,6 @@ contract TortleFarmingStrategy is Ownable, Pausable {
         }
         lastHarvestTimestamp = block.timestamp;
         emit StratHarvest(msg.sender);
-    }
-
-    function chargeFees() internal {
-        uint256 toWftm = (IERC20(rewardToken).balanceOf(address(this)) * totalFee) / PERCENT_DIVISOR;
-        swap(toWftm, rewardTokenToWftmRoute, slippageFactorMin);
-        uint256 wftmBal = IERC20(wftm).balanceOf(address(this));
-        uint256 callFeeToUser = (wftmBal * callFee) / PERCENT_DIVISOR;
-        uint256 treasuryFeeToVault = (wftmBal * treasuryFee) / PERCENT_DIVISOR;
-        IERC20(wftm).safeTransfer(msg.sender, callFeeToUser);
-        IERC20(wftm).safeTransfer(treasury, treasuryFeeToVault);
     }
 
     function addLiquidity(uint256 _slippageFactor) internal {
