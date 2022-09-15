@@ -81,6 +81,10 @@ contract Nodes is Initializable, ReentrancyGuard {
     uint8 public constant DEV_FUND_FEE = 30; //0.30%
     uint256 public constant minimumAmount = 1000;
 
+    uint256 public constant DOJOS_FEE_PERCENTAGE = 3333; // 33%
+    uint256 public constant TREASURY_FEE_PERCENTAGE = 4666; // 46.66%
+    uint256 public constant DEV_FUND_FEE_PERCENTAGE = 2000; // 20%
+
     mapping(address => mapping(address => uint256)) public userLp;
     mapping(address => mapping(address => uint256)) public userTt;
 
@@ -369,15 +373,22 @@ contract Nodes is Initializable, ReentrancyGuard {
     */
     function chargeFees(address _token, uint256 _amount) internal returns (uint256) {
         uint256 _amountFee = mulScale(_amount, TOTAL_FEE, 10000);
+        uint256 _dojosTokens;
+        uint256 _treasuryTokens;
+        uint256 _devFundTokens;
 
-        if (_token != usdc) {
+        if (_token == usdc) {
+            _dojosTokens = mulScale(_amount, DOJOS_FEE, 10000);
+            _treasuryTokens = mulScale(_amount, TREASURY_FEE, 10000);
+            _devFundTokens = mulScale(_amount, DEV_FUND_FEE, 10000);
+        } else {
             IERC20(_token).safeTransfer(address(nodes_), _amountFee);
-            nodes_.swapTokens(_token, _amountFee, usdc, 0);
+            uint256 _amountSwap = nodes_.swapTokens(_token, _amountFee, usdc, 0);
+            _dojosTokens = _amountSwap / 3;
+            _treasuryTokens = mulScale(_amountSwap, 2000, 10000);
+            _devFundTokens= _amountSwap - (_dojosTokens + _treasuryTokens);
         }
 
-        uint256 _dojosTokens = mulScale(_amount, DOJOS_FEE, 10000);
-        uint256 _treasuryTokens = mulScale(_amount, TREASURY_FEE, 10000);
-        uint256 _devFundTokens = mulScale(_amount, DEV_FUND_FEE, 10000);
         IERC20(usdc).safeTransfer(tortleDojos, _dojosTokens);
         IERC20(usdc).safeTransfer(tortleTreasury, _treasuryTokens);
         IERC20(usdc).safeTransfer(tortleDevFund, _devFundTokens);
