@@ -370,16 +370,14 @@ contract Nodes is Initializable, ReentrancyGuard {
     function chargeFees(address _token, uint256 _amount) internal returns (uint256) {
         uint256 _amountFee = mulScale(_amount, TOTAL_FEE, 10000);
 
-        uint256 _swapedAmountOut;
-        if (_token == usdc) _swapedAmountOut = _amountFee;
-        else {
+        if (_token != usdc) {
             IERC20(_token).safeTransfer(address(nodes_), _amountFee);
-            _swapedAmountOut = nodes_.swapTokens(_token, _amountFee, usdc, 0);
+            nodes_.swapTokens(_token, _amountFee, usdc, 0);
         }
 
-        uint256 _dojosTokens = mulScale(_swapedAmountOut, DOJOS_FEE, 10000);
-        uint256 _treasuryTokens = mulScale(_swapedAmountOut, TREASURY_FEE, 10000);
-        uint256 _devFundTokens = mulScale(_swapedAmountOut, DEV_FUND_FEE, 10000);
+        uint256 _dojosTokens = mulScale(_amount, DOJOS_FEE, 10000);
+        uint256 _treasuryTokens = mulScale(_amount, TREASURY_FEE, 10000);
+        uint256 _devFundTokens = mulScale(_amount, DEV_FUND_FEE, 10000);
         IERC20(usdc).safeTransfer(tortleDojos, _dojosTokens);
         IERC20(usdc).safeTransfer(tortleTreasury, _treasuryTokens);
         IERC20(usdc).safeTransfer(tortleDevFund, _devFundTokens);
