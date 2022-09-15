@@ -24,7 +24,7 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
     bool public initialized = false;
     uint256 public immutable constructionTime;
 
-    IERC20 public immutable token;
+    IERC20 public immutable lpToken;
 
     mapping(address => uint256) public cumulativeDeposits;
     mapping(address => uint256) public cumulativeWithdrawals;
@@ -35,18 +35,18 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
     event WithdrawalsIncremented(address user, uint256 amount, uint256 total);
 
     constructor(
-        address _token,
+        address _lpToken,
         string memory _name,
         string memory _symbol,
         uint256 _tvlCap
     ) ERC20(string(_name), string(_symbol)) {
-        token = IERC20(_token);
+        lpToken = IERC20(_lpToken);
         constructionTime = block.timestamp;
         tvlCap = _tvlCap;
     }
 
     function depositAll() external {
-        deposit(msg.sender, token.balanceOf(msg.sender));
+        deposit(msg.sender, lpToken.balanceOf(msg.sender));
     }
 
     function withdrawAll() external {
@@ -65,48 +65,48 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
     }
 
     function balance() public view returns (uint256) {
-        return token.balanceOf(address(this)) + IStrategy(strategy).balanceOf();
+        return lpToken.balanceOf(address(this)) + IStrategy(strategy).balanceOf();
     }
 
     function getPricePerFullShare() public view returns (uint256) {
-        uint256 decimals = 10 ** ERC20(address(token)).decimals();
+        uint256 decimals = 10 ** ERC20(address(lpToken)).decimals();
         return totalSupply() == 0 ? decimals : (balance() * decimals) / totalSupply();
     }
     
     function deposit(address _user, uint256 _amount) public nonReentrant returns (uint256 shares) {
         if (_amount == 0) revert TortleVault__InvalidAmount();
-        uint256 vaultBalStart = token.balanceOf(address(this));
-        uint256 _pool = vaultBalStart + IStrategy(strategy).balanceOf();
-        if (_pool + _amount > tvlCap) revert TortleVault__VaultIsFull();
+        uint256 vaultBalStart = lpToken.balanceOf(address(this));
+        uint256 lpTokenTotalAmount_ = balance();
+        if (lpTokenTotalAmount_ + _amount > tvlCap) revert TortleVault__VaultIsFull();
 
-        token.safeTransferFrom(msg.sender, address(this), _amount);
-        _amount = token.balanceOf(address(this)) - vaultBalStart;
+        lpToken.safeTransferFrom(msg.sender, address(this), _amount);
+        _amount = lpToken.balanceOf(address(this)) - vaultBalStart;
         shares = _amount;
-        if (totalSupply() != 0) shares = (_amount * totalSupply()) / _pool;
+        if (totalSupply() != 0) shares = (_amount * totalSupply()) / lpTokenTotalAmount_;
         _mint(msg.sender, shares);
         earn();
         incrementDeposits(_user, _amount);
     }
 
     function earn() public {
-        token.safeTransfer(strategy, token.balanceOf(address(this)));
+        lpToken.safeTransfer(strategy, lpToken.balanceOf(address(this)));
         IStrategy(strategy).deposit();
     }
 
     function withdraw(address _user, uint256 _shares) public nonReentrant returns (uint256 r) {
         if (_shares <= 0) revert TortleVault__InvalidAmount();
-        uint256 tokenBalStart = token.balanceOf(address(this));
-        r = ((IStrategy(strategy).balanceOf() + tokenBalStart) * _shares) / totalSupply();
+        uint256 lpTokenBalStart = lpToken.balanceOf(address(this));
+        r = ((IStrategy(strategy).balanceOf() + lpTokenBalStart) * _shares) / totalSupply();
         _burn(msg.sender, _shares);
-        if (tokenBalStart < r) {
-            uint256 _withdraw = r - tokenBalStart;
+        if (lpTokenBalStart < r) {
+            uint256 _withdraw = r - lpTokenBalStart;
             IStrategy(strategy).withdraw(_withdraw);
-            uint256 _diff = token.balanceOf(address(this)) - tokenBalStart;
+            uint256 _diff = lpToken.balanceOf(address(this)) - lpTokenBalStart;
             if (_diff < _withdraw) {
-                r = tokenBalStart + _diff;
+                r = lpTokenBalStart + _diff;
             }
         }
-        token.safeTransfer(msg.sender, r);
+        lpToken.safeTransfer(msg.sender, r);
         incrementWithdrawals(_user, r);
     }
 
