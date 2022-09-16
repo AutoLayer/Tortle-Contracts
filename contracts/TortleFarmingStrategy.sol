@@ -93,6 +93,7 @@ contract TortleFarmingStrategy is Ownable, Pausable {
     }
 
     function deposit() public whenNotPaused {
+        convertRewardToLP();
         uint256 lpBalance = IERC20(lpToken).balanceOf(address(this));
         if (lpBalance > 0) {
             IERC20(lpToken).safeApprove(masterChef, 0);
