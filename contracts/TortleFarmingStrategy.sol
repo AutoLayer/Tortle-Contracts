@@ -15,8 +15,6 @@ import "hardhat/console.sol";
 
 error TortleFarmingStrategy__SenderIsNotVault();
 error TortleFarmingStrategy__InvalidAmount();
-error TortleFarmingStrategy__FeeIsTooHigh();
-error TortleFarmingStrategy__InvalidSlippageFactor();
 
 contract TortleFarmingStrategy is Ownable, Pausable {
     using SafeERC20 for IERC20;
@@ -34,7 +32,6 @@ contract TortleFarmingStrategy is Ownable, Pausable {
     address public immutable treasury;
     address public immutable vault;
 
-    uint256 public constant PERCENT_DIVISOR = 10000;
     uint256 public slippageFactorMin = 950;
 
     address[] public rewardTokenToWftmRoute;
@@ -115,10 +112,9 @@ contract TortleFarmingStrategy is Ownable, Pausable {
         IERC20(lpToken).safeTransfer(vault, _amount);
     }
 
-    function harvest(uint256 _slippageFactor) external whenNotPaused {
-        if (_slippageFactor > 1000 || _slippageFactor <= slippageFactorMin) revert TortleFarmingStrategy__InvalidSlippageFactor();
+    function harvest() external whenNotPaused {
         IMasterChef(masterChef).deposit(poolId, 0);
-        addLiquidity(_slippageFactor);
+        convertRewardToLP();
         deposit();
         if (block.timestamp >= harvestLog[harvestLog.length - 1].timestamp + harvestLogCadence) {
             harvestLog.push(Harvest({timestamp: block.timestamp, vaultSharePrice: ITortleVault(vault).getPricePerFullShare()}));
@@ -127,24 +123,25 @@ contract TortleFarmingStrategy is Ownable, Pausable {
         emit StratHarvest(msg.sender);
     }
 
-    function addLiquidity(uint256 _slippageFactor) internal {
-        uint256 rewardTokenHalf = IERC20(rewardToken).balanceOf(address(this)) / 2;
+    function convertRewardToLP() internal {
+        uint256 rewardTokenHalf_ = IERC20(rewardToken).balanceOf(address(this)) / 2;
 
         if (lpToken0 != rewardToken) {
-            swap(rewardTokenHalf, rewardTokenToLp0Route, _slippageFactor);
+            swap(rewardTokenHalf_, rewardTokenToLp0Route);
         }
 
         if (lpToken1 != rewardToken) {
-            swap(rewardTokenHalf, rewardTokenToLp1Route, _slippageFactor);
+            swap(rewardTokenHalf_, rewardTokenToLp1Route);
         }
-        uint256 lp0Bal = IERC20(lpToken0).balanceOf(address(this));
-        uint256 lp1Bal = IERC20(lpToken1).balanceOf(address(this));
-        if (lp0Bal != 0 && lp1Bal != 0) {
+
+        uint256 lp0Bal_ = IERC20(lpToken0).balanceOf(address(this));
+        uint256 lp1Bal_ = IERC20(lpToken1).balanceOf(address(this));
+        if (lp0Bal_ != 0 && lp1Bal_ != 0) {
             IERC20(lpToken0).safeApprove(uniRouter, 0);
-            IERC20(lpToken0).safeApprove(uniRouter, lp0Bal);
+            IERC20(lpToken0).safeApprove(uniRouter, lp0Bal_);
             IERC20(lpToken1).safeApprove(uniRouter, 0);
-            IERC20(lpToken1).safeApprove(uniRouter, lp1Bal);
-            IUniswapV2Router02(uniRouter).addLiquidity(lpToken0, lpToken1, lp0Bal, lp1Bal, 1, 1, address(this), block.timestamp);
+            IERC20(lpToken1).safeApprove(uniRouter, lp1Bal_);
+            IUniswapV2Router02(uniRouter).addLiquidity(lpToken0, lpToken1, lp0Bal_, lp1Bal_, 1, 1, address(this), block.timestamp);
         }
     }
 
@@ -186,8 +183,7 @@ contract TortleFarmingStrategy is Ownable, Pausable {
 
     function swap(
         uint256 _amount,
-        address[] memory _path,
-        uint256 _slippageFactor
+        address[] memory _path
     ) internal {
         if (_path.length < 2 || _amount == 0) {
             return;
@@ -199,7 +195,7 @@ contract TortleFarmingStrategy is Ownable, Pausable {
 
         IUniswapV2Router02(uniRouter).swapExactTokensForTokensSupportingFeeOnTransferTokens(
             _amount,
-            (amountOut * _slippageFactor) / 1000,
+            (amountOut * slippageFactorMin) / 1000,
             _path,
             address(this),
             block.timestamp
