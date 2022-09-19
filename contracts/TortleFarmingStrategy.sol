@@ -15,6 +15,7 @@ import "hardhat/console.sol";
 
 error TortleFarmingStrategy__SenderIsNotVault();
 error TortleFarmingStrategy__InvalidAmount();
+error TortleFarmingStrategy__InsufficientRewardBalance();
 
 contract TortleFarmingStrategy is Ownable, Pausable {
     using SafeERC20 for IERC20;
@@ -125,7 +126,10 @@ contract TortleFarmingStrategy is Ownable, Pausable {
     }
 
     function convertRewardToLP() internal {
-        uint256 rewardTokenHalf_ = IERC20(rewardToken).balanceOf(address(this)) / 2;
+        uint256 rewardBalance = IERC20(rewardToken).balanceOf(address(this));
+        if (rewardBalance <= 0) revert TortleFarmingStrategy__InsufficientRewardBalance();
+
+        uint256 rewardTokenHalf_ = rewardBalance / 2;
 
         if (lpToken0 != rewardToken) {
             swap(rewardTokenHalf_, rewardTokenToLp0Route);
