@@ -15,7 +15,7 @@ import "hardhat/console.sol";
 
 error TortleFarmingStrategy__SenderIsNotVault();
 error TortleFarmingStrategy__InvalidAmount();
-error TortleFarmingStrategy__InsufficientRewardBalance();
+error TortleFarmingStrategy__InsufficientLPAmount();
 
 contract TortleFarmingStrategy is Ownable, Pausable {
     using SafeERC20 for IERC20;
@@ -97,11 +97,11 @@ contract TortleFarmingStrategy is Ownable, Pausable {
         if(IERC20(rewardToken).balanceOf(address(this)) != 0) convertRewardToLP();
         
         uint256 lpBalance = IERC20(lpToken).balanceOf(address(this));
-        if (lpBalance > 0) {
-            IERC20(lpToken).safeApprove(masterChef, 0);
-            IERC20(lpToken).safeApprove(masterChef, lpBalance);
-            IMasterChef(masterChef).deposit(poolId, lpBalance);
-        }
+        if(lpBalance <= 0) revert TortleFarmingStrategy__InsufficientLPAmount();
+        
+        IERC20(lpToken).safeApprove(masterChef, 0);
+        IERC20(lpToken).safeApprove(masterChef, lpBalance);
+        IMasterChef(masterChef).deposit(poolId, lpBalance);
     }
 
     function withdraw(uint256 _amount) external {
