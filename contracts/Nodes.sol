@@ -27,8 +27,6 @@ error Nodes__DepositOnFarmTokensInsufficientT1Funds();
 error Nodes__DepositOnFarmLPInsufficientLPTokenFunds();
 error Nodes__WithdrawFromLPInsufficientFunds();
 error Nodes__WithdrawFromFarmInsufficientFunds();
-error Nodes__UniswapV2RouterInsufficientAAmount();
-error Nodes__UniswapV2RouterInsufficientBAmount();
 
 contract Nodes is Initializable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -79,7 +77,6 @@ contract Nodes is Initializable, ReentrancyGuard {
     uint8 public constant DOJOS_FEE = 50; //0.50%
     uint8 public constant TREASURY_FEE = 70; //0.70%
     uint8 public constant DEV_FUND_FEE = 30; //0.30%
-    uint256 public constant minimumAmount = 1000;
 
     uint256 public constant DOJOS_FEE_PERCENTAGE = 3333; // 33%
     uint256 public constant TREASURY_FEE_PERCENTAGE = 4666; // 46.66%
@@ -545,9 +542,6 @@ contract Nodes is Initializable, ReentrancyGuard {
         if (args.tokenDesired != args.token0 && args.tokenDesired != args.token1) revert Nodes__WithdrawLpAndSwapError();
         IERC20(args.lpToken).safeTransfer(args.lpToken, amountLp);
         (uint256 amount0, uint256 amount1) = IUniswapV2Pair(args.lpToken).burn(address(this));
-
-        if (amount0 < minimumAmount) revert Nodes__UniswapV2RouterInsufficientAAmount();
-        if (amount1 < minimumAmount) revert Nodes__UniswapV2RouterInsufficientBAmount();
 
         uint256 swapAmount;
         address swapToken;
