@@ -94,7 +94,7 @@ contract TortleFarmingStrategy is Ownable, Pausable {
     }
 
     function deposit() public whenNotPaused {
-        if(IERC20(rewardToken).balanceOf(address(this)) != 0) convertRewardToLP();
+        if(IERC20(rewardToken).balanceOf(address(this)) >= 10**15) convertRewardToLP();
         
         uint256 lpBalance = IERC20(lpToken).balanceOf(address(this));
         if(lpBalance <= 0) revert TortleFarmingStrategy__InsufficientLPAmount();
