@@ -66,6 +66,7 @@ contract TortleFarmingStrategy is Ownable, Pausable {
 
         lpToken = _lpToken;
         poolId = _poolId;
+        lastAutocompoundTime = block.timestamp;
         vault = _vault;
         treasury = _treasury;
 
@@ -255,7 +256,7 @@ contract TortleFarmingStrategy is Ownable, Pausable {
         uint256 allocPoint_ = IMasterChef(masterChef).poolInfo(poolId).allocPoint;
         uint256 totalAllocPoint_ = IMasterChef(masterChef).totalAllocPoint();
         uint256 booPerSecond_ = IMasterChef(masterChef).booPerSecond();
-        booProportionPerSecond = (allocPoint_ / totalAllocPoint_) * booPerSecond_;
+        booProportionPerSecond = (booPerSecond_ * allocPoint_) / totalAllocPoint_;
     }
 
     function setSlippageFactorMin(uint256 _slippageFactorMin) public onlyOwner {
