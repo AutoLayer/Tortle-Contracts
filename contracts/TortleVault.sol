@@ -98,21 +98,21 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
         IStrategy(strategy).deposit();
     }
 
-    function withdraw(address _user, uint256 _shares) public nonReentrant returns (uint256 r) {
+    function withdraw(address _user, uint256 _shares) public nonReentrant returns (uint256 lpAmountForSharesAmount) {
         if (_shares <= 0) revert TortleVault__InvalidAmount();
         uint256 lpTokenBalStart = lpToken.balanceOf(address(this));
-        r = ((IStrategy(strategy).balanceOf() + lpTokenBalStart) * _shares) / totalSupply();
+        lpAmountForSharesAmount = ((IStrategy(strategy).balanceOf() + lpTokenBalStart) * _shares) / totalSupply();
         _burn(msg.sender, _shares);
-        if (lpTokenBalStart < r) {
-            uint256 _withdraw = r - lpTokenBalStart;
-            IStrategy(strategy).withdraw(_withdraw);
+        if (lpTokenBalStart < lpAmountForSharesAmount) {
+            uint256 _withdraw = lpAmountForSharesAmount - lpTokenBalStart;
+            IStrategy(strategy).withdraw(_user, lpAmountForSharesAmount, _withdraw);
             uint256 _diff = lpToken.balanceOf(address(this)) - lpTokenBalStart;
             if (_diff < _withdraw) {
-                r = lpTokenBalStart + _diff;
+                lpAmountForSharesAmount = lpTokenBalStart + _diff;
             }
         }
-        lpToken.safeTransfer(msg.sender, r);
-        incrementWithdrawals(_user, r);
+        lpToken.safeTransfer(msg.sender, lpAmountForSharesAmount);
+        incrementWithdrawals(_user, lpAmountForSharesAmount);
     }
 
     function updateTvlCap(uint256 _newTvlCap) public onlyOwner {

@@ -7,7 +7,7 @@ interface IStrategy {
     function deposit() external;
 
     //vault only - withdraws funds from the strategy
-    function withdraw(uint256 _amount) external;
+    function withdraw(address user_, uint256 lpAmountForSharesAmount_, uint256 _amount) external;
 
     //claims farmed tokens, distributes fees, and sells tokens to re-add to the LP & farm
     function harvest() external;

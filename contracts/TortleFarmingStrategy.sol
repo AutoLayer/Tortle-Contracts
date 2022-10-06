@@ -29,6 +29,7 @@ contract TortleFarmingStrategy is Ownable, Pausable {
     address public immutable uniRouter;
     address public immutable masterChef;
     uint8 public immutable poolId;
+    uint256 public lastAutocompoundTime;
 
     address public immutable treasury;
     address public immutable vault;
@@ -104,7 +105,7 @@ contract TortleFarmingStrategy is Ownable, Pausable {
         IMasterChef(masterChef).deposit(poolId, lpBalance);
     }
 
-    function withdraw(uint256 _amount) external {
+    function withdraw(address user_, uint256 lpAmountForSharesAmount_, uint256 _amount) external {
         if (msg.sender != vault) revert TortleFarmingStrategy__SenderIsNotVault();
         uint256 lpTokenBalance = IERC20(lpToken).balanceOf(address(this));
         if (_amount == 0 || _amount > (balanceOfPool() + lpTokenBalance)) revert TortleFarmingStrategy__InvalidAmount();
@@ -113,6 +114,8 @@ contract TortleFarmingStrategy is Ownable, Pausable {
             IMasterChef(masterChef).withdraw(poolId, _amount - lpTokenBalance);
         }
         IERC20(lpToken).safeTransfer(vault, _amount);
+        uint256 booAmount_ = getBooPerFarmNode(lpAmountForSharesAmount_);
+        IERC20(rewardToken).safeTransfer(user_, booAmount_);
     }
 
     function harvest() external whenNotPaused {
@@ -146,6 +149,8 @@ contract TortleFarmingStrategy is Ownable, Pausable {
             IERC20(lpToken1).safeApprove(uniRouter, lp1Bal_);
             IUniswapV2Router02(uniRouter).addLiquidity(lpToken0, lpToken1, lp0Bal_, lp1Bal_, 1, 1, address(this), block.timestamp);
         }
+
+        lastAutocompoundTime = block.timestamp;
     }
 
     function balanceOf() public view returns (uint256) {
@@ -236,6 +241,21 @@ contract TortleFarmingStrategy is Ownable, Pausable {
         }
 
         profit += IERC20(wftm).balanceOf(address(this));
+    }
+
+    function getBooPerFarmNode(uint256 lpAmount_) public view returns(uint256 booAmount) {
+        uint256 booProportion_ = calculateBooProportionPerSecond();
+        uint256 lpTotalSupply_ = IERC20(lpToken).totalSupply();
+        uint256 booPerLpToken_ = booProportion_ / lpTotalSupply_;
+        uint256 timeDifference_ = block.timestamp - lastAutocompoundTime;
+        booAmount = (booPerLpToken_ * lpAmount_) * timeDifference_;
+    }
+
+    function calculateBooProportionPerSecond() public view returns(uint256 booProportionPerSecond) {
+        uint256 allocPoint_ = IMasterChef(masterChef).poolInfo(poolId).allocPoint;
+        uint256 totalAllocPoint_ = IMasterChef(masterChef).totalAllocPoint();
+        uint256 booPerSecond_ = IMasterChef(masterChef).booPerSecond();
+        booProportionPerSecond = (allocPoint_ / totalAllocPoint_) * booPerSecond_;
     }
 
     function setSlippageFactorMin(uint256 _slippageFactorMin) public onlyOwner {
