@@ -83,7 +83,8 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
         _amount = lpToken.balanceOf(address(this)) - vaultBalStart;
         if (totalSupply() != 0) { 
             shares = ((_amount * 100000) * totalSupply()) / lpTokenTotalAmount_;
-            _mint(msg.sender, shares / 100000);
+            shares /= 100000;
+            _mint(msg.sender, shares);
         } else {
             shares = _amount;
             _mint(msg.sender, shares);
