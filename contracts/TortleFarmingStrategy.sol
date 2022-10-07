@@ -253,7 +253,8 @@ contract TortleFarmingStrategy is Ownable, Pausable {
     }
 
     function calculateBooProportionPerSecond() public view returns(uint256 booProportionPerSecond) {
-        uint256 allocPoint_ = IMasterChef(masterChef).poolInfo(poolId).allocPoint;
+        IMasterChef.PoolInfo memory data_ = IMasterChef(masterChef).poolInfo(poolId);
+        uint256 allocPoint_ = data_.allocPoint;
         uint256 totalAllocPoint_ = IMasterChef(masterChef).totalAllocPoint();
         uint256 booPerSecond_ = IMasterChef(masterChef).booPerSecond();
         booProportionPerSecond = (booPerSecond_ * allocPoint_) / totalAllocPoint_;
