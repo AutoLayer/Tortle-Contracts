@@ -32,7 +32,7 @@ contract Batch {
     event lpDeposited(string indexed recipeId, string indexed id, address lpToken, uint256 amount);
     event ttDeposited(string indexed recipeId, string indexed id, address ttVault, uint256 amount);
     event lpWithdrawed(string indexed recipeId, string indexed id, address lpToken, uint256 amountLp, address tokenDesired, uint256 amountTokenDesired);
-    event ttWithdrawed(string indexed recipeId, string indexed id, address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired);
+    event ttWithdrawed(string indexed recipeId, string indexed id, address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired, uint256 rewardAmount);
 
     constructor(address _owner) {
         owner = _owner;
@@ -83,14 +83,15 @@ contract Batch {
             amount = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
-        uint256 amountTokenDesired = nodes.withdrawFromFarm(args.user, args.arguments, amount);
+        (uint256 rewardAmount, uint256 amountTokenDesired) = nodes.withdrawFromFarm(args.user, args.arguments, amount);
         emit ttWithdrawed(
             args.recipeId,
             args.id,
             StringUtils.parseAddr(args.arguments[2]),
             amount,
             StringUtils.parseAddr(args.arguments[5]),
-            amountTokenDesired
+            amountTokenDesired,
+            rewardAmount
         );
         if (args.hasNext) {
             auxStack.push(amountTokenDesired);

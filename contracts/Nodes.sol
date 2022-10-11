@@ -249,7 +249,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         address user,
         string[] memory _arguments,
         uint256 amount
-    ) external nonReentrant onlyOwner returns (uint256 amountTokenDesired) {
+    ) external nonReentrant onlyOwner returns (uint256 rewardAmount, uint256 amountTokenDesired) {
         // For now it will only allow to withdraw one token, in the future this function will be renamed
         _wffot memory args;
         args.lpToken = StringUtils.parseAddr(_arguments[1]);
@@ -261,7 +261,8 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         if (amount > userTt[args.tortleVault][user]) revert Nodes__WithdrawFromFarmInsufficientFunds();
 
-        uint256 amountLp = ITortleVault(args.tortleVault).withdraw(user, amount);
+        (uint256 rewardAmount_, uint256 amountLp) = ITortleVault(args.tortleVault).withdraw(user, amount);
+        rewardAmount = rewardAmount_;
         userTt[args.tortleVault][user] -= amount;
         amountTokenDesired = _withdrawLpAndSwap(user, args, amountLp);
     }
