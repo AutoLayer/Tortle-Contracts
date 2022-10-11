@@ -9,10 +9,9 @@ interface IMasterChef {
     }
 
     struct PoolInfo {
-        IERC20 lpToken;           // Address of LP token contract.
-        uint256 allocPoint;       // How many allocation points assigned to this pool. BOO to distribute per second.
-        uint256 lastRewardBlock;  // Last block number that SUSHI distribution occurs.
-        uint256 accBooPerShare; // Accumulated BOO per share, times 1e12. See below.
+        uint128 accBooPerShare;
+        uint64 lastRewardTime;
+        uint64 allocPoint;
     }
 
     function poolInfo(uint256 pid) external view returns (IMasterChef.PoolInfo memory);
