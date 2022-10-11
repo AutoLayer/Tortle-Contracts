@@ -12,6 +12,9 @@ interface IStrategy {
     //claims farmed tokens, distributes fees, and sells tokens to re-add to the LP & farm
     function harvest() external;
 
+   //calculates the amount of rewards per farm node
+    function getBooPerFarmNode(uint256 shares_) external view returns (uint256 booAmount);
+
     //returns the balance of all tokens managed by the strategy
     function balanceOf() external view returns (uint256);
 
