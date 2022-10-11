@@ -11,8 +11,6 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "./interfaces/IMasterChef.sol";
 import "./interfaces/ITortleVault.sol";
 
-import "hardhat/console.sol";
-
 error TortleFarmingStrategy__SenderIsNotVault();
 error TortleFarmingStrategy__InvalidAmount();
 error TortleFarmingStrategy__InsufficientLPAmount();
@@ -106,7 +104,7 @@ contract TortleFarmingStrategy is Ownable, Pausable {
         IMasterChef(masterChef).deposit(poolId, lpBalance);
     }
 
-    function withdraw(address user_, uint256 lpAmountForSharesAmount_, uint256 _amount) external {
+    function withdraw(address user_, uint256 booAmount_, uint256 _amount) external {
         if (msg.sender != vault) revert TortleFarmingStrategy__SenderIsNotVault();
         uint256 lpTokenBalance = IERC20(lpToken).balanceOf(address(this));
         if (_amount == 0 || _amount > (balanceOfPool() + lpTokenBalance)) revert TortleFarmingStrategy__InvalidAmount();
@@ -115,7 +113,6 @@ contract TortleFarmingStrategy is Ownable, Pausable {
             IMasterChef(masterChef).withdraw(poolId, _amount - lpTokenBalance);
         }
         IERC20(lpToken).safeTransfer(vault, _amount);
-        uint256 booAmount_ = getBooPerFarmNode(lpAmountForSharesAmount_);
         IERC20(rewardToken).safeTransfer(user_, booAmount_);
     }
 
@@ -244,20 +241,9 @@ contract TortleFarmingStrategy is Ownable, Pausable {
         profit += IERC20(wftm).balanceOf(address(this));
     }
 
-    function getBooPerFarmNode(uint256 lpAmount_) public view returns(uint256 booAmount) {
-        uint256 booProportion_ = calculateBooProportionPerSecond();
-        uint256 lpTotalSupply_ = IERC20(lpToken).totalSupply();
-        uint256 booPerLpToken_ = booProportion_ / lpTotalSupply_;
-        uint256 timeDifference_ = block.timestamp - lastAutocompoundTime;
-        booAmount = (booPerLpToken_ * lpAmount_) * timeDifference_;
-    }
-
-    function calculateBooProportionPerSecond() public view returns(uint256 booProportionPerSecond) {
-        IMasterChef.PoolInfo memory data_ = IMasterChef(masterChef).poolInfo(poolId);
-        uint256 allocPoint_ = data_.allocPoint;
-        uint256 totalAllocPoint_ = IMasterChef(masterChef).totalAllocPoint();
-        uint256 booPerSecond_ = IMasterChef(masterChef).booPerSecond();
-        booProportionPerSecond = (booPerSecond_ * allocPoint_) / totalAllocPoint_;
+    function getBooPerFarmNode(uint256 shares_) public view returns(uint256 booAmount) {
+        uint256 totalBooAmount_ = IMasterChef(masterChef).pendingBOO(poolId, address(this)) + IERC20(rewardToken).balanceOf(address(this));
+        booAmount = (totalBooAmount_ * shares_) / IERC20(vault).totalSupply();
     }
 
     function setSlippageFactorMin(uint256 _slippageFactorMin) public onlyOwner {
