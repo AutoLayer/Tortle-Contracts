@@ -18,7 +18,7 @@ import "../lib/SelfPermit.sol";
 /// The idea for this MasterChef V2 (MCV2) contract is therefore to be the owner of a dummy token
 /// that is deposited into the MasterChef V1 (MCV1) contract.
 /// The allocation point for this pool on MCV1 is the total allocation point for all pools that receive double incentives.
-contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall, ReentrancyGuard {
+contract MasterChefV3 is SpookyAuth, SelfPermit, Multicall, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using SafeCast for uint;
 
