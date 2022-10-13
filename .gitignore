@@ -5,4 +5,5 @@ cache
 addresses.json
 contractsAddresses.json
 vaults.json
+vaultsV3.json
 .openzeppelin
