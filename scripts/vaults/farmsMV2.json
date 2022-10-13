@@ -344,10 +344,10 @@
         "poolId": "42"
     },
     {
-        "token0": "ORBS",
-        "token1": "USDC",
-        "address0": "0x3E01B7E242D5AF8064cB9A8F9468aC0f8683617c",
-        "address1": "0x04068DA6C83AFCFA0e13ba15A6696662335D5B75",
+        "token0": "USDC",
+        "token1": "ORBS",
+        "address0": "0x04068DA6C83AFCFA0e13ba15A6696662335D5B75",
+        "address1": "0x3E01B7E242D5AF8064cB9A8F9468aC0f8683617c",
         "lp": "0x4FaA520fe975228F54b30c6996129950E975BD8f",
         "poolId": "43"
     }
