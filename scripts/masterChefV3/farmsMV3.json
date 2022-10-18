@@ -6,21 +6,5 @@
         "address1": "0xDE5ed76E7c05eC5e4572CfC88d1ACEA165109E44",
         "lp": "0xaF918eF5b9f33231764A5557881E6D3e5277d456",
         "poolId": "0"
-    },
-    {
-        "token0": "USDC",
-        "token1": "ORBS",
-        "address0": "0x04068DA6C83AFCFA0e13ba15A6696662335D5B75",
-        "address1": "0x3E01B7E242D5AF8064cB9A8F9468aC0f8683617c",
-        "lp": "0x4FaA520fe975228F54b30c6996129950E975BD8f",
-        "poolId": "1"
-    },
-    {
-        "token0": "USDC",
-        "token1": "DEI",
-        "address0": "0x04068DA6C83AFCFA0e13ba15A6696662335D5B75",
-        "address1": "0xDE12c7959E1a72bbe8a5f7A1dc8f8EeF9Ab011B3",
-        "lp": "0x91f7120898b4be26cC1e84F421e76725c07d1361",
-        "poolId": "2"
     }
 ]
