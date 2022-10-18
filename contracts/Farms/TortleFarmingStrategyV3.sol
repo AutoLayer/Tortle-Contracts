@@ -8,9 +8,9 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 
-import "./interfaces/IMasterChef.sol";
-import "./interfaces/IRewarder.sol";
-import "./interfaces/ITortleVault.sol";
+import "../interfaces/IMasterChef.sol";
+import "../interfaces/IRewarder.sol";
+import "../interfaces/ITortleVault.sol";
 
 error TortleFarmingStrategy__SenderIsNotVault();
 error TortleFarmingStrategy__InvalidAmount();
