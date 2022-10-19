@@ -24,7 +24,6 @@ error Nodes__DepositOnLPInsufficientT0Funds();
 error Nodes__DepositOnLPInsufficientT1Funds();
 error Nodes__DepositOnFarmTokensInsufficientT0Funds();
 error Nodes__DepositOnFarmTokensInsufficientT1Funds();
-error Nodes__DepositOnFarmLPInsufficientLPTokenFunds();
 error Nodes__WithdrawFromLPInsufficientFunds();
 error Nodes__WithdrawFromFarmInsufficientFunds();
 
@@ -154,32 +153,6 @@ contract Nodes is Initializable, ReentrancyGuard {
         decreaseBalance(user, address(token1), amount1f);
 
         return lpRes;
-    }
-
-    /**
-    * @notice Function used to deposit tokens on a LP Farm
-    * @param _arguments Information needed to complete farm deposit
-    * @param auxStack Contains information of the amounts that are going to be deposited 
-    */
-    function depositOnFarmLp(
-        address user,
-        string[] memory _arguments,
-        uint256[] memory auxStack
-    ) external nonReentrant onlyOwner returns (uint256[] memory result) {
-        address lpToken = StringUtils.parseAddr(_arguments[1]);
-        address tortleVault = StringUtils.parseAddr(_arguments[2]);
-        uint256 amount = StringUtils.safeParseInt(_arguments[3]);
-        result = new uint256[](2);
-        if (auxStack.length > 0) {
-            amount = auxStack[auxStack.length - 1];
-            result[0] = 1;
-        }
-        if (amount > getBalance(user, IERC20(lpToken))) revert Nodes__DepositOnFarmLPInsufficientLPTokenFunds();
-        _approve(lpToken, tortleVault, amount);
-        uint256 ttShares = ITortleVault(tortleVault).deposit(user, amount);
-        userTt[tortleVault][user] += ttShares;
-        decreaseBalance(user, address(lpToken), amount);
-        result[1] = ttShares;
     }
 
     /**
