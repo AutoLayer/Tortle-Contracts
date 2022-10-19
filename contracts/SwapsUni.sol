@@ -63,6 +63,8 @@ contract SwapsUni is ReentrancyGuard {
         IUniswapV2Router02 routerIn = getRouterOneToken(_tokenIn);
         IUniswapV2Router02 routerOut = getRouterOneToken(_tokenOut);
 
+        IERC20(_tokenIn).safeTransferFrom(msg.sender, address(this), _amount);
+
         address[] memory path;
         uint256[] memory amountsOut;
 

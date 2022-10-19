@@ -380,7 +380,7 @@ contract Nodes is Initializable, ReentrancyGuard {
             _treasuryTokens = mulScale(_amount, TREASURY_FEE, 10000);
             _devFundTokens = mulScale(_amount, DEV_FUND_FEE, 10000);
         } else {
-            IERC20(_token).safeTransfer(address(swapsUni), _amountFee);
+            _approve(_token, address(swapsUni), _amountFee);
             uint256 _amountSwap = swapsUni.swapTokens(_token, _amountFee, usdc, 0);
             _dojosTokens = _amountSwap / 3;
             _treasuryTokens = mulScale(_amountSwap, 2000, 10000);
@@ -428,12 +428,12 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 _secondTokenAmount = amount_ - _firstTokenAmount;
 
         if (token_ != firstToken_) {
-            IERC20(token_).safeTransfer(address(swapsUni), _firstTokenAmount);
+            _approve(token_, address(swapsUni), _firstTokenAmount);
             amountOutToken1 = swapsUni.swapTokens(token_, _firstTokenAmount, firstToken_, amountOutMinFirst_);
         } else amountOutToken1 = _firstTokenAmount;
 
         if (token_ != secondToken_) {
-            IERC20(token_).safeTransfer(address(swapsUni), _secondTokenAmount);
+            _approve(token_, address(swapsUni), _secondTokenAmount);
             amountOutToken2 = swapsUni.swapTokens(token_, _secondTokenAmount, secondToken_, amountOutMinSecond_);
         } else amountOutToken2 = _secondTokenAmount;
 
@@ -465,8 +465,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         if (_amount > _userBalance) revert Nodes__InsufficientBalance();
 
         if (_token != _newToken) {
-            IERC20(_token).safeTransfer(address(swapsUni), _amount);
-
+            _approve(_token, address(swapsUni), _amount);
             amountOut = swapsUni.swapTokens(_token, _amount, _newToken, _amountOutMin);
 
             increaseBalance(_user, _newToken, amountOut);
@@ -503,8 +502,7 @@ contract Nodes is Initializable, ReentrancyGuard {
 
             uint256 _amountOut;
             if (tokenInput != _tokenOutput) {
-                IERC20(tokenInput).safeTransfer(address(swapsUni), amountInput);
-
+                _approve(tokenInput, address(swapsUni), amountInput);
                 _amountOut = swapsUni.swapTokens(tokenInput, amountInput, _tokenOutput, _amountOutMin);
 
                 amount += _amountOut;
@@ -557,7 +555,7 @@ contract Nodes is Initializable, ReentrancyGuard {
             amountTokenDesired += amount0;
         }
         
-        IERC20(swapToken).safeTransfer(address(swapsUni), swapAmount);
+        _approve(swapToken, address(swapsUni), swapAmount);
         amountTokenDesired += swapsUni.swapTokens(swapToken, swapAmount, args.tokenDesired, args.amountTokenDesiredMin);
         
         increaseBalance(user, args.tokenDesired, amountTokenDesired);
