@@ -9,9 +9,9 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 
-error Nodes__PairDoesNotExist();
+error SwapsUni_PairDoesNotExist();
 
-contract Nodes_ is ReentrancyGuard {
+contract SwapsUni is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     address public immutable owner;
@@ -223,7 +223,7 @@ contract Nodes_ is ReentrancyGuard {
             }
         }
 
-        if (address(router) == address(0)) revert Nodes__PairDoesNotExist();
+        if (address(router) == address(0)) revert SwapsUni_PairDoesNotExist();
     }
 
     /**
@@ -247,7 +247,7 @@ contract Nodes_ is ReentrancyGuard {
             }
         }
 
-        if (address(router) == address(0)) revert Nodes__PairDoesNotExist();
+        if (address(router) == address(0)) revert SwapsUni_PairDoesNotExist();
     }
 
     receive() external payable {}

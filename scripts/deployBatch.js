@@ -39,17 +39,17 @@ const deployBatch = async () => {
       .deploy(deployer.getAddress())
   ).deployed()
 
-  const Nodes_ = await (
-    await (await ethers.getContractFactory('Nodes_')).connect(deployer).deploy(deployer.getAddress(), [uniswapRouter.address, spookyRouter.address])
+  const SwapsUni = await (
+    await (await ethers.getContractFactory('SwapsUni')).connect(deployer).deploy(deployer.getAddress(), [uniswapRouter.address, spookyRouter.address])
   ).deployed()
 
-  const ProxyNodes = await upgrades.deployProxy(Nodes, [Batch.address, Nodes_.address, Batch.address, dojos, treasury, devFund, usdc, uniswapRouter.address], {deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall']})
+  const ProxyNodes = await upgrades.deployProxy(Nodes, [Batch.address, SwapsUni.address, Batch.address, dojos, treasury, devFund, usdc, uniswapRouter.address], {deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall']})
   await ProxyNodes.deployed()
   await Batch.setNodeContract(ProxyNodes.address)
 
   console.log('Proxy Nodes:', ProxyNodes.address)
   console.log('Nodes:', Nodes.address)
-  console.log('Nodes_:', Nodes_.address)
+  console.log('SwapsUni:', SwapsUni.address)
   console.log('Batch:', Batch.address)
   console.log('StringUtils:', StringUtils.address)
   console.log('AddressToUintIterableMap', AddressToUintIterableMap.address)

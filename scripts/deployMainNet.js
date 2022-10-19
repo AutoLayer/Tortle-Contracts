@@ -39,19 +39,19 @@ const deployMainNet = async () => {
       .deploy(deployer.getAddress())
   ).deployed()
 
-  // Nodes_ Contract
-  const Nodes_ = await (
-    await (await hre.ethers.getContractFactory('Nodes_')).connect(deployer).deploy(deployer.getAddress(), usdc, weth, [uniswapRouter])
+  // SwapsUni Contract
+  const SwapsUni = await (
+    await (await hre.ethers.getContractFactory('SwapsUni')).connect(deployer).deploy(deployer.getAddress(), usdc, weth, [uniswapRouter])
   ).deployed()
 
-  const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [Batch.address, Nodes_.address, Batch.address, dojos, treasury, devFund, usdc, uniswapRouter], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
+  const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [Batch.address, SwapsUni.address, Batch.address, dojos, treasury, devFund, usdc, uniswapRouter], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
   await ProxyNodes.deployed()
   await Batch.setNodeContract(ProxyNodes.address)
 
   const contractsAddresses = {
     "ProxyNodes": ProxyNodes.address,
     "Nodes": Nodes.address,
-    "Nodes_": Nodes_.address,
+    "SwapsUni": SwapsUni.address,
     "Batch": Batch.address,
     "StringUtils": StringUtils.address,
     "AddressToUintIterableMap": AddressToUintIterableMap.address

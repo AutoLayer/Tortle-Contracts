@@ -11,7 +11,7 @@ import './lib/StringUtils.sol';
 import './interfaces/ITortleVault.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import './interfaces/IWETH.sol';
-import './Nodes_.sol';
+import './SwapsUni.sol';
 import './Batch.sol';
 
 error Nodes__InsufficientBalance();
@@ -67,7 +67,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     address public tortleDojos;
     address public tortleTreasury;
     address public tortleDevFund;
-    Nodes_ public nodes_;
+    SwapsUni public swapsUni;
     Batch private batch;
     address public usdc;
     IUniswapV2Router02 router;
@@ -101,7 +101,7 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     function initializeConstructor(
         address _owner,
-        Nodes_ _nodes_,
+        SwapsUni _swapsUni,
         Batch _batch,
         address _tortleDojos,
         address _tortleTrasury,
@@ -110,7 +110,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         address _router
     ) public initializer {
         owner = _owner;
-        nodes_ = _nodes_;
+        swapsUni = _swapsUni;
         batch = _batch;
         tortleDojos = _tortleDojos;
         tortleTreasury = _tortleTrasury;
@@ -141,7 +141,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amountOutMin0,
         uint256 amountOutMin1
     ) external nonReentrant onlyOwner returns (uint256) {
-        IUniswapV2Router02 router1 = nodes_.getRouter(token0, token1);
+        IUniswapV2Router02 router1 = swapsUni.getRouter(token0, token1);
 
         if (lpToken != IUniswapV2Factory(IUniswapV2Router02(router1).factory()).getPair(token0, token1)) revert  Nodes__DepositOnLPInvalidLPToken();
         if (amount0 > getBalance(user, IERC20(token0))) revert Nodes__DepositOnLPInsufficientT0Funds();
@@ -380,8 +380,8 @@ contract Nodes is Initializable, ReentrancyGuard {
             _treasuryTokens = mulScale(_amount, TREASURY_FEE, 10000);
             _devFundTokens = mulScale(_amount, DEV_FUND_FEE, 10000);
         } else {
-            IERC20(_token).safeTransfer(address(nodes_), _amountFee);
-            uint256 _amountSwap = nodes_.swapTokens(_token, _amountFee, usdc, 0);
+            IERC20(_token).safeTransfer(address(swapsUni), _amountFee);
+            uint256 _amountSwap = swapsUni.swapTokens(_token, _amountFee, usdc, 0);
             _dojosTokens = _amountSwap / 3;
             _treasuryTokens = mulScale(_amountSwap, 2000, 10000);
             _devFundTokens= _amountSwap - (_dojosTokens + _treasuryTokens);
@@ -428,13 +428,13 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 _secondTokenAmount = amount_ - _firstTokenAmount;
 
         if (token_ != firstToken_) {
-            IERC20(token_).safeTransfer(address(nodes_), _firstTokenAmount);
-            amountOutToken1 = nodes_.swapTokens(token_, _firstTokenAmount, firstToken_, amountOutMinFirst_);
+            IERC20(token_).safeTransfer(address(swapsUni), _firstTokenAmount);
+            amountOutToken1 = swapsUni.swapTokens(token_, _firstTokenAmount, firstToken_, amountOutMinFirst_);
         } else amountOutToken1 = _firstTokenAmount;
 
         if (token_ != secondToken_) {
-            IERC20(token_).safeTransfer(address(nodes_), _secondTokenAmount);
-            amountOutToken2 = nodes_.swapTokens(token_, _secondTokenAmount, secondToken_, amountOutMinSecond_);
+            IERC20(token_).safeTransfer(address(swapsUni), _secondTokenAmount);
+            amountOutToken2 = swapsUni.swapTokens(token_, _secondTokenAmount, secondToken_, amountOutMinSecond_);
         } else amountOutToken2 = _secondTokenAmount;
 
         increaseBalance(user_, firstToken_, amountOutToken1);
@@ -465,9 +465,9 @@ contract Nodes is Initializable, ReentrancyGuard {
         if (_amount > _userBalance) revert Nodes__InsufficientBalance();
 
         if (_token != _newToken) {
-            IERC20(_token).safeTransfer(address(nodes_), _amount);
+            IERC20(_token).safeTransfer(address(swapsUni), _amount);
 
-            amountOut = nodes_.swapTokens(_token, _amount, _newToken, _amountOutMin);
+            amountOut = swapsUni.swapTokens(_token, _amount, _newToken, _amountOutMin);
 
             increaseBalance(_user, _newToken, amountOut);
 
@@ -503,9 +503,9 @@ contract Nodes is Initializable, ReentrancyGuard {
 
             uint256 _amountOut;
             if (tokenInput != _tokenOutput) {
-                IERC20(tokenInput).safeTransfer(address(nodes_), amountInput);
+                IERC20(tokenInput).safeTransfer(address(swapsUni), amountInput);
 
-                _amountOut = nodes_.swapTokens(tokenInput, amountInput, _tokenOutput, _amountOutMin);
+                _amountOut = swapsUni.swapTokens(tokenInput, amountInput, _tokenOutput, _amountOutMin);
 
                 amount += _amountOut;
             } else {
@@ -557,8 +557,8 @@ contract Nodes is Initializable, ReentrancyGuard {
             amountTokenDesired += amount0;
         }
         
-        IERC20(swapToken).safeTransfer(address(nodes_), swapAmount);
-        amountTokenDesired += nodes_.swapTokens(swapToken, swapAmount, args.tokenDesired, args.amountTokenDesiredMin);
+        IERC20(swapToken).safeTransfer(address(swapsUni), swapAmount);
+        amountTokenDesired += swapsUni.swapTokens(swapToken, swapAmount, args.tokenDesired, args.amountTokenDesiredMin);
         
         increaseBalance(user, args.tokenDesired, amountTokenDesired);
     }
@@ -587,7 +587,7 @@ contract Nodes is Initializable, ReentrancyGuard {
             uint256 lpRes
         )
     {
-        IUniswapV2Router02 router1 = nodes_.getRouter(token0, token1);
+        IUniswapV2Router02 router1 = swapsUni.getRouter(token0, token1);
         _approve(token0, address(router1), amount0);
         _approve(token1, address(router1), amount1);
         (amount0f, amount1f, lpRes) = router1.addLiquidity(token0, token1, amount0, amount1, amountOutMin0, amountOutMin1, address(this), block.timestamp);
