@@ -240,59 +240,6 @@ contract Nodes is Initializable, ReentrancyGuard {
         amountTokenDesired = _withdrawLpAndSwap(user, args, amountLp);
     }
 
-    /**
-    * @notice Function that allows to withdraw tokens to the user's wallet.
-    * @param _user Address of the user who wishes to remove the tokens.
-    * @param _token Token to be withdrawn.
-    * @param _amount Amount of tokens to be withdrawn.
-    */
-    function sendToWallet(
-        address _user,
-        IERC20 _token,
-        uint256 _amount
-    ) public nonReentrant onlyOwner returns (uint256) {
-        uint256 _userBalance = getBalance(_user, _token);
-        if (_userBalance < _amount) revert Nodes__InsufficientBalance();
-        
-        if(address(_token) == WFTM) {
-            IWETH(WFTM).withdraw(_amount);
-            payable(_user).transfer(_amount);
-        } else {
-            _token.safeTransfer(_user, _amount);
-        }
-
-        decreaseBalance(_user, address(_token), _amount);
-
-        emit SendToWallet(address(_token), _amount);
-        return _amount;
-    }
-
-    /**
-     * @notice Emergency function that allows to recover all tokens in the state they are in.
-     * @param _tokens Array of the tokens to be withdrawn.
-     * @param _amounts Array of the amounts to be withdrawn.
-     */
-    function recoverAll(IERC20[] memory _tokens, uint256[] memory _amounts) public nonReentrant {
-        if (_tokens.length <= 0) revert Nodes__EmptyArray();
-        if (_tokens.length != _amounts.length) revert Nodes__InvalidArrayLength();
-
-        for (uint256 _i = 0; _i < _tokens.length; _i++) {
-            IERC20 _tokenAddress = _tokens[_i];
-
-            uint256 _userBalance = getBalance(msg.sender, _tokenAddress);
-            if (_userBalance < _amounts[_i]) revert Nodes__InsufficientBalance();
-
-            if(address(_tokenAddress) == WFTM) {
-                IWETH(WFTM).withdraw(_amounts[_i]);
-                payable(msg.sender).transfer(_amounts[_i]);
-            } else _tokenAddress.safeTransfer(msg.sender, _amounts[_i]);
-            
-            decreaseBalance(msg.sender, address(_tokenAddress), _amounts[_i]);
-
-            emit RecoverAll(address(_tokenAddress), _amounts[_i]);
-        }
-    }
-
     function setBatch(Batch _batch) public onlyOwner {
         batch = _batch;
     }
@@ -368,12 +315,34 @@ contract Nodes is Initializable, ReentrancyGuard {
     }
 
     /**
-    * @notice Function that allows you to see the balance you have in the contract of a specific token.
-    * @param _user Address of the user who will deposit the tokens.
-    * @param _token Contract of the token from which the balance is to be obtained.
-    */
-    function getBalance(address _user, IERC20 _token) public view returns (uint256) {
-        return balance[_user].get(address(_token));
+     * @notice Function that allows to send X amount of tokens and returns the token you want.
+     * @param _user Address of the user running the node.
+     * @param _token Address of the token to be swapped.
+     * @param _amount Amount of Tokens to be swapped.
+     * @param _newToken Contract of the token you wish to receive.
+     * @param _amountOutMin Minimum amount you wish to receive.
+     */
+    function swapTokens(
+        address _user,
+        address _token,
+        uint256 _amount,
+        address _newToken,
+        uint256 _amountOutMin
+    ) public nonReentrant onlyOwner returns (uint256 amountOut) {
+        uint256 _userBalance = getBalance(_user, IERC20(_token));
+
+        if (_amount > _userBalance) revert Nodes__InsufficientBalance();
+
+        if (_token != _newToken) {
+            _approve(_token, address(swapsUni), _amount);
+            amountOut = swapsUni.swapTokens(_token, _amount, _newToken, _amountOutMin);
+
+            increaseBalance(_user, _newToken, amountOut);
+
+            decreaseBalance(_user, _token, _amount);
+        } else amountOut = _amount;
+
+        emit Swap(_token, _amount, _newToken, amountOut);
     }
 
     /**
@@ -416,37 +385,6 @@ contract Nodes is Initializable, ReentrancyGuard {
         decreaseBalance(user_, token_, amount_);
 
         emit Split(firstToken_, amountOutToken1, secondToken_, amountOutToken2);
-    }
-
-    /**
-     * @notice Function that allows to send X amount of tokens and returns the token you want.
-     * @param _user Address of the user running the node.
-     * @param _token Address of the token to be swapped.
-     * @param _amount Amount of Tokens to be swapped.
-     * @param _newToken Contract of the token you wish to receive.
-     * @param _amountOutMin Minimum amount you wish to receive.
-     */
-    function swapTokens(
-        address _user,
-        address _token,
-        uint256 _amount,
-        address _newToken,
-        uint256 _amountOutMin
-    ) public nonReentrant onlyOwner returns (uint256 amountOut) {
-        uint256 _userBalance = getBalance(_user, IERC20(_token));
-
-        if (_amount > _userBalance) revert Nodes__InsufficientBalance();
-
-        if (_token != _newToken) {
-            _approve(_token, address(swapsUni), _amount);
-            amountOut = swapsUni.swapTokens(_token, _amount, _newToken, _amountOutMin);
-
-            increaseBalance(_user, _newToken, amountOut);
-
-            decreaseBalance(_user, _token, _amount);
-        } else amountOut = _amount;
-
-        emit Swap(_token, _amount, _newToken, amountOut);
     }
 
     /**
@@ -496,6 +434,59 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         emit Liquidate(_tokenOutput, amount);
         return amount;
+    }
+
+    /**
+    * @notice Function that allows to withdraw tokens to the user's wallet.
+    * @param _user Address of the user who wishes to remove the tokens.
+    * @param _token Token to be withdrawn.
+    * @param _amount Amount of tokens to be withdrawn.
+    */
+    function sendToWallet(
+        address _user,
+        IERC20 _token,
+        uint256 _amount
+    ) public nonReentrant onlyOwner returns (uint256) {
+        uint256 _userBalance = getBalance(_user, _token);
+        if (_userBalance < _amount) revert Nodes__InsufficientBalance();
+        
+        if(address(_token) == WFTM) {
+            IWETH(WFTM).withdraw(_amount);
+            payable(_user).transfer(_amount);
+        } else {
+            _token.safeTransfer(_user, _amount);
+        }
+
+        decreaseBalance(_user, address(_token), _amount);
+
+        emit SendToWallet(address(_token), _amount);
+        return _amount;
+    }
+
+    /**
+     * @notice Emergency function that allows to recover all tokens in the state they are in.
+     * @param _tokens Array of the tokens to be withdrawn.
+     * @param _amounts Array of the amounts to be withdrawn.
+     */
+    function recoverAll(IERC20[] memory _tokens, uint256[] memory _amounts) public nonReentrant {
+        if (_tokens.length <= 0) revert Nodes__EmptyArray();
+        if (_tokens.length != _amounts.length) revert Nodes__InvalidArrayLength();
+
+        for (uint256 _i = 0; _i < _tokens.length; _i++) {
+            IERC20 _tokenAddress = _tokens[_i];
+
+            uint256 _userBalance = getBalance(msg.sender, _tokenAddress);
+            if (_userBalance < _amounts[_i]) revert Nodes__InsufficientBalance();
+
+            if(address(_tokenAddress) == WFTM) {
+                IWETH(WFTM).withdraw(_amounts[_i]);
+                payable(msg.sender).transfer(_amounts[_i]);
+            } else _tokenAddress.safeTransfer(msg.sender, _amounts[_i]);
+            
+            decreaseBalance(msg.sender, address(_tokenAddress), _amounts[_i]);
+
+            emit RecoverAll(address(_tokenAddress), _amounts[_i]);
+        }
     }
 
     /**
@@ -596,6 +587,15 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 d = y % scale;
 
         return a * c * scale + a * d + b * c + (b * d) / scale;
+    }
+
+    /**
+    * @notice Function that allows you to see the balance you have in the contract of a specific token.
+    * @param _user Address of the user who will deposit the tokens.
+    * @param _token Contract of the token from which the balance is to be obtained.
+    */
+    function getBalance(address _user, IERC20 _token) public view returns (uint256) {
+        return balance[_user].get(address(_token));
     }
 
     /**
