@@ -121,8 +121,28 @@ contract Nodes is Initializable, ReentrancyGuard {
         usdc = _usdc;
     }
 
-    function setBatch(Batch _batch) public onlyOwner {
-        batch = _batch;
+    function setBatch(Batch batch_) public onlyOwner {
+        batch = batch_;
+    }
+
+    function setSwapsUni(SwapsUni swapsUni_) public onlyOwner {
+        swapsUni = swapsUni_;
+    }
+
+    function setFarmsUni(FarmsUni farmsUni_) public onlyOwner {
+        farmsUni = farmsUni_;
+    }
+
+    function setTortleDojos(address tortleDojos_) public onlyOwner {
+        tortleDojos = tortleDojos_;
+    }
+
+    function setTortleTreasury(address tortleTreasury_) public onlyOwner {
+        tortleTreasury = tortleTreasury_;
+    }
+
+    function setTortleDevFund(address tortleDevFund_) public onlyOwner {
+        tortleDevFund = tortleDevFund_;
     }
 
     /**
