@@ -10,6 +10,7 @@ const deployMainNet = async () => {
   const devFund = process.env.DEV_FUND_ADDRESS
 
   const uniswapRouter = "0xF491e7B69E4244ad4002BC14e878a34207E38c29"
+  const wftm = "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"
   const usdc = "0x04068da6c83afcfa0e13ba15a6696662335d5b75"
   const weth = "0x74b23882a30290451a17c44f4f05243b6b58c76d"
 
@@ -44,14 +45,22 @@ const deployMainNet = async () => {
     await (await hre.ethers.getContractFactory('SwapsUni')).connect(deployer).deploy(deployer.getAddress(), usdc, weth, [uniswapRouter])
   ).deployed()
 
-  const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [Batch.address, SwapsUni.address, Batch.address, dojos, treasury, devFund, usdc, uniswapRouter], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
+  // FarmsUni Contract
+  const FarmsUni = await (
+    await (await hre.ethers.getContractFactory('FarmsUni')).connect(deployer).deploy(deployer.getAddress())
+  ).deployed()
+
+  const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [Batch.address, SwapsUni.address, FarmsUni.address, Batch.address, dojos, treasury, devFund, wftm, usdc], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
   await ProxyNodes.deployed()
-  await Batch.setNodeContract(ProxyNodes.address)
+  const txSetNodesBatch = await Batch.setNodeContract(ProxyNodes.address)
+  await txSetNodesBatch.wait(6)
+  await FarmsUni.setNodeContract(ProxyNodes.address)
 
   const contractsAddresses = {
     "ProxyNodes": ProxyNodes.address,
     "Nodes": Nodes.address,
     "SwapsUni": SwapsUni.address,
+    "FarmsUni": FarmsUni.address,
     "Batch": Batch.address,
     "StringUtils": StringUtils.address,
     "AddressToUintIterableMap": AddressToUintIterableMap.address
