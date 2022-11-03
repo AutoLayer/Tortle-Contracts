@@ -6,6 +6,7 @@ import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import './Nodes.sol';
 import './lib/AddressToUintIterableMap.sol';
+import './interfaces/IBeets.sol';
 
 contract Batch {
     address public owner;
@@ -205,24 +206,29 @@ contract Batch {
     }
 
     function swapTokens(Function memory args) public onlySelf {
-        address _token = StringUtils.parseAddr(args.arguments[0]);
-        uint256 _amount;
-        address _newToken = StringUtils.parseAddr(args.arguments[2]);
-        uint256 _amountOutMin = StringUtils.safeParseInt(args.arguments[3]);
-
+        IAsset[] memory tokens_ = abi.decode(bytes(args.arguments[0]), (IAsset[]));
+        uint256 amount_;
+        int256[] memory limits_ = abi.decode(bytes(args.arguments[2]), (int256[]));
+        BatchSwapStep[] memory batchSwapStep_;
+        uint8 provider_;
+        if(args.arguments.length >= 4) {
+            batchSwapStep_ = abi.decode(bytes(args.arguments[3]), (BatchSwapStep[])); 
+            provider_ = 1;
+        }
+        
         if (auxStack.length > 0) {
-            _amount = auxStack[auxStack.length - 1];
+            amount_ = auxStack[auxStack.length - 1];
             auxStack.pop();
         } else {
-            _amount = StringUtils.safeParseInt(args.arguments[1]);
+            amount_ = StringUtils.safeParseInt(args.arguments[1]);
         }
 
-        uint256 amountOut = nodes.swapTokens(args.user, _token, _amount, _newToken, _amountOutMin);
+        uint256 amountOut = nodes.swapTokens(args.user, provider_, tokens_, amount_, batchSwapStep_, limits_);
         if (args.hasNext) {
             auxStack.push(amountOut);
         }
 
-        emit SwapTokens(args.recipeId, args.id, _token, _amount, _newToken, amountOut);
+        emit SwapTokens(args.recipeId, args.id, address(tokens_[0]), amount_, address(tokens_[tokens_.length - 1]), amountOut);
     }
 
     function liquidate(Function memory args) public onlySelf {

@@ -5,13 +5,14 @@ pragma solidity ^0.8.6;
 import '@openzeppelin/contracts/proxy/utils/Initializable.sol';
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 import '@uniswap/lib/contracts/libraries/Babylonian.sol';
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
+import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 import './lib/AddressToUintIterableMap.sol';
 import './lib/StringUtils.sol';
 import './interfaces/ITortleVault.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import './interfaces/IWETH.sol';
 import './SwapsUni.sol';
+import './SwapsBeets.sol';
 import './farms/FarmsUni.sol';
 import './Batch.sol';
 
@@ -68,6 +69,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     address public tortleTreasury;
     address public tortleDevFund;
     SwapsUni public swapsUni;
+    SwapsBeets public swapsBeets;
     FarmsUni public farmsUni;
     Batch private batch;
     address private WFTM;
@@ -102,6 +104,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     function initializeConstructor(
         address _owner,
         SwapsUni _swapsUni,
+        SwapsBeets _swapsBeets,
         FarmsUni _farmsUni,
         Batch _batch,
         address _tortleDojos,
@@ -112,6 +115,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     ) public initializer {
         owner = _owner;
         swapsUni = _swapsUni;
+        swapsBeets = _swapsBeets;
         farmsUni = _farmsUni;
         batch = _batch;
         tortleDojos = _tortleDojos;
@@ -127,6 +131,10 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     function setSwapsUni(SwapsUni swapsUni_) public onlyOwner {
         swapsUni = swapsUni_;
+    }
+
+    function setSwapsBeets(SwapsBeets swapsBeets_) public onlyOwner {
+        swapsBeets = swapsBeets_;
     }
 
     function setFarmsUni(FarmsUni farmsUni_) public onlyOwner {
@@ -217,33 +225,42 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     /**
      * @notice Function that allows to send X amount of tokens and returns the token you want.
-     * @param _user Address of the user running the node.
-     * @param _token Address of the token to be swapped.
-     * @param _amount Amount of Tokens to be swapped.
-     * @param _newToken Contract of the token you wish to receive.
-     * @param _amountOutMin Minimum amount you wish to receive.
+     * @param user_ Address of the user running the node.
+     * @param provider_ Provider used for swapping tokens.
+     * @param tokens_ Array of tokens to be swapped.
+     * @param amount_ Amount of Tokens to be swapped.
+     * @param batchSwapStep_ Array of structs required by beets provider.
+     * @param limits_ Maximum amounts you want to use.
      */
     function swapTokens(
-        address _user,
-        address _token,
-        uint256 _amount,
-        address _newToken,
-        uint256 _amountOutMin
+        address user_,
+        uint8 provider_,
+        IAsset[] memory tokens_,
+        uint256 amount_,
+        BatchSwapStep[] memory batchSwapStep_,
+        int256[] memory limits_
     ) public nonReentrant onlyOwner returns (uint256 amountOut) {
-        uint256 _userBalance = getBalance(_user, IERC20(_token));
+        address tokenIn_ = address(tokens_[0]);
+        address tokenOut_ = address(tokens_[tokens_.length - 1]);
 
-        if (_amount > _userBalance) revert Nodes__InsufficientBalance();
+        uint256 _userBalance = getBalance(user_, IERC20(tokenIn_));
+        if (amount_ > _userBalance) revert Nodes__InsufficientBalance();
 
-        if (_token != _newToken) {
-            _approve(_token, address(swapsUni), _amount);
-            amountOut = swapsUni.swapTokens(_token, _amount, _newToken, _amountOutMin);
+        if (tokenIn_ != tokenOut_) {
+            if (provider_ == 0) {
+                _approve(tokenIn_, address(swapsUni), amount_);
+                amountOut = swapsUni.swapTokens(tokenIn_, amount_, tokenOut_, uint256(limits_[0]));
+            } else {
+                _approve(tokenIn_, address(swapsBeets), amount_);
+                amountOut = swapsBeets.swapTokens(tokens_, batchSwapStep_, limits_);
+            }
 
-            increaseBalance(_user, _newToken, amountOut);
+            increaseBalance(user_, tokenOut_, amountOut);
 
-            decreaseBalance(_user, _token, _amount);
-        } else amountOut = _amount;
+            decreaseBalance(user_, tokenIn_, amount_);
+        } else amountOut = amount_;
 
-        emit Swap(_token, _amount, _newToken, amountOut);
+        emit Swap(tokenIn_, amount_, tokenOut_, amountOut);
     }
 
     /**
