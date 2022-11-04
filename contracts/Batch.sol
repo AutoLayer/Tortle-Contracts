@@ -165,32 +165,40 @@ contract Batch {
     }
 
     function split(Function memory args) public onlySelf {
-        Nodes.SplitStruct memory _splitStruct = splitStruct;
-        _splitStruct.user = args.user;
-        _splitStruct.token = StringUtils.parseAddr(args.arguments[0]);
-        _splitStruct.firstToken = StringUtils.parseAddr(args.arguments[2]);
-        _splitStruct.secondToken = StringUtils.parseAddr(args.arguments[3]);
-        _splitStruct.percentageFirstToken = StringUtils.safeParseInt(args.arguments[4]);
-        _splitStruct.amountOutMinFirst = StringUtils.safeParseInt(args.arguments[5]);
-        _splitStruct.amountOutMinSecond = StringUtils.safeParseInt(args.arguments[6]);
-        string memory _firstTokenHasNext = args.arguments[7];
-        string memory _secondTokenHasNext = args.arguments[8];
-
-        if (auxStack.length > 0) {
-            _splitStruct.amount = auxStack[auxStack.length - 1];
-            auxStack.pop();
-        } else {
-            _splitStruct.amount = StringUtils.safeParseInt(args.arguments[1]);
+        Nodes.SplitStruct memory splitStruct_;
+        splitStruct_.user = args.user;
+        splitStruct_.firstTokens = abi.decode(bytes(args.arguments[0]), (IAsset[]));
+        splitStruct_.secondTokens = abi.decode(bytes(args.arguments[1]), (IAsset[]));
+        splitStruct_.amount = StringUtils.safeParseInt(args.arguments[2]);
+        splitStruct_.percentageFirstToken = StringUtils.safeParseInt(args.arguments[3]);
+        splitStruct_.limitsFirst = abi.decode(bytes(args.arguments[4]), (int256[]));
+        splitStruct_.limitsSecond = abi.decode(bytes(args.arguments[5]), (int256[]));
+        string memory _firstTokenHasNext = args.arguments[6];
+        string memory _secondTokenHasNext = args.arguments[7];
+        uint8 providerFirst_;
+        if(args.arguments.length >= 9) {
+            splitStruct_.batchSwapStepFirstToken = abi.decode(bytes(args.arguments[8]), (BatchSwapStep[])); 
+            providerFirst_ = 1;
+        }
+        uint8 providerSecond_;
+        if(args.arguments.length >= 10) {
+            splitStruct_.batchSwapStepSecondToken = abi.decode(bytes(args.arguments[9]), (BatchSwapStep[])); 
+            providerSecond_ = 1;
         }
 
-        (uint256 amountOutToken1, uint256 amountOutToken2) = nodes.split(_splitStruct);
+        if (auxStack.length > 0) {
+            splitStruct_.amount = auxStack[auxStack.length - 1];
+            auxStack.pop();
+        }
+
+        (uint256 amountOutToken1, uint256 amountOutToken2) = nodes.split(splitStruct_);
         if (StringUtils.equal(_firstTokenHasNext, 'y')) {
             auxStack.push(amountOutToken1);
         }
         if (StringUtils.equal(_secondTokenHasNext, 'y')) {
             auxStack.push(amountOutToken2);
         }
-        emit Split(args.recipeId, args.id, _splitStruct.token, _splitStruct.amount, _splitStruct.firstToken, amountOutToken1, _splitStruct.secondToken, amountOutToken2);
+        emit Split(args.recipeId, args.id, address(splitStruct_.firstTokens[0]), splitStruct_.amount, address(splitStruct_.firstTokens[splitStruct_.firstTokens.length - 1]), amountOutToken1, address(splitStruct_.secondTokens[splitStruct_.secondTokens.length - 1]), amountOutToken2);
     }
 
     function addFundsForTokens(Function memory args) public onlySelf {
@@ -207,7 +215,7 @@ contract Batch {
 
     function swapTokens(Function memory args) public onlySelf {
         IAsset[] memory tokens_ = abi.decode(bytes(args.arguments[0]), (IAsset[]));
-        uint256 amount_;
+        uint256 amount_ = StringUtils.safeParseInt(args.arguments[1]);
         int256[] memory limits_ = abi.decode(bytes(args.arguments[2]), (int256[]));
         BatchSwapStep[] memory batchSwapStep_;
         uint8 provider_;
@@ -219,8 +227,6 @@ contract Batch {
         if (auxStack.length > 0) {
             amount_ = auxStack[auxStack.length - 1];
             auxStack.pop();
-        } else {
-            amount_ = StringUtils.safeParseInt(args.arguments[1]);
         }
 
         uint256 amountOut = nodes.swapTokens(args.user, provider_, tokens_, amount_, batchSwapStep_, limits_);

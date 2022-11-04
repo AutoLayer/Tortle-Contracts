@@ -35,13 +35,16 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     struct SplitStruct {
         address user;
-        address token;
+        IAsset[] firstTokens;
+        IAsset[] secondTokens;
         uint256 amount;
-        address firstToken;
-        address secondToken;
         uint256 percentageFirstToken;
-        uint256 amountOutMinFirst;
-        uint256 amountOutMinSecond;
+        int256[] limitsFirst;
+        int256[] limitsSecond;
+        BatchSwapStep[] batchSwapStepFirstToken;
+        uint8 providerFirst;
+        BatchSwapStep[] batchSwapStepSecondToken;
+        uint8 providerSecond;
     }
 
     struct _doft {
@@ -265,44 +268,59 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     /**
     * @notice Function that divides the token you send into two tokens according to the percentage you select.
-    * @param _splitStruct Struct: user, token, amount, firstToken, secondToken, percentageFirstToken, amountOutMinFirst, amountOutMinSecond.
+    * @param splitStruct_ Struct: user, firstTokens, secondTokens, amount, percentageFirstToken, limitsFirst, limitsSecond, batchSwapStepFirstToken, providerFirst, batchSwapStepSecondToken, providerSecond.
     */
-    function split(SplitStruct memory _splitStruct)
+    function split(SplitStruct memory splitStruct_)
         public
         nonReentrant
         onlyOwner
         returns (uint256 amountOutToken1, uint256 amountOutToken2)
     {
-        address user_ = _splitStruct.user;
-        address token_ = _splitStruct.token;
-        uint256 amount_ = _splitStruct.amount;
-        address firstToken_ = _splitStruct.firstToken;
-        address secondToken_ = _splitStruct.secondToken;
-        uint256 amountOutMinFirst_ = _splitStruct.amountOutMinFirst;
-        uint256 amountOutMinSecond_ = _splitStruct.amountOutMinSecond;
+        address user_ = splitStruct_.user;
+        IAsset[] memory firstTokens_ = splitStruct_.firstTokens;
+        IAsset[] memory secondTokens_ = splitStruct_.secondTokens;
+        uint256 amount_ = splitStruct_.amount;
+        int256[] memory limitsFirst_ = splitStruct_.limitsFirst;
+        int256[] memory limitsSecond_ = splitStruct_.limitsSecond;
+        uint8 providerFirst_ = splitStruct_.providerFirst;
+        uint8 providerSecond_ = splitStruct_.providerSecond;
 
-        uint256 _userBalance = getBalance(user_, IERC20(token_));
-        if (amount_ > _userBalance) revert Nodes__InsufficientBalance();
+        address tokenIn_ = address(firstTokens_[0]);
+        address firstTokenOut_ = address(firstTokens_[firstTokens_.length - 1]);
+        address secondTokenOut_ = address(secondTokens_[secondTokens_.length - 1]);
 
-        uint256 _firstTokenAmount = mulScale(amount_, _splitStruct.percentageFirstToken, 10000);
-        uint256 _secondTokenAmount = amount_ - _firstTokenAmount;
+        uint256 userBalance_ = getBalance(user_, IERC20(tokenIn_));
+        if (amount_ > userBalance_) revert Nodes__InsufficientBalance();
 
-        if (token_ != firstToken_) {
-            _approve(token_, address(swapsUni), _firstTokenAmount);
-            amountOutToken1 = swapsUni.swapTokens(token_, _firstTokenAmount, firstToken_, amountOutMinFirst_);
-        } else amountOutToken1 = _firstTokenAmount;
+        uint256 firstTokenAmount_ = mulScale(amount_, splitStruct_.percentageFirstToken, 10000);
+        uint256 secondTokenAmount_ = amount_ - firstTokenAmount_;
 
-        if (token_ != secondToken_) {
-            _approve(token_, address(swapsUni), _secondTokenAmount);
-            amountOutToken2 = swapsUni.swapTokens(token_, _secondTokenAmount, secondToken_, amountOutMinSecond_);
-        } else amountOutToken2 = _secondTokenAmount;
+        if (tokenIn_ != firstTokenOut_) {
+            if (providerFirst_ == 0) {
+                _approve(tokenIn_, address(swapsUni), firstTokenAmount_);
+                amountOutToken1 = swapsUni.swapTokens(tokenIn_, amount_, firstTokenOut_, uint256(limitsFirst_[0]));
+            } else {
+                _approve(tokenIn_, address(swapsBeets), firstTokenAmount_);
+                amountOutToken1 = swapsBeets.swapTokens(firstTokens_, splitStruct_.batchSwapStepFirstToken, limitsFirst_);
+            }
+        } else amountOutToken1 = firstTokenAmount_;
 
-        increaseBalance(user_, firstToken_, amountOutToken1);
-        increaseBalance(user_, secondToken_, amountOutToken2);
+        if (tokenIn_ != secondTokenOut_) {
+            if (providerSecond_ == 0) {
+                _approve(tokenIn_, address(swapsUni), secondTokenAmount_);
+                amountOutToken2 = swapsUni.swapTokens(tokenIn_, amount_, secondTokenOut_, uint256(limitsSecond_[0]));
+            } else {
+                _approve(tokenIn_, address(swapsBeets), secondTokenAmount_);
+                amountOutToken2 = swapsBeets.swapTokens(secondTokens_, splitStruct_.batchSwapStepSecondToken, limitsSecond_);
+            }
+        } else amountOutToken2 = secondTokenAmount_;
 
-        decreaseBalance(user_, token_, amount_);
+        increaseBalance(user_, firstTokenOut_, amountOutToken1);
+        increaseBalance(user_, secondTokenOut_, amountOutToken2);
 
-        emit Split(firstToken_, amountOutToken1, secondToken_, amountOutToken2);
+        decreaseBalance(user_, tokenIn_, amount_);
+
+        emit Split(firstTokenOut_, amountOutToken1, secondTokenOut_, amountOutToken2);
     }
 
     /**
