@@ -268,50 +268,41 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     /**
     * @notice Function that divides the token you send into two tokens according to the percentage you select.
-    * @param splitStruct_ Struct: user, firstTokens, secondTokens, amount, percentageFirstToken, limitsFirst, limitsSecond, batchSwapStepFirstToken, providerFirst, batchSwapStepSecondToken, providerSecond.
+    * @param args_ Struct: user, firstTokens, secondTokens, amount, percentageFirstToken, limitsFirst, limitsSecond, batchSwapStepFirstToken, providerFirst, batchSwapStepSecondToken, providerSecond.
     */
-    function split(SplitStruct memory splitStruct_)
+    function split(bytes calldata args_)
         public
         nonReentrant
         onlyOwner
         returns (uint256 amountOutToken1, uint256 amountOutToken2)
     {
-        address user_ = splitStruct_.user;
-        IAsset[] memory firstTokens_ = splitStruct_.firstTokens;
-        IAsset[] memory secondTokens_ = splitStruct_.secondTokens;
-        uint256 amount_ = splitStruct_.amount;
-        int256[] memory limitsFirst_ = splitStruct_.limitsFirst;
-        int256[] memory limitsSecond_ = splitStruct_.limitsSecond;
-        uint8 providerFirst_ = splitStruct_.providerFirst;
-        uint8 providerSecond_ = splitStruct_.providerSecond;
-
+        (address user_, 
+        IAsset[] memory firstTokens_, 
+        IAsset[] memory secondTokens_, 
+        uint256 amount_, 
+        uint256 percentageFirstToken_, 
+        int256[] memory limitsFirst_, 
+        int256[] memory limitsSecond_, 
+        BatchSwapStep[] memory batchSwapStepFirstToken_, 
+        uint8 providerFirst_, 
+        BatchSwapStep[] memory batchSwapStepSecondToken_, 
+        uint8 providerSecond_) = abi.decode(args_, (address, IAsset[], IAsset[], uint256, uint256, int256[], int256[], BatchSwapStep[], uint8, BatchSwapStep[], uint8));
+        
         address tokenIn_ = address(firstTokens_[0]);
         address firstTokenOut_ = address(firstTokens_[firstTokens_.length - 1]);
         address secondTokenOut_ = address(secondTokens_[secondTokens_.length - 1]);
 
         if (amount_ > getBalance(user_, IERC20(tokenIn_))) revert Nodes__InsufficientBalance();
 
-        uint256 firstTokenAmount_ = mulScale(amount_, splitStruct_.percentageFirstToken, 10000);
+        uint256 firstTokenAmount_ = mulScale(amount_, percentageFirstToken_, 10000);
         uint256 secondTokenAmount_ = amount_ - firstTokenAmount_;
 
         if (tokenIn_ != firstTokenOut_) {
-            if (providerFirst_ == 0) {
-                _approve(tokenIn_, address(swapsUni), firstTokenAmount_);
-                amountOutToken1 = swapsUni.swapTokens(tokenIn_, firstTokenAmount_, firstTokenOut_, uint256(limitsFirst_[0]));
-            } else {
-                _approve(tokenIn_, address(swapsBeets), firstTokenAmount_);
-                amountOutToken1 = swapsBeets.swapTokens(firstTokens_, splitStruct_.batchSwapStepFirstToken, limitsFirst_);
-            }
+            amountOutToken1 = swapTokens(user_, providerFirst_, firstTokens_, firstTokenAmount_, batchSwapStepFirstToken_, limitsFirst_);
         } else amountOutToken1 = firstTokenAmount_;
 
         if (tokenIn_ != secondTokenOut_) {
-            if (providerSecond_ == 0) {
-                _approve(tokenIn_, address(swapsUni), secondTokenAmount_);
-                amountOutToken2 = swapsUni.swapTokens(tokenIn_, secondTokenAmount_, secondTokenOut_, uint256(limitsSecond_[0]));
-            } else {
-                _approve(tokenIn_, address(swapsBeets), secondTokenAmount_);
-                amountOutToken2 = swapsBeets.swapTokens(secondTokens_, splitStruct_.batchSwapStepSecondToken, limitsSecond_);
-            }
+            amountOutToken2 = swapTokens(user_, providerSecond_, secondTokens_, secondTokenAmount_, batchSwapStepSecondToken_, limitsSecond_);
         } else amountOutToken2 = secondTokenAmount_;
 
         increaseBalance(user_, firstTokenOut_, amountOutToken1);
