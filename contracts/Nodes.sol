@@ -289,8 +289,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         address firstTokenOut_ = address(firstTokens_[firstTokens_.length - 1]);
         address secondTokenOut_ = address(secondTokens_[secondTokens_.length - 1]);
 
-        uint256 userBalance_ = getBalance(user_, IERC20(tokenIn_));
-        if (amount_ > userBalance_) revert Nodes__InsufficientBalance();
+        if (amount_ > getBalance(user_, IERC20(tokenIn_))) revert Nodes__InsufficientBalance();
 
         uint256 firstTokenAmount_ = mulScale(amount_, splitStruct_.percentageFirstToken, 10000);
         uint256 secondTokenAmount_ = amount_ - firstTokenAmount_;
@@ -298,7 +297,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         if (tokenIn_ != firstTokenOut_) {
             if (providerFirst_ == 0) {
                 _approve(tokenIn_, address(swapsUni), firstTokenAmount_);
-                amountOutToken1 = swapsUni.swapTokens(tokenIn_, amount_, firstTokenOut_, uint256(limitsFirst_[0]));
+                amountOutToken1 = swapsUni.swapTokens(tokenIn_, firstTokenAmount_, firstTokenOut_, uint256(limitsFirst_[0]));
             } else {
                 _approve(tokenIn_, address(swapsBeets), firstTokenAmount_);
                 amountOutToken1 = swapsBeets.swapTokens(firstTokens_, splitStruct_.batchSwapStepFirstToken, limitsFirst_);
@@ -308,7 +307,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         if (tokenIn_ != secondTokenOut_) {
             if (providerSecond_ == 0) {
                 _approve(tokenIn_, address(swapsUni), secondTokenAmount_);
-                amountOutToken2 = swapsUni.swapTokens(tokenIn_, amount_, secondTokenOut_, uint256(limitsSecond_[0]));
+                amountOutToken2 = swapsUni.swapTokens(tokenIn_, secondTokenAmount_, secondTokenOut_, uint256(limitsSecond_[0]));
             } else {
                 _approve(tokenIn_, address(swapsBeets), secondTokenAmount_);
                 amountOutToken2 = swapsBeets.swapTokens(secondTokens_, splitStruct_.batchSwapStepSecondToken, limitsSecond_);
