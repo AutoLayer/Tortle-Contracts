@@ -168,22 +168,25 @@ contract Batch {
         IAsset[] memory firstTokens = abi.decode(bytes(args.arguments[0]), (IAsset[]));
         IAsset[] memory secondTokens = abi.decode(bytes(args.arguments[1]), (IAsset[]));
         uint256 amount = StringUtils.safeParseInt(args.arguments[2]);
-        uint256 percentageFirstToken = StringUtils.safeParseInt(args.arguments[3]);
-        int256[] memory limitsFirst = abi.decode(bytes(args.arguments[4]), (int256[]));
-        int256[] memory limitsSecond = abi.decode(bytes(args.arguments[5]), (int256[]));
-        string memory _firstTokenHasNext = args.arguments[6];
-        string memory _secondTokenHasNext = args.arguments[7];
+        // uint256 percentageFirstToken = StringUtils.safeParseInt(args.arguments[3]);
+        //int256[] memory limitsFirst = abi.decode(bytes(args.arguments[4]), (int256[]));
+        // int256[] memory limitsSecond = abi.decode(bytes(args.arguments[5]), (int256[]));
+        // string memory _firstTokenHasNext = args.arguments[6];
+        // string memory _secondTokenHasNext = args.arguments[7];
         BatchSwapStep[] memory batchSwapStepFirstToken;
         BatchSwapStep[] memory batchSwapStepSecondToken;
-        uint8 providerFirst_;
+        // uint8 providerFirst_;
+        uint8[] memory providers;
         if(args.arguments.length >= 9) {
             batchSwapStepFirstToken = abi.decode(bytes(args.arguments[8]), (BatchSwapStep[])); 
-            providerFirst_ = 1;
+            // providerFirst_ = 1;
+            providers[0] = 1;
         }
-        uint8 providerSecond_;
+        // uint8 providerSecond_;
         if(args.arguments.length >= 10) {
             batchSwapStepSecondToken = abi.decode(bytes(args.arguments[9]), (BatchSwapStep[])); 
-            providerSecond_ = 1;
+            // providerSecond_ = 1;
+            providers[1] = 1;
         }
 
         if (auxStack.length > 0) {
@@ -191,15 +194,18 @@ contract Batch {
             auxStack.pop();
         }
 
-        bytes memory data = abi.encode(args.user, firstTokens, secondTokens, amount, percentageFirstToken, limitsFirst, limitsSecond, batchSwapStepFirstToken, providerFirst_, batchSwapStepSecondToken, providerSecond_);
-        (uint256 amountOutToken1, uint256 amountOutToken2) = nodes.split(data);
-        if (StringUtils.equal(_firstTokenHasNext, 'y')) {
-            auxStack.push(amountOutToken1);
+        bytes memory data = abi.encode(args.user, firstTokens, secondTokens, amount, StringUtils.safeParseInt(args.arguments[3]), abi.decode(bytes(args.arguments[4]), (int256[])), abi.decode(bytes(args.arguments[5]), (int256[])), batchSwapStepFirstToken, providers, batchSwapStepSecondToken);
+        // (uint256 amountOutTokens, uint256 amountOutToken2) = nodes.split(data);
+        uint256[] memory amountOutTokens = nodes.split(data);
+        if (StringUtils.equal(args.arguments[6], 'y')) {
+            // auxStack.push(amountOutToken1);
+            auxStack.push(amountOutTokens[0]);
         }
-        if (StringUtils.equal(_secondTokenHasNext, 'y')) {
-            auxStack.push(amountOutToken2);
+        if (StringUtils.equal(args.arguments[7], 'y')) {
+            // auxStack.push(amountOutToken2);
+            auxStack.push(amountOutTokens[1]);
         }
-        emit Split(args.recipeId, args.id, address(firstTokens[0]), amount, address(firstTokens[firstTokens.length - 1]), amountOutToken1, address(secondTokens[secondTokens.length - 1]), amountOutToken2);
+        emit Split(args.recipeId, args.id, address(firstTokens[0]), amount, address(firstTokens[firstTokens.length - 1]), amountOutTokens[0], address(secondTokens[secondTokens.length - 1]), amountOutTokens[1]);
     }
 
     function addFundsForTokens(Function memory args) public onlySelf {

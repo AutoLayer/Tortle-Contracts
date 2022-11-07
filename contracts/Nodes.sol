@@ -274,7 +274,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         public
         nonReentrant
         onlyOwner
-        returns (uint256 amountOutToken1, uint256 amountOutToken2)
+        returns (uint256[] memory amountOutTokens)
     {
         (address user_, 
         IAsset[] memory firstTokens_, 
@@ -284,33 +284,33 @@ contract Nodes is Initializable, ReentrancyGuard {
         int256[] memory limitsFirst_, 
         int256[] memory limitsSecond_, 
         BatchSwapStep[] memory batchSwapStepFirstToken_, 
-        uint8 providerFirst_, 
-        BatchSwapStep[] memory batchSwapStepSecondToken_, 
-        uint8 providerSecond_) = abi.decode(args_, (address, IAsset[], IAsset[], uint256, uint256, int256[], int256[], BatchSwapStep[], uint8, BatchSwapStep[], uint8));
+        uint8[] memory providers, 
+        BatchSwapStep[] memory batchSwapStepSecondToken_
+        ) = abi.decode(args_, (address, IAsset[], IAsset[], uint256, uint256, int256[], int256[], BatchSwapStep[], uint8[], BatchSwapStep[]));
         
-        address tokenIn_ = address(firstTokens_[0]);
-        address firstTokenOut_ = address(firstTokens_[firstTokens_.length - 1]);
-        address secondTokenOut_ = address(secondTokens_[secondTokens_.length - 1]);
+        // address tokenIn_ = address(firstTokens_[0]);
+        // address firstTokenOut_ = address(firstTokens_[firstTokens_.length - 1]);
+        // address secondTokenOut_ = address(secondTokens_[secondTokens_.length - 1]);
 
-        if (amount_ > getBalance(user_, IERC20(tokenIn_))) revert Nodes__InsufficientBalance();
+        if (amount_ > getBalance(user_, IERC20(address(firstTokens_[0])))) revert Nodes__InsufficientBalance();
 
         uint256 firstTokenAmount_ = mulScale(amount_, percentageFirstToken_, 10000);
-        uint256 secondTokenAmount_ = amount_ - firstTokenAmount_;
+        // uint256 secondTokenAmount_ = amount_ - firstTokenAmount_;
 
-        if (tokenIn_ != firstTokenOut_) {
-            amountOutToken1 = swapTokens(user_, providerFirst_, firstTokens_, firstTokenAmount_, batchSwapStepFirstToken_, limitsFirst_);
-        } else amountOutToken1 = firstTokenAmount_;
+        if (address(firstTokens_[0]) != address(firstTokens_[firstTokens_.length - 1])) {
+            amountOutTokens[0] = swapTokens(user_, providers[0], firstTokens_, firstTokenAmount_, batchSwapStepFirstToken_, limitsFirst_);
+        } else amountOutTokens[0] = firstTokenAmount_;
 
-        if (tokenIn_ != secondTokenOut_) {
-            amountOutToken2 = swapTokens(user_, providerSecond_, secondTokens_, secondTokenAmount_, batchSwapStepSecondToken_, limitsSecond_);
-        } else amountOutToken2 = secondTokenAmount_;
+        if (address(firstTokens_[0]) != address(secondTokens_[secondTokens_.length - 1])) {
+            amountOutTokens[1] = swapTokens(user_, providers[1], secondTokens_, (amount_ - firstTokenAmount_), batchSwapStepSecondToken_, limitsSecond_);
+        } else amountOutTokens[1] = (amount_ - firstTokenAmount_);
 
-        increaseBalance(user_, firstTokenOut_, amountOutToken1);
-        increaseBalance(user_, secondTokenOut_, amountOutToken2);
+        increaseBalance(user_, address(firstTokens_[firstTokens_.length - 1]), amountOutTokens[0]);
+        increaseBalance(user_, address(secondTokens_[secondTokens_.length - 1]), amountOutTokens[1]);
 
-        decreaseBalance(user_, tokenIn_, amount_);
+        decreaseBalance(user_, address(firstTokens_[0]), amount_);
 
-        emit Split(firstTokenOut_, amountOutToken1, secondTokenOut_, amountOutToken2);
+        emit Split(address(firstTokens_[firstTokens_.length - 1]), amountOutTokens[0], address(secondTokens_[secondTokens_.length - 1]), amountOutTokens[1]);
     }
 
     /**
