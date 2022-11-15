@@ -268,7 +268,7 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     /**
     * @notice Function that divides the token you send into two tokens according to the percentage you select.
-    * @param args_ Struct: user, firstTokens, secondTokens, amount, percentageFirstToken, limitsFirst, limitsSecond, batchSwapStepFirstToken, providerFirst, batchSwapStepSecondToken, providerSecond.
+    * @param args_ Struct: user, firstTokens, secondTokens, amount, percentageFirstToken, limitsFirst, limitsSecond, batchSwapStepFirstToken, providers, batchSwapStepSecondToken.
     */
     function split(bytes calldata args_)
         public
@@ -287,15 +287,10 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint8[] memory providers, 
         BatchSwapStep[] memory batchSwapStepSecondToken_
         ) = abi.decode(args_, (address, IAsset[], IAsset[], uint256, uint256, int256[], int256[], BatchSwapStep[], uint8[], BatchSwapStep[]));
-        
-        // address tokenIn_ = address(firstTokens_[0]);
-        // address firstTokenOut_ = address(firstTokens_[firstTokens_.length - 1]);
-        // address secondTokenOut_ = address(secondTokens_[secondTokens_.length - 1]);
 
         if (amount_ > getBalance(user_, IERC20(address(firstTokens_[0])))) revert Nodes__InsufficientBalance();
 
         uint256 firstTokenAmount_ = mulScale(amount_, percentageFirstToken_, 10000);
-        // uint256 secondTokenAmount_ = amount_ - firstTokenAmount_;
 
         if (address(firstTokens_[0]) != address(firstTokens_[firstTokens_.length - 1])) {
             amountOutTokens[0] = swapTokens(user_, providers[0], firstTokens_, firstTokenAmount_, batchSwapStepFirstToken_, limitsFirst_);
