@@ -185,7 +185,7 @@ contract Batch {
             auxStack.pop();
         }
 
-        bytes memory data = abi.encode(args.user, firstTokens, secondTokens, amount, StringUtils.safeParseInt(args.arguments[3]), abi.decode(bytes(args.arguments[4]), (int256[])), abi.decode(bytes(args.arguments[5]), (int256[])), batchSwapStepFirstToken, providers, batchSwapStepSecondToken);
+        bytes memory data = abi.encode(args.user, firstTokens, secondTokens, amount, StringUtils.safeParseInt(args.arguments[3]), abi.decode(bytes(args.arguments[4]), (int256[])), abi.decode(bytes(args.arguments[5]), (int256[])), providers, batchSwapStepFirstToken, batchSwapStepSecondToken);
 
         uint256[] memory amountOutTokens = nodes.split(data);
         if (StringUtils.equal(args.arguments[6], 'y')) {

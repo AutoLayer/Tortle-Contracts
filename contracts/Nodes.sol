@@ -282,11 +282,11 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amount_, 
         uint256 percentageFirstToken_, 
         int256[] memory limitsFirst_, 
-        int256[] memory limitsSecond_, 
+        int256[] memory limitsSecond_,  
+        uint8[] memory providers,
         BatchSwapStep[] memory batchSwapStepFirstToken_, 
-        uint8[] memory providers, 
         BatchSwapStep[] memory batchSwapStepSecondToken_
-        ) = abi.decode(args_, (address, IAsset[], IAsset[], uint256, uint256, int256[], int256[], BatchSwapStep[], uint8[], BatchSwapStep[]));
+        ) = abi.decode(args_, (address, IAsset[], IAsset[], uint256, uint256, int256[], int256[], uint8[], BatchSwapStep[], BatchSwapStep[]));
 
         if (amount_ > getBalance(user_, IERC20(address(firstTokens_[0])))) revert Nodes__InsufficientBalance();
 
