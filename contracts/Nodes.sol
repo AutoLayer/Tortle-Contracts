@@ -268,7 +268,7 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     /**
     * @notice Function that divides the token you send into two tokens according to the percentage you select.
-    * @param args_ Struct: user, firstTokens, secondTokens, amount, percentageFirstToken, limitsFirst, limitsSecond, batchSwapStepFirstToken, providers, batchSwapStepSecondToken.
+    * @param args_ Struct: user, firstTokens, secondTokens, amount, percentageFirstToken, limitsFirst, limitsSecond, providers, batchSwapStepFirstToken, batchSwapStepSecondToken.
     */
     function split(bytes calldata args_)
         public
