@@ -21,12 +21,10 @@ contract SwapsBeets is ReentrancyGuard {
      * @notice Function that allows to send X amount of tokens and returns the token you want.
      * @param tokens_ Array of tokens to be swapped.
      * @param batchSwapStep_ Array of structs required by beets provider.
-     * @param limits_ Maximum amounts you want to use.
      */
     function swapTokens(
         IAsset[] memory tokens_,
-        BatchSwapStep[] memory batchSwapStep_,
-        int256[] memory limits_
+        BatchSwapStep[] memory batchSwapStep_
     ) public nonReentrant returns (uint256 amountOut) {
         IERC20(address(tokens_[0])).safeTransferFrom(msg.sender, address(this), batchSwapStep_[0].amount);
         IERC20(address(tokens_[0])).approve(beets, batchSwapStep_[0].amount);
@@ -36,6 +34,8 @@ contract SwapsBeets is ReentrancyGuard {
         fundManagement_.fromInternalBalance = false;
         fundManagement_.recipient = payable(msg.sender);
         fundManagement_.toInternalBalance = false;
+
+        int256[] memory limits_ = IBeets(beets).queryBatchSwap(SwapKind.GIVEN_IN, batchSwapStep_, tokens_, fundManagement_);
 
         int256[] memory amountsOut_ = IBeets(beets).batchSwap(SwapKind.GIVEN_IN, batchSwapStep_, tokens_, fundManagement_, limits_, block.timestamp);
         amountOut = uint256(amountsOut_[amountsOut_.length - 1]);

@@ -232,16 +232,16 @@ contract Nodes is Initializable, ReentrancyGuard {
      * @param provider_ Provider used for swapping tokens.
      * @param tokens_ Array of tokens to be swapped.
      * @param amount_ Amount of Tokens to be swapped.
+     * @param amountOutMin_ Minimum amounts you want to use.
      * @param batchSwapStep_ Array of structs required by beets provider.
-     * @param limits_ Maximum amounts you want to use.
      */
     function swapTokens(
         address user_,
         uint8 provider_,
         IAsset[] memory tokens_,
         uint256 amount_,
-        BatchSwapStep[] memory batchSwapStep_,
-        int256[] memory limits_
+        uint256 amountOutMin_,
+        BatchSwapStep[] memory batchSwapStep_
     ) public nonReentrant onlyOwner returns (uint256 amountOut) {
         address tokenIn_ = address(tokens_[0]);
         address tokenOut_ = address(tokens_[tokens_.length - 1]);
@@ -252,10 +252,10 @@ contract Nodes is Initializable, ReentrancyGuard {
         if (tokenIn_ != tokenOut_) {
             if (provider_ == 0) {
                 _approve(tokenIn_, address(swapsUni), amount_);
-                amountOut = swapsUni.swapTokens(tokenIn_, amount_, tokenOut_, uint256(limits_[0]));
+                amountOut = swapsUni.swapTokens(tokenIn_, amount_, tokenOut_, amountOutMin_);
             } else {
                 _approve(tokenIn_, address(swapsBeets), amount_);
-                amountOut = swapsBeets.swapTokens(tokens_, batchSwapStep_, limits_);
+                amountOut = swapsBeets.swapTokens(tokens_, batchSwapStep_);
             }
 
             increaseBalance(user_, tokenOut_, amountOut);
@@ -268,7 +268,7 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     /**
     * @notice Function that divides the token you send into two tokens according to the percentage you select.
-    * @param args_ Struct: user, firstTokens, secondTokens, amount, percentageFirstToken, limitsFirst, limitsSecond, providers, batchSwapStepFirstToken, batchSwapStepSecondToken.
+    * @param args_ Struct: user, firstTokens, secondTokens, amount, percentageFirstToken, amountOutMinFirst_, amountOutMinSecond_, providers, batchSwapStepFirstToken, batchSwapStepSecondToken.
     */
     function split(bytes calldata args_)
         public
@@ -281,23 +281,23 @@ contract Nodes is Initializable, ReentrancyGuard {
         IAsset[] memory secondTokens_, 
         uint256 amount_, 
         uint256 percentageFirstToken_, 
-        int256[] memory limitsFirst_, 
-        int256[] memory limitsSecond_,  
+        uint256 amountOutMinFirst_, 
+        uint256 amountOutMinSecond_,  
         uint8[] memory providers,
         BatchSwapStep[] memory batchSwapStepFirstToken_, 
         BatchSwapStep[] memory batchSwapStepSecondToken_
-        ) = abi.decode(args_, (address, IAsset[], IAsset[], uint256, uint256, int256[], int256[], uint8[], BatchSwapStep[], BatchSwapStep[]));
+        ) = abi.decode(args_, (address, IAsset[], IAsset[], uint256, uint256, uint256, uint256, uint8[], BatchSwapStep[], BatchSwapStep[]));
 
         if (amount_ > getBalance(user_, IERC20(address(firstTokens_[0])))) revert Nodes__InsufficientBalance();
 
         uint256 firstTokenAmount_ = mulScale(amount_, percentageFirstToken_, 10000);
 
         if (address(firstTokens_[0]) != address(firstTokens_[firstTokens_.length - 1])) {
-            amountOutTokens[0] = swapTokens(user_, providers[0], firstTokens_, firstTokenAmount_, batchSwapStepFirstToken_, limitsFirst_);
+            amountOutTokens[0] = swapTokens(user_, providers[0], firstTokens_, firstTokenAmount_, amountOutMinFirst_, batchSwapStepFirstToken_);
         } else amountOutTokens[0] = firstTokenAmount_;
 
         if (address(firstTokens_[0]) != address(secondTokens_[secondTokens_.length - 1])) {
-            amountOutTokens[1] = swapTokens(user_, providers[1], secondTokens_, (amount_ - firstTokenAmount_), batchSwapStepSecondToken_, limitsSecond_);
+            amountOutTokens[1] = swapTokens(user_, providers[1], secondTokens_, (amount_ - firstTokenAmount_), amountOutMinSecond_, batchSwapStepSecondToken_);
         } else amountOutTokens[1] = (amount_ - firstTokenAmount_);
 
         increaseBalance(user_, address(firstTokens_[firstTokens_.length - 1]), amountOutTokens[0]);

@@ -185,7 +185,7 @@ contract Batch {
             auxStack.pop();
         }
 
-        bytes memory data = abi.encode(args.user, firstTokens, secondTokens, amount, StringUtils.safeParseInt(args.arguments[3]), abi.decode(bytes(args.arguments[4]), (int256[])), abi.decode(bytes(args.arguments[5]), (int256[])), providers, batchSwapStepFirstToken, batchSwapStepSecondToken);
+        bytes memory data = abi.encode(args.user, firstTokens, secondTokens, amount, StringUtils.safeParseInt(args.arguments[3]), StringUtils.safeParseInt(args.arguments[4]), StringUtils.safeParseInt(args.arguments[5]), providers, batchSwapStepFirstToken, batchSwapStepSecondToken);
 
         uint256[] memory amountOutTokens = nodes.split(data);
         if (StringUtils.equal(args.arguments[6], 'y')) {
@@ -213,7 +213,7 @@ contract Batch {
     function swapTokens(Function memory args) public onlySelf {
         IAsset[] memory tokens_ = abi.decode(bytes(args.arguments[0]), (IAsset[]));
         uint256 amount_ = StringUtils.safeParseInt(args.arguments[1]);
-        int256[] memory limits_ = abi.decode(bytes(args.arguments[2]), (int256[]));
+        uint256 amountOutMin_ = StringUtils.safeParseInt(args.arguments[2]);
         BatchSwapStep[] memory batchSwapStep_;
         uint8 provider_;
         if(args.arguments.length >= 4) {
@@ -226,7 +226,7 @@ contract Batch {
             auxStack.pop();
         }
 
-        uint256 amountOut = nodes.swapTokens(args.user, provider_, tokens_, amount_, batchSwapStep_, limits_);
+        uint256 amountOut = nodes.swapTokens(args.user, provider_, tokens_, amount_, amountOutMin_, batchSwapStep_);
         if (args.hasNext) {
             auxStack.push(amountOut);
         }

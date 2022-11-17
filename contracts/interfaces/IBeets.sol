@@ -35,6 +35,7 @@ struct ExitPoolRequest {
 }
 
 interface IBeets {
+    function queryBatchSwap(SwapKind kind, BatchSwapStep[] memory swaps, IAsset[] memory assets, FundManagement memory funds) external returns (int256[] memory assetDeltas);
     function batchSwap(SwapKind kind, BatchSwapStep[] memory swaps, IAsset[] memory assets, FundManagement memory funds, int256[] memory limits, uint256 deadline) external payable returns (int256[] memory assetDeltas);
     function joinPool(bytes32 poolId, address sender, address recipient, JoinPoolRequest memory request) external payable;
     function exitPool(bytes32 poolId, address sender, address payable recipient, ExitPoolRequest memory request) external;
