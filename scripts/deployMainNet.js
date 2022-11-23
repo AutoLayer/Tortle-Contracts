@@ -67,6 +67,7 @@ const deployMainNet = async () => {
     "ProxyNodes": ProxyNodes.address,
     "Nodes": Nodes.address,
     "SwapsUni": SwapsUni.address,
+    "SwapBeets": SwapBeets.address,
     "FarmsUni": FarmsUni.address,
     "Batch": Batch.address,
     "StringUtils": StringUtils.address,
