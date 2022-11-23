@@ -13,6 +13,7 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import './interfaces/IWETH.sol';
 import './SwapsUni.sol';
 import './SwapsBeets.sol';
+import './DepositsBeets.sol';
 import './farms/FarmsUni.sol';
 import './Batch.sol';
 
@@ -20,7 +21,6 @@ error Nodes__InsufficientBalance();
 error Nodes__EmptyArray();
 error Nodes__InvalidArrayLength();
 error Nodes__TransferFailed();
-error Nodes__WithdrawLpAndSwapError();
 error Nodes__DepositOnLPInvalidLPToken();
 error Nodes__DepositOnLPInsufficientT0Funds();
 error Nodes__DepositOnLPInsufficientT1Funds();
@@ -33,46 +33,13 @@ contract Nodes is Initializable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using AddressToUintIterableMap for AddressToUintIterableMap.Map;
 
-    struct SplitStruct {
-        address user;
-        IAsset[] firstTokens;
-        IAsset[] secondTokens;
-        uint256 amount;
-        uint256 percentageFirstToken;
-        int256[] limitsFirst;
-        int256[] limitsSecond;
-        BatchSwapStep[] batchSwapStepFirstToken;
-        uint8 providerFirst;
-        BatchSwapStep[] batchSwapStepSecondToken;
-        uint8 providerSecond;
-    }
-
-    struct _doft {
-        address lpToken;
-        address tortleVault;
-        address token0;
-        address token1;
-        uint256 amount0;
-        uint256 amount1;
-    }
-
-    struct _wffot {
-        // withdraw from farm One Token
-        address lpToken;
-        address tortleVault;
-        address token0;
-        address token1;
-        address tokenDesired;
-        uint256 amountTokenDesiredMin;
-        uint256 amount;
-    }
-
     address public owner;
     address public tortleDojos;
     address public tortleTreasury;
     address public tortleDevFund;
     SwapsUni public swapsUni;
     SwapsBeets public swapsBeets;
+    DepositsBeets public depositsBeets;
     FarmsUni public farmsUni;
     Batch private batch;
     address private WFTM;
@@ -82,10 +49,6 @@ contract Nodes is Initializable, ReentrancyGuard {
     uint8 public constant DOJOS_FEE = 50; //0.50%
     uint8 public constant TREASURY_FEE = 70; //0.70%
     uint8 public constant DEV_FUND_FEE = 30; //0.30%
-
-    uint256 public constant DOJOS_FEE_PERCENTAGE = 3333; // 33%
-    uint256 public constant TREASURY_FEE_PERCENTAGE = 4666; // 46.66%
-    uint256 public constant DEV_FUND_FEE_PERCENTAGE = 2000; // 20%
 
     mapping(address => mapping(address => uint256)) public userLp;
     mapping(address => mapping(address => uint256)) public userTt;
@@ -108,6 +71,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         address _owner,
         SwapsUni _swapsUni,
         SwapsBeets _swapsBeets,
+        DepositsBeets _depositsBeets,
         FarmsUni _farmsUni,
         Batch _batch,
         address _tortleDojos,
@@ -119,6 +83,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         owner = _owner;
         swapsUni = _swapsUni;
         swapsBeets = _swapsBeets;
+        depositsBeets = _depositsBeets;
         farmsUni = _farmsUni;
         batch = _batch;
         tortleDojos = _tortleDojos;
@@ -138,6 +103,10 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     function setSwapsBeets(SwapsBeets swapsBeets_) public onlyOwner {
         swapsBeets = swapsBeets_;
+    }
+
+    function setDepositsBeets(DepositsBeets depositsBeets_) public onlyOwner {
+        depositsBeets = depositsBeets_;
     }
 
     function setFarmsUni(FarmsUni farmsUni_) public onlyOwner {
@@ -310,136 +279,143 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     /**
     * @notice Function used to deposit tokens on a lpPool and get lptoken
-    * @param user Address of the user.
-    * @param lpToken Address of the lpToken
-    * @param token0 Address of the first token that is going to be deposited
-    * @param token1 Address of the second token that is going to be deposited
-    * @param amount0 Amount of token0
-    * @param amount1 Amount of token1
-    * @param amountOutMin0 Minimum amount of token0
-    * @param amountOutMin0 Minimum amount of token1
+    * @param user_ Address of the user.
+    * @param lpToken_ Address of the lpToken.
+    * @param poolId_ Beets pool id.
+    * @param tokens_ Addresses of tokens that are going to be deposited.
+    * @param amounts_ Amounts of tokens.
+    * @param amountOutMin0_ Minimum amount of token0.
+    * @param amountOutMin0_ Minimum amount of token1.
     */
     function depositOnLp(
-        address user,
-        address lpToken,
-        address token0,
-        address token1,
-        uint256 amount0,
-        uint256 amount1,
-        uint256 amountOutMin0,
-        uint256 amountOutMin1
+        address user_,
+        bytes32 poolId_,
+        address lpToken_,
+        address[] memory tokens_,
+        uint256[] memory amounts_,
+        uint256 amountOutMin0_,
+        uint256 amountOutMin1_
     ) external nonReentrant onlyOwner returns (uint256) {
-        IUniswapV2Router02 router = swapsUni.getRouter(token0, token1);
+        if(lpToken_ != address(0)) {
+            IUniswapV2Router02 router = swapsUni.getRouter(tokens_[0], tokens_[1]);
 
-        if (lpToken != IUniswapV2Factory(IUniswapV2Router02(router).factory()).getPair(token0, token1)) revert  Nodes__DepositOnLPInvalidLPToken();
-        if (amount0 > getBalance(user, IERC20(token0))) revert Nodes__DepositOnLPInsufficientT0Funds();
-        if (amount1 > getBalance(user, IERC20(token1))) revert Nodes__DepositOnLPInsufficientT1Funds();
+            if (lpToken_ != IUniswapV2Factory(IUniswapV2Router02(router).factory()).getPair(tokens_[0], tokens_[1])) revert  Nodes__DepositOnLPInvalidLPToken();
+            if (amounts_[0] > getBalance(user_, IERC20(tokens_[0]))) revert Nodes__DepositOnLPInsufficientT0Funds();
+            if (amounts_[1] > getBalance(user_, IERC20(tokens_[1]))) revert Nodes__DepositOnLPInsufficientT1Funds();
 
-        _approve(token0, address(farmsUni), amount0);
-        _approve(token1, address(farmsUni), amount1);
-        (uint256 amount0f, uint256 amount1f, uint256 lpRes) = farmsUni.addLiquidity(router, token0, token1, amount0, amount1, amountOutMin0, amountOutMin1);
-        userLp[lpToken][user] += lpRes;
+            _approve(tokens_[0], address(farmsUni), amounts_[0]);
+            _approve(tokens_[1], address(farmsUni), amounts_[1]);
+            (uint256 amount0f, uint256 amount1f, uint256 lpRes) = farmsUni.addLiquidity(router, tokens_[0], tokens_[1], amounts_[0], amounts_[1], amountOutMin0_, amountOutMin1_);
+            userLp[lpToken_][user_] += lpRes;
 
-        decreaseBalance(user, address(token0), amount0f);
-        decreaseBalance(user, address(token1), amount1f);
+            decreaseBalance(user_, tokens_[0], amount0f);
+            decreaseBalance(user_, tokens_[1], amount1f);
 
-        return lpRes;
+            return lpRes;
+        } else {
+            if (amounts_[0] > getBalance(user_, IERC20(tokens_[0]))) revert Nodes__DepositOnLPInsufficientT0Funds();
+
+            _approve(tokens_[0], address(depositsBeets), amounts_[0]);
+            (address bptAddress_, uint256 bptAmount_) = depositsBeets.joinPool(poolId_, tokens_, amounts_);
+
+            decreaseBalance(user_, tokens_[0], amounts_[0]);
+            increaseBalance(user_, bptAddress_, bptAmount_);
+
+            return bptAmount_;
+        }
     }
 
     /**
     * @notice Function used to withdraw tokens from a LPfarm
-    * @param _arguments Information needed to complete farm deposit
-    * @param amount Amount of LPTokens desired to withdraw
+    * @param amount_ Amount of LPTokens desired to withdraw
     */
     function withdrawFromLp(
-        address user,
-        string[] memory _arguments,
-        uint256 amount
+        address user_,
+        bytes32 poolId_,
+        address lpToken_,
+        address[] memory tokens_,
+        uint256[] memory amountsOutMin_,
+        uint256 amount_
     ) external nonReentrant onlyOwner returns (uint256 amountTokenDesired) {
-        _wffot memory args;
-        args.lpToken = StringUtils.parseAddr(_arguments[1]);
-        args.token0 = StringUtils.parseAddr(_arguments[3]);
-        args.token1 = StringUtils.parseAddr(_arguments[4]);
-        args.tokenDesired = StringUtils.parseAddr(_arguments[5]);
-        args.amountTokenDesiredMin = StringUtils.safeParseInt(_arguments[6]);
+        if(lpToken_ != address(0)) {
+            if (amount_ > userLp[lpToken_][user_]) revert Nodes__WithdrawFromLPInsufficientFunds();
 
-        if (amount > userLp[args.lpToken][user]) revert Nodes__WithdrawFromLPInsufficientFunds();
+            _approve(lpToken_, address(farmsUni), amount_);
+            amountTokenDesired = farmsUni.withdrawLpAndSwap(address(swapsUni), lpToken_, tokens_, amountsOutMin_[0], amount_);
 
-        userLp[args.lpToken][user] -= amount;
-        _approve(args.lpToken, address(farmsUni), amount);
-        amountTokenDesired = farmsUni.withdrawLpAndSwap(address(swapsUni), args, amount);
-        increaseBalance(user, args.tokenDesired, amountTokenDesired);
+            userLp[lpToken_][user_] -= amount_;
+            increaseBalance(user_, tokens_[1], amountTokenDesired);
+        } else {
+            address bptToken_ = depositsBeets.getBptAddress(poolId_);
+            if (amount_ > getBalance(user_, IERC20(bptToken_))) revert Nodes__WithdrawFromLPInsufficientFunds();
+            
+            _approve(bptToken_, address(depositsBeets), amount_);
+            amountTokenDesired = depositsBeets.exitPool(poolId_, tokens_, amountsOutMin_, amount_);
+
+            decreaseBalance(user_, bptToken_, amount_);
+            increaseBalance(user_, tokens_[0], amountTokenDesired);
+        }
     }
 
     /**
     * @notice Function used to deposit tokens on a farm
-    * @param _arguments Information needed to complete farm deposit
     * @param auxStack Contains information of the amounts that are going to be deposited 
     */
     function depositOnFarmTokens(
         address user,
-        string[] memory _arguments,
+        address lpToken_,
+        address tortleVault_,
+        address[] memory tokens_,
+        uint256 amount0_,
+        uint256 amount1_,
         uint256[] memory auxStack
     ) external nonReentrant onlyOwner returns (uint256[] memory result) {
-        _doft memory args_;
-        args_.lpToken = StringUtils.parseAddr(_arguments[1]);
-        args_.tortleVault = StringUtils.parseAddr(_arguments[2]);
-        args_.token0 = StringUtils.parseAddr(_arguments[3]);
-        args_.token1 = StringUtils.parseAddr(_arguments[4]);
-        args_.amount0 = StringUtils.safeParseInt(_arguments[5]);
-        args_.amount1 = StringUtils.safeParseInt(_arguments[6]);
         result = new uint256[](2);
         if (auxStack.length > 0) {
-            args_.amount0 = auxStack[auxStack.length - 2];
-            args_.amount1 = auxStack[auxStack.length - 1];
+            amount0_ = auxStack[auxStack.length - 2];
+            amount1_ = auxStack[auxStack.length - 1];
             result[0] = 2;
         }
 
-        if (args_.amount0 > getBalance(user, IERC20(args_.token0))) revert Nodes__DepositOnFarmTokensInsufficientT0Funds();
-        if (args_.amount1 > getBalance(user, IERC20(args_.token1))) revert Nodes__DepositOnFarmTokensInsufficientT1Funds();
+        if (amount0_ > getBalance(user, IERC20(tokens_[0]))) revert Nodes__DepositOnFarmTokensInsufficientT0Funds();
+        if (amount1_ > getBalance(user, IERC20(tokens_[1]))) revert Nodes__DepositOnFarmTokensInsufficientT1Funds();
 
-        IUniswapV2Router02 router = ISwapsUni(address(swapsUni)).getRouter(args_.token0, args_.token1);
-        _approve(args_.token0, address(farmsUni), args_.amount0);
-        _approve(args_.token1, address(farmsUni), args_.amount1);
-        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = farmsUni.addLiquidity(router, args_.token0, args_.token1, args_.amount0, args_.amount1, 0, 0);
+        IUniswapV2Router02 router = ISwapsUni(address(swapsUni)).getRouter(tokens_[0], tokens_[1]);
+        _approve(tokens_[0], address(farmsUni), amount0_);
+        _approve(tokens_[1], address(farmsUni), amount1_);
+        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = farmsUni.addLiquidity(router, tokens_[0], tokens_[1], amount0_, amount1_, 0, 0);
         
-        _approve(args_.lpToken, args_.tortleVault, lpBal);
-        uint256 ttAmount = ITortleVault(args_.tortleVault).deposit(user, lpBal);
-        userTt[args_.tortleVault][user] += ttAmount;
+        _approve(lpToken_, tortleVault_, lpBal);
+        uint256 ttAmount = ITortleVault(tortleVault_).deposit(user, lpBal);
+        userTt[tortleVault_][user] += ttAmount;
         
-        decreaseBalance(user, address(args_.token0), amount0f);
-        decreaseBalance(user, address(args_.token1), amount1f);
+        decreaseBalance(user, tokens_[0], amount0f);
+        decreaseBalance(user, tokens_[1], amount1f);
         
         result[1] = ttAmount;
     }
 
     /**
     * @notice Function used to withdraw tokens from a farm
-    * @param _arguments Information needed to complete farm deposit
     * @param amount Amount of tokens desired to withdraw
     */
     function withdrawFromFarm(
         address user,
-        string[] memory _arguments,
+        address lpToken_,
+        address tortleVault_,
+        address[] memory tokens_,
+        uint256 amountOutMin_,
         uint256 amount
     ) external nonReentrant onlyOwner returns (uint256 rewardAmount, uint256 amountTokenDesired) {
-        _wffot memory args;
-        args.lpToken = StringUtils.parseAddr(_arguments[1]);
-        args.tortleVault = StringUtils.parseAddr(_arguments[2]);
-        args.token0 = StringUtils.parseAddr(_arguments[3]);
-        args.token1 = StringUtils.parseAddr(_arguments[4]);
-        args.tokenDesired = StringUtils.parseAddr(_arguments[5]);
-        args.amountTokenDesiredMin = StringUtils.safeParseInt(_arguments[6]);
+        if (amount > userTt[tortleVault_][user]) revert Nodes__WithdrawFromFarmInsufficientFunds();
 
-        if (amount > userTt[args.tortleVault][user]) revert Nodes__WithdrawFromFarmInsufficientFunds();
-
-        (uint256 rewardAmount_, uint256 amountLp) = ITortleVault(args.tortleVault).withdraw(user, amount);
+        (uint256 rewardAmount_, uint256 amountLp) = ITortleVault(tortleVault_).withdraw(user, amount);
         rewardAmount = rewardAmount_;
-        userTt[args.tortleVault][user] -= amount;
+        userTt[tortleVault_][user] -= amount;
         
-        _approve(args.lpToken, address(farmsUni), amountLp);
-        amountTokenDesired = farmsUni.withdrawLpAndSwap(address(swapsUni), args, amountLp);
-        increaseBalance(user, args.tokenDesired, amountTokenDesired);
+        _approve(lpToken_, address(farmsUni), amountLp);
+        amountTokenDesired = farmsUni.withdrawLpAndSwap(address(swapsUni), lpToken_, tokens_, amountOutMin_, amountLp);
+        increaseBalance(user, tokens_[3], amountTokenDesired);
     }
 
     /**

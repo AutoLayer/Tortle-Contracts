@@ -55,37 +55,41 @@ contract FarmsUni is ReentrancyGuard {
     /**
      * @notice Function used to withdraw and swap a token
      * @param swapsUni_ Address of SwapsUni contract.
-     * @param args_ Information needed to execute.
+     * @param lpToken_ Address of the lpToken.
+     * @param tokens_ Array of addresses.
+     * @param amountOutMin_ Minimum amount you want to use.
      * @param amountLp_ Amount of LpTokens wanted to be executed.
      */
     function withdrawLpAndSwap(
         address swapsUni_,
-        Nodes._wffot memory args_,
+        address lpToken_,
+        address[] memory tokens_,
+        uint256 amountOutMin_,
         uint256 amountLp_
     ) public onlyOwner returns (uint256 amountTokenDesired) {
-        IUniswapV2Pair lp = IUniswapV2Pair(args_.lpToken);
-        if ((lp.token0() != args_.token0 || lp.token1() != args_.token1) && (lp.token0() != args_.token1 || lp.token1() != args_.token0)) revert FarmsUni_WithdrawLpAndSwapError();
-        if (args_.tokenDesired != args_.token0 && args_.tokenDesired != args_.token1) revert FarmsUni_WithdrawLpAndSwapError();
-        IERC20(args_.lpToken).safeTransferFrom(msg.sender, address(this), amountLp_);
-        IERC20(args_.lpToken).safeTransfer(args_.lpToken, amountLp_);
-        (uint256 amount0, uint256 amount1) = IUniswapV2Pair(args_.lpToken).burn(address(this));
+        IUniswapV2Pair lp = IUniswapV2Pair(lpToken_);
+        if ((lp.token0() != tokens_[0] || lp.token1() != tokens_[1]) && (lp.token0() != tokens_[1] || lp.token1() != tokens_[0])) revert FarmsUni_WithdrawLpAndSwapError();
+        if (tokens_[3] != tokens_[0] && tokens_[3] != tokens_[1]) revert FarmsUni_WithdrawLpAndSwapError();
+        IERC20(lpToken_).safeTransferFrom(msg.sender, address(this), amountLp_);
+        IERC20(lpToken_).safeTransfer(lpToken_, amountLp_);
+        (uint256 amount0, uint256 amount1) = IUniswapV2Pair(lpToken_).burn(address(this));
 
         uint256 swapAmount;
         address swapToken;
 
-        if (args_.token1 == args_.tokenDesired) {
-            swapToken = args_.token0;
+        if (tokens_[1] == tokens_[3]) {
+            swapToken = tokens_[0];
             swapAmount = amount0;
             amountTokenDesired += amount1;
         } else {
-            swapToken = args_.token1;
+            swapToken = tokens_[1];
             swapAmount = amount1;
             amountTokenDesired += amount0;
         }
         
         _approve(swapToken, swapsUni_, swapAmount);
-        amountTokenDesired += ISwapsUni(swapsUni_).swapTokens(swapToken, swapAmount, args_.tokenDesired, args_.amountTokenDesiredMin);
-        IERC20(args_.tokenDesired).safeTransfer(msg.sender, amountTokenDesired);
+        amountTokenDesired += ISwapsUni(swapsUni_).swapTokens(swapToken, swapAmount, tokens_[3], amountOutMin_);
+        IERC20(tokens_[3]).safeTransfer(msg.sender, amountTokenDesired);
     }
 
     /**

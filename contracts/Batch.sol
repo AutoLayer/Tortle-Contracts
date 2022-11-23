@@ -11,7 +11,6 @@ import './interfaces/IBeets.sol';
 contract Batch {
     address public owner;
     Nodes public nodes;
-    Nodes.SplitStruct private splitStruct;
     uint8 public constant TOTAL_FEE = 150; //1.50%
     uint256[] public auxStack;
 
@@ -79,77 +78,107 @@ contract Batch {
     }
 
     function withdrawFromFarm(Function memory args) public onlySelf {
-        uint256 amount = StringUtils.safeParseInt(args.arguments[7]);
+        address lpToken_ = StringUtils.parseAddr(args.arguments[0]);
+        address tortleVault_ = StringUtils.parseAddr(args.arguments[1]);
+        address[] memory tokens_ = abi.decode(bytes(args.arguments[2]), (address[]));
+        uint256 amountOutMin_ = StringUtils.safeParseInt(args.arguments[3]);
+        uint256 amount = StringUtils.safeParseInt(args.arguments[4]);
         if (auxStack.length > 0) {
             amount = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
-        (uint256 rewardAmount, uint256 amountTokenDesired) = nodes.withdrawFromFarm(args.user, args.arguments, amount);
+
+        (uint256 rewardAmount, uint256 amountTokenDesired) = nodes.withdrawFromFarm(args.user, lpToken_, tortleVault_, tokens_, amountOutMin_, amount);
+        
+        if (args.hasNext) {
+            auxStack.push(amountTokenDesired);
+        }
+
         emit ttWithdrawed(
             args.recipeId,
             args.id,
-            StringUtils.parseAddr(args.arguments[2]),
+            tortleVault_,
             amount,
-            StringUtils.parseAddr(args.arguments[5]),
+            tokens_[3],
             amountTokenDesired,
             rewardAmount
         );
-        if (args.hasNext) {
-            auxStack.push(amountTokenDesired);
-        }
     }
 
     function withdrawFromLp(Function memory args) public onlySelf {
-        uint256 amount = StringUtils.safeParseInt(args.arguments[7]);
+        bytes32 poolId_ = bytes32(bytes(args.arguments[0]));
+        address lpToken_ = StringUtils.parseAddr(args.arguments[1]);
+        address[] memory tokens_ = abi.decode(bytes(args.arguments[2]), (address[]));
+        uint256[] memory amountsOutMin_ = abi.decode(bytes(args.arguments[3]), (uint256[]));
+        uint256 amount = StringUtils.safeParseInt(args.arguments[4]);
         if (auxStack.length > 0) {
             amount = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
-        uint256 amountTokenDesired = nodes.withdrawFromLp(args.user, args.arguments, amount);
-        emit lpWithdrawed(
-            args.recipeId,
-            args.id,
-            StringUtils.parseAddr(args.arguments[1]),
-            amount,
-            StringUtils.parseAddr(args.arguments[5]),
-            amountTokenDesired
-        );
+
+        uint256 amountTokenDesired = nodes.withdrawFromLp(args.user, poolId_, lpToken_, tokens_, amountsOutMin_, amount);
+        
         if (args.hasNext) {
             auxStack.push(amountTokenDesired);
         }
+
+        address tokenOut_;
+        if(lpToken_ != address(0)) {
+            tokenOut_ = tokens_[3];
+        } else {
+            tokenOut_ = tokens_[0];
+        }
+
+        emit lpWithdrawed(
+            args.recipeId,
+            args.id,
+            lpToken_,
+            amount,
+            tokenOut_,
+            amountTokenDesired
+        );
     }
 
     function depositOnLp(Function memory args) public onlySelf {
-        uint256 amount0 = StringUtils.safeParseInt(args.arguments[3]);
-        uint256 amount1 = StringUtils.safeParseInt(args.arguments[4]);
-        uint256 amountOutMin0 = StringUtils.safeParseInt(args.arguments[5]);
-        uint256 amountOutMin1 = StringUtils.safeParseInt(args.arguments[6]);
-        address lpToken = StringUtils.parseAddr(args.arguments[0]);
+        bytes32 poolId_ = bytes32(bytes(args.arguments[0]));
+        address lpToken_ = StringUtils.parseAddr(args.arguments[1]);
+        address[] memory tokens_ = abi.decode(bytes(args.arguments[2]), (address[]));
+        uint256[] memory amounts_ = abi.decode(bytes(args.arguments[3]), (uint256[]));
+        uint256 amountOutMin0 = StringUtils.safeParseInt(args.arguments[4]);
+        uint256 amountOutMin1 = StringUtils.safeParseInt(args.arguments[5]);
         if (auxStack.length > 0) {
-            amount0 = auxStack[auxStack.length - 2];
-            amount1 = auxStack[auxStack.length - 1];
+            amounts_[0] = auxStack[auxStack.length - 2];
+            amounts_[1] = auxStack[auxStack.length - 1];
             auxStack.pop();
             auxStack.pop();
         }
+
         uint256 lpRes = nodes.depositOnLp(
             args.user,
-            lpToken,
-            StringUtils.parseAddr(args.arguments[1]),
-            StringUtils.parseAddr(args.arguments[2]),
-            amount0,
-            amount1,
+            poolId_,
+            lpToken_,
+            tokens_,
+            amounts_,
             amountOutMin0,
             amountOutMin1
         );
-        emit lpDeposited(args.recipeId, args.id, lpToken, lpRes);
+
         if (args.hasNext) {
             auxStack.push(lpRes);
         }
+
+        emit lpDeposited(args.recipeId, args.id, lpToken_, lpRes);
     }
 
     function depositOnFarm(Function memory args) public onlySelf {
+        address lpToken_ = StringUtils.parseAddr(args.arguments[1]);
+        address tortleVault_ = StringUtils.parseAddr(args.arguments[2]);
+        address[] memory tokens_ = abi.decode(bytes(args.arguments[3]), (address[]));
+        uint256 amount0_ = StringUtils.safeParseInt(args.arguments[4]);
+        uint256 amount1_ = StringUtils.safeParseInt(args.arguments[5]);
+
         (, bytes memory data) = address(nodes).call(
-            abi.encodeWithSignature(args.arguments[0], args.user, args.arguments, auxStack)
+            abi.encodeWithSignature(args.arguments[0], args.user, lpToken_, tortleVault_, tokens_, amount0_, amount1_, auxStack)
         );
 
         uint256[] memory result = abi.decode(data, (uint256[]));
