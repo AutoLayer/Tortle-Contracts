@@ -5,7 +5,7 @@ import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import './Nodes.sol';
-import './lib/AddressToUintIterableMap.sol';
+import './lib/StringUtils.sol';
 import './interfaces/IBeets.sol';
 
 contract Batch {
