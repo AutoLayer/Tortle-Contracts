@@ -211,6 +211,8 @@ contract Batch {
 
         if (auxStack.length > 0) {
             amount = auxStack[auxStack.length - 1];
+            batchSwapStepFirstToken[0].amount = amount;
+            batchSwapStepSecondToken[0].amount = amount;
             auxStack.pop();
         }
 
@@ -252,6 +254,7 @@ contract Batch {
         
         if (auxStack.length > 0) {
             amount_ = auxStack[auxStack.length - 1];
+            batchSwapStep_[0].amount = amount_;
             auxStack.pop();
         }
 
