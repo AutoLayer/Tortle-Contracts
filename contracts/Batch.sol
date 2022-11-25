@@ -23,6 +23,27 @@ contract Batch {
         bool hasNext;
     }
 
+    struct BatchSwapStruct {
+        bytes32[] poolId;
+        uint256[] assetInIndex;
+        uint256[] assetOutIndex;
+        uint256[] amount;
+    }
+
+    struct SplitStruct {
+        IAsset[] firstTokens;
+        IAsset[] secondTokens;
+        uint256 amount;
+        uint256 percentageFirstToken;
+        uint256 amountOutMinFirst;
+        uint256 amountOutMinSecond;
+        uint8[] providers;
+        BatchSwapStruct batchSwapStepFirstToken;
+        BatchSwapStruct batchSwapStepSecondToken;
+        string firstHasNext;
+        string secondHasNext;
+    }
+
     event AddFundsForTokens(string indexed recipeId, string indexed id, address tokenInput, uint256 amount);
     event AddFundsForFTM(string indexed recipeId, string indexed id, uint256 amount);
     event Split(string indexed recipeId, string indexed id, address tokenInput, uint256 amountIn, address tokenOutput1, uint256 amountOutToken1, address tokenOutput2, uint256 amountOutToken2);
@@ -63,6 +84,16 @@ contract Batch {
     function deleteAuxStack() private {
         for (uint8 i = 1; i <= auxStack.length; i++) {
             auxStack.pop();
+        }
+    }
+
+    function createBatchSwapObject(BatchSwapStruct memory batchSwapStruct_) public view onlySelf returns(BatchSwapStep[] memory batchSwapSteps) {
+        for(uint16 x; x < batchSwapStruct_.poolId.length; x++) {
+            batchSwapSteps[x].poolId = batchSwapStruct_.poolId[x];
+            batchSwapSteps[x].assetInIndex = batchSwapStruct_.assetInIndex[x];
+            batchSwapSteps[x].assetOutIndex = batchSwapStruct_.assetOutIndex[x];
+            batchSwapSteps[x].amount = batchSwapStruct_.amount[x];
+            batchSwapSteps[x].userData = bytes("0x");
         }
     }
 
@@ -193,32 +224,26 @@ contract Batch {
     }
 
     function split(Function memory args) public onlySelf {
-        (IAsset[] memory firstTokens_,
-        IAsset[] memory secondTokens_,
-        uint256 amount_,
-        uint256 percentageFirstToken_, 
-        uint256 amountOutMinFirst_, 
-        uint256 amountOutMinSecond_,
-        BatchSwapStep[] memory batchSwapStepFirstToken_,
-        BatchSwapStep[] memory batchSwapStepSecondToken_,
-        uint8[] memory providers_,
-        string[] memory hasNext_) = abi.decode(args.arguments, (IAsset[], IAsset[], uint256, uint256, uint256, uint256, BatchSwapStep[], BatchSwapStep[], uint8[], string[]));
+        (SplitStruct memory splitStruct_) = abi.decode(args.arguments, (SplitStruct));
 
         if (auxStack.length > 0) {
-            amount_ = auxStack[auxStack.length - 1];
+            splitStruct_.amount = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
 
-        bytes memory data = abi.encode(args.user, firstTokens_, secondTokens_, amount_, percentageFirstToken_, amountOutMinFirst_, amountOutMinSecond_, providers_, batchSwapStepFirstToken_, batchSwapStepSecondToken_);
+        BatchSwapStep[] memory batchSwapStepFirstToken_ = createBatchSwapObject(splitStruct_.batchSwapStepFirstToken);
+        BatchSwapStep[] memory batchSwapStepSecondToken_ = createBatchSwapObject(splitStruct_.batchSwapStepSecondToken);
+
+        bytes memory data = abi.encode(args.user, splitStruct_.firstTokens, splitStruct_.secondTokens, splitStruct_.amount, splitStruct_.percentageFirstToken, splitStruct_.amountOutMinFirst, splitStruct_.amountOutMinSecond, splitStruct_.providers, batchSwapStepFirstToken_, batchSwapStepSecondToken_);
         uint256[] memory amountOutTokens = nodes.split(data);
-        if (StringUtils.equal(hasNext_[0], 'y')) {
+        if (StringUtils.equal(splitStruct_.firstHasNext, 'y')) {
             auxStack.push(amountOutTokens[0]);
         }
-        if (StringUtils.equal(hasNext_[1], 'y')) {
+        if (StringUtils.equal(splitStruct_.secondHasNext, 'y')) {
             auxStack.push(amountOutTokens[1]);
         }
 
-        emit Split(args.recipeId, args.id, address(firstTokens_[0]), amount_, address(firstTokens_[firstTokens_.length - 1]), amountOutTokens[0], address(secondTokens_[secondTokens_.length - 1]), amountOutTokens[1]);
+        emit Split(args.recipeId, args.id, address(splitStruct_.firstTokens[0]), splitStruct_.amount, address(splitStruct_.firstTokens[splitStruct_.firstTokens.length - 1]), amountOutTokens[0], address(splitStruct_.secondTokens[splitStruct_.secondTokens.length - 1]), amountOutTokens[1]);
     }
 
     function addFundsForTokens(Function memory args) public onlySelf {
@@ -259,7 +284,7 @@ contract Batch {
         address tokenOutput_,
         uint256 amountOutMin_) = abi.decode(args.arguments, (address[], uint256[], address, uint256));
 
-        for(uint256 x; x < tokens_.length; x++) {
+        for(uint16 x; x < tokens_.length; x++) {
             if(auxStack.length > 0) {
                 amounts_[x] = auxStack[auxStack.length - 1];
                 auxStack.pop();
