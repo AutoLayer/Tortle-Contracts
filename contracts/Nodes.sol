@@ -224,6 +224,7 @@ contract Nodes is Initializable, ReentrancyGuard {
                 amountOut = swapsUni.swapTokens(tokenIn_, amount_, tokenOut_, amountOutMin_);
             } else {
                 _approve(tokenIn_, address(swapsBeets), amount_);
+                batchSwapStep_[0].amount = amount_;
                 amountOut = swapsBeets.swapTokens(tokens_, batchSwapStep_);
             }
 
@@ -428,7 +429,7 @@ contract Nodes is Initializable, ReentrancyGuard {
      */
     function liquidate(
         address _user,
-        IERC20[] memory _tokens,
+        address[] memory _tokens,
         uint256[] memory _amounts,
         address _tokenOutput,
         uint256 _amountOutMin
@@ -437,7 +438,7 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         uint256 amount;
         for (uint256 _i = 0; _i < _tokens.length; _i++) {
-            address tokenInput = address(_tokens[_i]);
+            address tokenInput = _tokens[_i];
             uint256 amountInput = _amounts[_i];
             uint256 userBalance = getBalance(_user, IERC20(tokenInput));
             if (userBalance < amountInput) revert Nodes__InsufficientBalance();
