@@ -87,7 +87,7 @@ contract Batch {
         }
     }
 
-    function createBatchSwapObject(BatchSwapStruct memory batchSwapStruct_) public view onlySelf returns(BatchSwapStep[] memory batchSwapSteps) {
+    function createBatchSwapObject(BatchSwapStruct memory batchSwapStruct_) private pure returns(BatchSwapStep[] memory batchSwapSteps) {
         for(uint16 x; x < batchSwapStruct_.poolId.length; x++) {
             batchSwapSteps[x].poolId = batchSwapStruct_.poolId[x];
             batchSwapSteps[x].assetInIndex = batchSwapStruct_.assetInIndex[x];
@@ -95,6 +95,18 @@ contract Batch {
             batchSwapSteps[x].amount = batchSwapStruct_.amount[x];
             batchSwapSteps[x].userData = bytes("0x");
         }
+    }
+
+    function addFundsForTokens(Function memory args) public onlySelf {
+        (address token_,
+        uint256 amount_) = abi.decode(args.arguments, (address, uint256));
+
+        uint256 amount = nodes.addFundsForTokens(args.user, token_, amount_);
+        if (args.hasNext) {
+            auxStack.push(amount);
+        }
+
+        emit AddFundsForTokens(args.recipeId, args.id, token_, amount);
     }
 
     function addFundsForFTM(Function memory args) public onlySelf {
@@ -108,33 +120,79 @@ contract Batch {
         emit AddFundsForFTM(args.recipeId, args.id, amount_);
     }
 
-    function withdrawFromFarm(Function memory args) public onlySelf {
-        (address lpToken_,
-        address tortleVault_,
-        address[] memory tokens_,
+    function swapTokens(Function memory args) public onlySelf {
+        (IAsset[] memory tokens_,
+        uint256 amount_,
         uint256 amountOutMin_,
-        uint256 amount_) = abi.decode(args.arguments, (address, address, address[], uint256, uint256));
-
+        BatchSwapStep[] memory batchSwapStep_,
+        uint8 provider_) = abi.decode(args.arguments, (IAsset[], uint256, uint256, BatchSwapStep[], uint8));
+        
         if (auxStack.length > 0) {
             amount_ = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
 
-        (uint256 rewardAmount, uint256 amountTokenDesired) = nodes.withdrawFromFarm(args.user, lpToken_, tortleVault_, tokens_, amountOutMin_, amount_);
-        
+        uint256 amountOut = nodes.swapTokens(args.user, provider_, tokens_, amount_, amountOutMin_, batchSwapStep_);
         if (args.hasNext) {
-            auxStack.push(amountTokenDesired);
+            auxStack.push(amountOut);
         }
 
-        emit ttWithdrawed(
-            args.recipeId,
-            args.id,
-            tortleVault_,
-            amount_,
-            tokens_[3],
-            amountTokenDesired,
-            rewardAmount
+        emit SwapTokens(args.recipeId, args.id, address(tokens_[0]), amount_, address(tokens_[tokens_.length - 1]), amountOut);
+    }
+
+    function split(Function memory args) public onlySelf {
+        (SplitStruct memory splitStruct_) = abi.decode(args.arguments, (SplitStruct));
+
+        if (auxStack.length > 0) {
+            splitStruct_.amount = auxStack[auxStack.length - 1];
+            auxStack.pop();
+        }
+
+        BatchSwapStep[] memory batchSwapStepFirstToken_ = createBatchSwapObject(splitStruct_.batchSwapStepFirstToken);
+        BatchSwapStep[] memory batchSwapStepSecondToken_ = createBatchSwapObject(splitStruct_.batchSwapStepSecondToken);
+
+        bytes memory data = abi.encode(args.user, splitStruct_.firstTokens, splitStruct_.secondTokens, splitStruct_.amount, splitStruct_.percentageFirstToken, splitStruct_.amountOutMinFirst, splitStruct_.amountOutMinSecond, splitStruct_.providers, batchSwapStepFirstToken_, batchSwapStepSecondToken_);
+        uint256[] memory amountOutTokens = nodes.split(data);
+        if (StringUtils.equal(splitStruct_.firstHasNext, 'y')) {
+            auxStack.push(amountOutTokens[0]);
+        }
+        if (StringUtils.equal(splitStruct_.secondHasNext, 'y')) {
+            auxStack.push(amountOutTokens[1]);
+        }
+
+        emit Split(args.recipeId, args.id, address(splitStruct_.firstTokens[0]), splitStruct_.amount, address(splitStruct_.firstTokens[splitStruct_.firstTokens.length - 1]), amountOutTokens[0], address(splitStruct_.secondTokens[splitStruct_.secondTokens.length - 1]), amountOutTokens[1]);
+    }
+
+    function depositOnLp(Function memory args) public onlySelf {
+        (bytes32 poolId_,
+        address lpToken_,
+        address[] memory tokens_,
+        uint256[] memory amounts_,
+        uint256 amountOutMin0_,
+        uint256 amountOutMin1_) = abi.decode(args.arguments, (bytes32, address, address[], uint256[], uint256, uint256));
+
+        if (auxStack.length > 0) {
+            amounts_[0] = auxStack[auxStack.length - 2];
+            amounts_[1] = auxStack[auxStack.length - 1];
+            auxStack.pop();
+            auxStack.pop();
+        }
+
+        uint256 lpRes = nodes.depositOnLp(
+            args.user,
+            poolId_,
+            lpToken_,
+            tokens_,
+            amounts_,
+            amountOutMin0_,
+            amountOutMin1_
         );
+
+        if (args.hasNext) {
+            auxStack.push(lpRes);
+        }
+
+        emit lpDeposited(args.recipeId, args.id, lpToken_, lpRes);
     }
 
     function withdrawFromLp(Function memory args) public onlySelf {
@@ -172,38 +230,6 @@ contract Batch {
         );
     }
 
-    function depositOnLp(Function memory args) public onlySelf {
-        (bytes32 poolId_,
-        address lpToken_,
-        address[] memory tokens_,
-        uint256[] memory amounts_,
-        uint256 amountOutMin0_,
-        uint256 amountOutMin1_) = abi.decode(args.arguments, (bytes32, address, address[], uint256[], uint256, uint256));
-
-        if (auxStack.length > 0) {
-            amounts_[0] = auxStack[auxStack.length - 2];
-            amounts_[1] = auxStack[auxStack.length - 1];
-            auxStack.pop();
-            auxStack.pop();
-        }
-
-        uint256 lpRes = nodes.depositOnLp(
-            args.user,
-            poolId_,
-            lpToken_,
-            tokens_,
-            amounts_,
-            amountOutMin0_,
-            amountOutMin1_
-        );
-
-        if (args.hasNext) {
-            auxStack.push(lpRes);
-        }
-
-        emit lpDeposited(args.recipeId, args.id, lpToken_, lpRes);
-    }
-
     function depositOnFarm(Function memory args) public onlySelf {
         (address lpToken_,
         address tortleVault_,
@@ -223,59 +249,47 @@ contract Batch {
         }
     }
 
-    function split(Function memory args) public onlySelf {
-        (SplitStruct memory splitStruct_) = abi.decode(args.arguments, (SplitStruct));
-
-        if (auxStack.length > 0) {
-            splitStruct_.amount = auxStack[auxStack.length - 1];
-            auxStack.pop();
-        }
-
-        BatchSwapStep[] memory batchSwapStepFirstToken_ = createBatchSwapObject(splitStruct_.batchSwapStepFirstToken);
-        BatchSwapStep[] memory batchSwapStepSecondToken_ = createBatchSwapObject(splitStruct_.batchSwapStepSecondToken);
-
-        bytes memory data = abi.encode(args.user, splitStruct_.firstTokens, splitStruct_.secondTokens, splitStruct_.amount, splitStruct_.percentageFirstToken, splitStruct_.amountOutMinFirst, splitStruct_.amountOutMinSecond, splitStruct_.providers, batchSwapStepFirstToken_, batchSwapStepSecondToken_);
-        uint256[] memory amountOutTokens = nodes.split(data);
-        if (StringUtils.equal(splitStruct_.firstHasNext, 'y')) {
-            auxStack.push(amountOutTokens[0]);
-        }
-        if (StringUtils.equal(splitStruct_.secondHasNext, 'y')) {
-            auxStack.push(amountOutTokens[1]);
-        }
-
-        emit Split(args.recipeId, args.id, address(splitStruct_.firstTokens[0]), splitStruct_.amount, address(splitStruct_.firstTokens[splitStruct_.firstTokens.length - 1]), amountOutTokens[0], address(splitStruct_.secondTokens[splitStruct_.secondTokens.length - 1]), amountOutTokens[1]);
-    }
-
-    function addFundsForTokens(Function memory args) public onlySelf {
-        (address token_,
-        uint256 amount_) = abi.decode(args.arguments, (address, uint256));
-
-        uint256 amount = nodes.addFundsForTokens(args.user, token_, amount_);
-        if (args.hasNext) {
-            auxStack.push(amount);
-        }
-
-        emit AddFundsForTokens(args.recipeId, args.id, token_, amount);
-    }
-
-    function swapTokens(Function memory args) public onlySelf {
-        (IAsset[] memory tokens_,
-        uint256 amount_,
+    function withdrawFromFarm(Function memory args) public onlySelf {
+        (address lpToken_,
+        address tortleVault_,
+        address[] memory tokens_,
         uint256 amountOutMin_,
-        BatchSwapStep[] memory batchSwapStep_,
-        uint8 provider_) = abi.decode(args.arguments, (IAsset[], uint256, uint256, BatchSwapStep[], uint8));
-        
+        uint256 amount_) = abi.decode(args.arguments, (address, address, address[], uint256, uint256));
+
         if (auxStack.length > 0) {
             amount_ = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
 
-        uint256 amountOut = nodes.swapTokens(args.user, provider_, tokens_, amount_, amountOutMin_, batchSwapStep_);
+        (uint256 rewardAmount, uint256 amountTokenDesired) = nodes.withdrawFromFarm(args.user, lpToken_, tortleVault_, tokens_, amountOutMin_, amount_);
+        
         if (args.hasNext) {
-            auxStack.push(amountOut);
+            auxStack.push(amountTokenDesired);
         }
 
-        emit SwapTokens(args.recipeId, args.id, address(tokens_[0]), amount_, address(tokens_[tokens_.length - 1]), amountOut);
+        emit ttWithdrawed(
+            args.recipeId,
+            args.id,
+            tortleVault_,
+            amount_,
+            tokens_[3],
+            amountTokenDesired,
+            rewardAmount
+        );
+    }
+
+    function sendToWallet(Function memory args) public onlySelf {
+        (address token_,
+        uint256 amount_) = abi.decode(args.arguments, (address, uint256));
+
+        if (auxStack.length > 0) {
+            amount_ = auxStack[auxStack.length - 1];
+            auxStack.pop();
+        }
+
+        uint256 amount = nodes.sendToWallet(args.user, IERC20(token_), amount_);
+
+        emit SendToWallet(args.recipeId, args.id, token_, amount);
     }
 
     function liquidate(Function memory args) public onlySelf {
@@ -294,20 +308,6 @@ contract Batch {
         uint256 amountOut = nodes.liquidate(args.user, tokens_, amounts_, tokenOutput_, amountOutMin_);
 
         emit Liquidate(args.recipeId, args.id, tokens_, amounts_, tokenOutput_, amountOut);
-    }
-
-    function sendToWallet(Function memory args) public onlySelf {
-        (address token_,
-        uint256 amount_) = abi.decode(args.arguments, (address, uint256));
-
-        if (auxStack.length > 0) {
-            amount_ = auxStack[auxStack.length - 1];
-            auxStack.pop();
-        }
-
-        uint256 amount = nodes.sendToWallet(args.user, IERC20(token_), amount_);
-
-        emit SendToWallet(args.recipeId, args.id, token_, amount);
     }
 
     receive() external payable {}
