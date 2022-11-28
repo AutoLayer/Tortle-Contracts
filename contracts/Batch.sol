@@ -124,13 +124,15 @@ contract Batch {
         (IAsset[] memory tokens_,
         uint256 amount_,
         uint256 amountOutMin_,
-        BatchSwapStep[] memory batchSwapStep_,
-        uint8 provider_) = abi.decode(args.arguments, (IAsset[], uint256, uint256, BatchSwapStep[], uint8));
+        BatchSwapStruct memory batchSwapStruct_,
+        uint8 provider_) = abi.decode(args.arguments, (IAsset[], uint256, uint256, BatchSwapStruct, uint8));
         
         if (auxStack.length > 0) {
             amount_ = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
+
+        BatchSwapStep[] memory batchSwapStep_ = createBatchSwapObject(batchSwapStruct_);
 
         uint256 amountOut = nodes.swapTokens(args.user, provider_, tokens_, amount_, amountOutMin_, batchSwapStep_);
         if (args.hasNext) {
