@@ -237,7 +237,7 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     /**
     * @notice Function that divides the token you send into two tokens according to the percentage you select.
-    * @param args_ Struct: user, firstTokens, secondTokens, amount, percentageFirstToken, amountOutMinFirst_, amountOutMinSecond_, providers, batchSwapStepFirstToken, batchSwapStepSecondToken.
+    * @param args_ user, firstTokens, secondTokens, amount, percentageFirstToken, amountOutMinFirst_, amountOutMinSecond_, providers, batchSwapStepFirstToken, batchSwapStepSecondToken.
     */
     function split(bytes calldata args_)
         public
@@ -280,8 +280,8 @@ contract Nodes is Initializable, ReentrancyGuard {
     /**
     * @notice Function used to deposit tokens on a lpPool and get lptoken
     * @param user_ Address of the user.
-    * @param lpToken_ Address of the lpToken.
     * @param poolId_ Beets pool id.
+    * @param lpToken_ Address of the lpToken.
     * @param tokens_ Addresses of tokens that are going to be deposited.
     * @param amounts_ Amounts of tokens.
     * @param amountOutMin0_ Minimum amount of token0.
@@ -327,7 +327,12 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     /**
     * @notice Function used to withdraw tokens from a LPfarm
-    * @param amount_ Amount of LPTokens desired to withdraw
+    * @param user_ Address of the user.
+    * @param poolId_ Beets pool id.
+    * @param lpToken_ Address of the lpToken.
+    * @param tokens_ Addresses of tokens that are going to be deposited.
+    * @param amountsOutMin_ Minimum amounts to be withdrawed.
+    * @param amount_ Amount of LPTokens desired to withdraw.-
     */
     function withdrawFromLp(
         address user_,
@@ -359,7 +364,13 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     /**
     * @notice Function used to deposit tokens on a farm
-    * @param auxStack Contains information of the amounts that are going to be deposited 
+    * @param user Address of the user.
+    * @param lpToken_ Address of the LP Token.
+    * @param tortleVault_ Address of the tortle vault where we are going to deposit.
+    * @param tokens_ Addresses of tokens that are going to be deposited.
+    * @param amount0_ Amount of token 0.
+    * @param amount1_ Amount of token 1.
+    * @param auxStack Contains information of the amounts that are going to be deposited.
     */
     function depositOnFarmTokens(
         address user,
@@ -397,7 +408,12 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     /**
     * @notice Function used to withdraw tokens from a farm
-    * @param amount Amount of tokens desired to withdraw
+    * @param user Address of the user.
+    * @param lpToken_ Address of the LP Token.
+    * @param tortleVault_ Address of the tortle vault where we are going to deposit.
+    * @param tokens_ Addresses of tokens that are going to be deposited.
+    * @param amountOutMin_ Minimum amount to be withdrawed.
+    * @param amount Amount of tokens desired to withdraw.
     */
     function withdrawFromFarm(
         address user,
