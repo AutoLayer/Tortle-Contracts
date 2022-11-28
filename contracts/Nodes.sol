@@ -138,9 +138,9 @@ contract Nodes is Initializable, ReentrancyGuard {
         if (_amount <= 0) revert Nodes__InsufficientBalance();
 
         uint256 balanceBefore = IERC20(_token).balanceOf(address(this));
-        IERC20(_token).safeTransferFrom(_user, address(this), _amount); // Send tokens from investor account to contract account.
+        IERC20(_token).safeTransferFrom(_user, address(this), _amount);
         uint256 balanceAfter = IERC20(_token).balanceOf(address(this));
-        if (balanceAfter <= balanceBefore) revert Nodes__TransferFailed(); // Checks that the balance of the contract has increased.
+        if (balanceAfter <= balanceBefore) revert Nodes__TransferFailed();
 
         amount = chargeFees(_token, balanceAfter - balanceBefore);
         increaseBalance(_user, _token, amount);
@@ -332,7 +332,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     * @param lpToken_ Address of the lpToken.
     * @param tokens_ Addresses of tokens that are going to be deposited.
     * @param amountsOutMin_ Minimum amounts to be withdrawed.
-    * @param amount_ Amount of LPTokens desired to withdraw.-
+    * @param amount_ Amount of LPTokens desired to withdraw.
     */
     function withdrawFromLp(
         address user_,
