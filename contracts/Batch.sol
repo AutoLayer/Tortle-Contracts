@@ -13,6 +13,7 @@ contract Batch {
     Nodes public nodes;
     uint8 public constant TOTAL_FEE = 150; //1.50%
     uint256[] public auxStack;
+    BatchSwapStep[] private batchSwapStep;
 
     struct Function {
         string recipeId;
@@ -87,14 +88,24 @@ contract Batch {
         }
     }
 
-    function createBatchSwapObject(BatchSwapStruct memory batchSwapStruct_) private pure returns(BatchSwapStep[] memory batchSwapSteps) {
-        for(uint16 x; x < batchSwapStruct_.poolId.length; x++) {
-            batchSwapSteps[x].poolId = batchSwapStruct_.poolId[x];
-            batchSwapSteps[x].assetInIndex = batchSwapStruct_.assetInIndex[x];
-            batchSwapSteps[x].assetOutIndex = batchSwapStruct_.assetOutIndex[x];
-            batchSwapSteps[x].amount = batchSwapStruct_.amount[x];
-            batchSwapSteps[x].userData = bytes("0x");
+    function deleteBatchSwapStep() private {
+        for (uint8 i; i < batchSwapStep.length; i++) {
+            batchSwapStep.pop();
         }
+    }
+
+    function createBatchSwapObject(BatchSwapStruct memory batchSwapStruct_) private returns(BatchSwapStep[] memory newBatchSwapStep) {
+        for(uint16 x; x < batchSwapStruct_.poolId.length; x++) {
+            BatchSwapStep memory batchSwapStep_;
+            batchSwapStep_.poolId = batchSwapStruct_.poolId[x];
+            batchSwapStep_.assetInIndex = batchSwapStruct_.assetInIndex[x];
+            batchSwapStep_.assetOutIndex = batchSwapStruct_.assetOutIndex[x];
+            batchSwapStep_.amount = batchSwapStruct_.amount[x];
+            batchSwapStep_.userData = bytes("0x");
+            batchSwapStep.push(batchSwapStep_);
+        }
+        newBatchSwapStep = batchSwapStep;
+        deleteBatchSwapStep();
     }
 
     function addFundsForTokens(Function memory args) public onlySelf {
