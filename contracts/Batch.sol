@@ -143,7 +143,10 @@ contract Batch {
             auxStack.pop();
         }
 
-        BatchSwapStep[] memory batchSwapStep_ = createBatchSwapObject(batchSwapStruct_);
+        BatchSwapStep[] memory batchSwapStep_;
+        if(provider_ == 1) {
+            batchSwapStep_ = createBatchSwapObject(batchSwapStruct_);
+        }
 
         uint256 amountOut = nodes.swapTokens(args.user, provider_, tokens_, amount_, amountOutMin_, batchSwapStep_);
         if (args.hasNext) {
