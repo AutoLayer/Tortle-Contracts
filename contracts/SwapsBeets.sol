@@ -27,7 +27,8 @@ contract SwapsBeets is ReentrancyGuard {
         BatchSwapStep[] memory batchSwapStep_
     ) public nonReentrant returns (uint256 amountOut) {
         IERC20(address(tokens_[0])).safeTransferFrom(msg.sender, address(this), batchSwapStep_[0].amount);
-        IERC20(address(tokens_[0])).approve(beets, batchSwapStep_[0].amount);
+        IERC20(address(tokens_[0])).safeApprove(beets, 0);
+        IERC20(address(tokens_[0])).safeApprove(beets, batchSwapStep_[0].amount);
 
         FundManagement memory fundManagement_;
         fundManagement_.sender = address(this);
