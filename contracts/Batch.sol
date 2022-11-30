@@ -83,13 +83,15 @@ contract Batch {
     }
 
     function deleteAuxStack() private {
-        for (uint8 i = 1; i <= auxStack.length; i++) {
+        uint256 arrayLength_ = auxStack.length;
+        for (uint8 i; i < arrayLength_; i++) {
             auxStack.pop();
         }
     }
 
     function deleteBatchSwapStep() private {
-        for (uint8 i; i < batchSwapStep.length; i++) {
+        uint256 arrayLength_ = batchSwapStep.length;
+        for (uint8 i; i < arrayLength_; i++) {
             batchSwapStep.pop();
         }
     }

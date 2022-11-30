@@ -48,7 +48,7 @@ const deployMainNet = async () => {
 
   // SwapsBeets Contract
   const SwapBeets = await (
-    await (await hre.ethers.getContractFactory('SwapsBeets')).connect(deployer).deploy(deployer.getAddress(), beetsVault)
+    await (await hre.ethers.getContractFactory('SwapsBeets')).connect(deployer).deploy(deployer.getAddress(), beetsVault, wftm)
   ).deployed()
 
   // DepositsBeets Contract
