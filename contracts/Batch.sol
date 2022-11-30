@@ -166,8 +166,15 @@ contract Batch {
             auxStack.pop();
         }
 
-        BatchSwapStep[] memory batchSwapStepFirstToken_ = createBatchSwapObject(splitStruct_.batchSwapStepFirstToken);
-        BatchSwapStep[] memory batchSwapStepSecondToken_ = createBatchSwapObject(splitStruct_.batchSwapStepSecondToken);
+        BatchSwapStep[] memory batchSwapStepFirstToken_;
+        if(splitStruct_.providers[0] == 1) {
+            batchSwapStepFirstToken_ = createBatchSwapObject(splitStruct_.batchSwapStepFirstToken);
+        }
+
+        BatchSwapStep[] memory batchSwapStepSecondToken_;
+        if(splitStruct_.providers[1] == 1) {
+            batchSwapStepSecondToken_ = createBatchSwapObject(splitStruct_.batchSwapStepSecondToken);
+        }
 
         bytes memory data = abi.encode(args.user, splitStruct_.firstTokens, splitStruct_.secondTokens, splitStruct_.amount, splitStruct_.percentageFirstToken, splitStruct_.amountOutMinFirst, splitStruct_.amountOutMinSecond, splitStruct_.providers, batchSwapStepFirstToken_, batchSwapStepSecondToken_);
         uint256[] memory amountOutTokens = nodes.split(data);
