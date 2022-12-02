@@ -266,11 +266,6 @@ contract Nodes is Initializable, ReentrancyGuard {
             amountOutTokens[1] = swapTokens(user_, providers_[1], secondTokens_, (amount_ - firstTokenAmount_), percentageAndAmountsOutMin_[2], batchSwapStepSecondToken_);
         } else amountOutTokens[1] = (amount_ - firstTokenAmount_);
 
-        increaseBalance(user_, address(firstTokens_[firstTokens_.length - 1]), amountOutTokens[0]);
-        increaseBalance(user_, address(secondTokens_[secondTokens_.length - 1]), amountOutTokens[1]);
-
-        decreaseBalance(user_, address(firstTokens_[0]), amount_);
-
         emit Split(address(firstTokens_[firstTokens_.length - 1]), amountOutTokens[0], address(secondTokens_[secondTokens_.length - 1]), amountOutTokens[1]);
     }
 
