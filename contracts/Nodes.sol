@@ -62,7 +62,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     event RecoverAll(address tokenOut, uint256 amountOut);
 
     modifier onlyOwner() {
-        require(msg.sender == owner || msg.sender == address(batch), 'You must be the owner.');
+        require(msg.sender == owner || msg.sender == address(batch) || msg.sender == address(this), 'You must be the owner.');
         _;
     }
 
