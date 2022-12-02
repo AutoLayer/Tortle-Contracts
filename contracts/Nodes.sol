@@ -239,12 +239,9 @@ contract Nodes is Initializable, ReentrancyGuard {
     * @notice Function that divides the token you send into two tokens according to the percentage you select.
     * @param args_ user, firstTokens, secondTokens, amount, percentageFirstToken, amountOutMinFirst_, amountOutMinSecond_, providers, batchSwapStepFirstToken, batchSwapStepSecondToken.
     */
-    function split(bytes calldata args_)
-        public
-        nonReentrant
-        onlyOwner
-        returns (uint256[] memory amountOutTokens)
-    {
+    function split(
+        bytes calldata args_
+    ) public nonReentrant onlyOwner returns (uint256[] memory amountOutTokens) {
         (address user_, 
         IAsset[] memory firstTokens_, 
         IAsset[] memory secondTokens_, 
