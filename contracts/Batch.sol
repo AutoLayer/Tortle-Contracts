@@ -35,9 +35,10 @@ contract Batch {
         IAsset[] firstTokens;
         IAsset[] secondTokens;
         uint256 amount;
-        uint256 percentageFirstToken;
-        uint256 amountOutMinFirst;
-        uint256 amountOutMinSecond;
+        // uint256 percentageFirstToken;
+        // uint256 amountOutMinFirst;
+        // uint256 amountOutMinSecond;
+        uint256[] percentageAndAmountsOutMin;
         uint8[] providers;
         BatchSwapStruct batchSwapStepFirstToken;
         BatchSwapStruct batchSwapStepSecondToken;
@@ -176,13 +177,14 @@ contract Batch {
             batchSwapStepSecondToken_ = createBatchSwapObject(splitStruct_.batchSwapStepSecondToken);
         }
 
-        bytes memory data = abi.encode(args.user, splitStruct_.firstTokens, splitStruct_.secondTokens, splitStruct_.amount, splitStruct_.percentageFirstToken, splitStruct_.amountOutMinFirst, splitStruct_.amountOutMinSecond, splitStruct_.providers, batchSwapStepFirstToken_, batchSwapStepSecondToken_);
-        uint256[] memory amountOutTokens = nodes.split(data);
+        bytes memory data = abi.encode(args.user, splitStruct_.firstTokens, splitStruct_.secondTokens, splitStruct_.amount, splitStruct_.percentageAndAmountsOutMin, splitStruct_.providers);
+        uint256[] memory amountOutTokens = nodes.split(data, batchSwapStepFirstToken_, batchSwapStepSecondToken_);
+
         if (StringUtils.equal(splitStruct_.firstHasNext, 'y')) {
             auxStack.push(amountOutTokens[0]);
         }
         if (StringUtils.equal(splitStruct_.secondHasNext, 'y')) {
-            auxStack.push(amountOutTokens[1]);
+           auxStack.push(amountOutTokens[1]);
         }
 
         emit Split(args.recipeId, args.id, address(splitStruct_.firstTokens[0]), splitStruct_.amount, address(splitStruct_.firstTokens[splitStruct_.firstTokens.length - 1]), amountOutTokens[0], address(splitStruct_.secondTokens[splitStruct_.secondTokens.length - 1]), amountOutTokens[1]);

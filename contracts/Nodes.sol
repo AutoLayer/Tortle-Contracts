@@ -240,30 +240,30 @@ contract Nodes is Initializable, ReentrancyGuard {
     * @param args_ user, firstTokens, secondTokens, amount, percentageFirstToken, amountOutMinFirst_, amountOutMinSecond_, providers, batchSwapStepFirstToken, batchSwapStepSecondToken.
     */
     function split(
-        bytes calldata args_
+        bytes calldata args_,
+        BatchSwapStep[] memory batchSwapStepFirstToken_,
+        BatchSwapStep[] memory batchSwapStepSecondToken_
     ) public nonReentrant onlyOwner returns (uint256[] memory amountOutTokens) {
         (address user_, 
         IAsset[] memory firstTokens_, 
         IAsset[] memory secondTokens_, 
-        uint256 amount_, 
-        uint256 percentageFirstToken_, 
-        uint256 amountOutMinFirst_, 
-        uint256 amountOutMinSecond_,  
-        uint8[] memory providers,
-        BatchSwapStep[] memory batchSwapStepFirstToken_, 
-        BatchSwapStep[] memory batchSwapStepSecondToken_
-        ) = abi.decode(args_, (address, IAsset[], IAsset[], uint256, uint256, uint256, uint256, uint8[], BatchSwapStep[], BatchSwapStep[]));
+        uint256 amount_,
+        uint256[] memory percentageAndAmountsOutMin_,
+        uint8[] memory providers_
+        ) = abi.decode(args_, (address, IAsset[], IAsset[], uint256, uint256[], uint8[]));
+
+        amountOutTokens = new uint256[](2);
 
         if (amount_ > getBalance(user_, IERC20(address(firstTokens_[0])))) revert Nodes__InsufficientBalance();
 
-        uint256 firstTokenAmount_ = mulScale(amount_, percentageFirstToken_, 10000);
-
+        uint256 firstTokenAmount_ = mulScale(amount_, percentageAndAmountsOutMin_[0], 10000);
+        
         if (address(firstTokens_[0]) != address(firstTokens_[firstTokens_.length - 1])) {
-            amountOutTokens[0] = swapTokens(user_, providers[0], firstTokens_, firstTokenAmount_, amountOutMinFirst_, batchSwapStepFirstToken_);
+            amountOutTokens[0] = swapTokens(user_, providers_[0], firstTokens_, firstTokenAmount_, percentageAndAmountsOutMin_[1], batchSwapStepFirstToken_);
         } else amountOutTokens[0] = firstTokenAmount_;
 
-        if (address(firstTokens_[0]) != address(secondTokens_[secondTokens_.length - 1])) {
-            amountOutTokens[1] = swapTokens(user_, providers[1], secondTokens_, (amount_ - firstTokenAmount_), amountOutMinSecond_, batchSwapStepSecondToken_);
+        if (address(secondTokens_[0]) != address(secondTokens_[secondTokens_.length - 1])) {
+            amountOutTokens[1] = swapTokens(user_, providers_[1], secondTokens_, (amount_ - firstTokenAmount_), percentageAndAmountsOutMin_[2], batchSwapStepSecondToken_);
         } else amountOutTokens[1] = (amount_ - firstTokenAmount_);
 
         increaseBalance(user_, address(firstTokens_[firstTokens_.length - 1]), amountOutTokens[0]);
