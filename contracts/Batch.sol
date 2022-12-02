@@ -35,9 +35,6 @@ contract Batch {
         IAsset[] firstTokens;
         IAsset[] secondTokens;
         uint256 amount;
-        // uint256 percentageFirstToken;
-        // uint256 amountOutMinFirst;
-        // uint256 amountOutMinSecond;
         uint256[] percentageAndAmountsOutMin;
         uint8[] providers;
         BatchSwapStruct batchSwapStepFirstToken;
