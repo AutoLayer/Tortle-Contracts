@@ -210,7 +210,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amount_,
         uint256 amountOutMin_,
         BatchSwapStep[] memory batchSwapStep_
-    ) public nonReentrant onlyOwner returns (uint256 amountOut) {
+    ) public /*nonReentrant*/ onlyOwner returns (uint256 amountOut) {
         address tokenIn_ = address(tokens_[0]);
         address tokenOut_ = address(tokens_[tokens_.length - 1]);
 
