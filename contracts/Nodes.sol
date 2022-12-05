@@ -210,7 +210,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amount_,
         uint256 amountOutMin_,
         BatchSwapStep[] memory batchSwapStep_
-    ) public /*nonReentrant*/ onlyOwner returns (uint256 amountOut) {
+    ) public nonReentrant onlyOwner returns (uint256 amountOut) {
         address tokenIn_ = address(tokens_[0]);
         address tokenOut_ = address(tokens_[tokens_.length - 1]);
 
@@ -243,7 +243,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         bytes calldata args_,
         BatchSwapStep[] memory batchSwapStepFirstToken_,
         BatchSwapStep[] memory batchSwapStepSecondToken_
-    ) public nonReentrant onlyOwner returns (uint256[] memory amountOutTokens) {
+    ) public onlyOwner returns (uint256[] memory amountOutTokens) {
         (address user_, 
         IAsset[] memory firstTokens_, 
         IAsset[] memory secondTokens_, 
@@ -440,7 +440,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256[] memory _amounts,
         address _tokenOutput,
         uint256 _amountOutMin
-    ) public nonReentrant onlyOwner returns (uint256) {
+    ) public /*nonReentrant*/ onlyOwner returns (uint256) {
         if (_tokens.length != _amounts.length) revert Nodes__InvalidArrayLength();
 
         uint256 amount;
