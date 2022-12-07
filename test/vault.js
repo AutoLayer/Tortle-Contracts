@@ -1,7 +1,7 @@
-const { expect, assert } = require('chai')
+const { expect } = require('chai')
 const { ethers } = require('hardhat')
-const { addLiquidity, beefIn, beefOut, createNode, addLiquidityETH } = require('./helpers')
-const { STR, WEI, sqrt, BN } = require('./utils')
+const { addLiquidity, createNode, addLiquidityETH } = require('./helpers')
+const { STR, WEI, BN } = require('./utils')
 
 const _erc20 = require('../artifacts/@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json')
 
