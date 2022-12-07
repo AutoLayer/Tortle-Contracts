@@ -317,21 +317,28 @@ contract Batch {
     }
 
     function liquidate(Function memory args) public onlySelf {
-        (address[] memory tokens_,
-        uint256[] memory amounts_,
-        address tokenOutput_,
-        uint256 amountOutMin_) = abi.decode(args.arguments, (address[], uint256[], address, uint256));
+        (uint8 provider_,
+        IAsset[] memory tokens_,
+        uint256[] memory amount_,
+        uint256 amountOutMin_,
+        BatchSwapStruct memory batchSwapStruct_) = abi.decode(args.arguments, (uint8, IAsset[], uint256[], uint256, BatchSwapStruct));
 
-        for(uint16 x; x < tokens_.length; x++) {
-            if(auxStack.length > 0) {
-                amounts_[x] = auxStack[auxStack.length - 1];
-                auxStack.pop();
-            }
+        address[] memory tokensOut = new address[](1);
+        tokensOut[0] = address(tokens_[0]); 
+
+        if(auxStack.length > 0) {
+            amount_[0] = auxStack[auxStack.length - 1];
+            auxStack.pop();
+        }
+        
+        BatchSwapStep[] memory batchSwapStep_;
+        if(provider_ == 1) {
+            batchSwapStep_ = createBatchSwapObject(batchSwapStruct_);
         }
 
-        uint256 amountOut = nodes.liquidate(args.user, tokens_, amounts_, tokenOutput_, amountOutMin_);
+        uint256 amountOut = nodes.liquidate(args.user, provider_, tokens_, amount_[0], amountOutMin_, batchSwapStep_);
 
-        emit Liquidate(args.recipeId, args.id, tokens_, amounts_, tokenOutput_, amountOut);
+        emit Liquidate(args.recipeId, args.id, tokensOut, amount_, address(tokens_[tokens_.length - 1]), amountOut);
     }
 
     receive() external payable {}

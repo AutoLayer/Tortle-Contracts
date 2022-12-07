@@ -428,51 +428,41 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     /**
      * @notice Function that allows to liquidate all tokens in your account by swapping them to a specific token.
-     * @param _user Address of the user whose tokens are to be liquidated.
-     * @param _tokens Array of tokens input.
-     * @param _amounts Array of amounts.
-     * @param _tokenOutput Address of the token to which all tokens are to be swapped.
-     * @param _amountOutMin Minimum amount you wish to receive.
+     * @param user_ Address of the user whose tokens are to be liquidated.
+     * @param tokens_ Array of tokens input.
+     * @param amount_ Array of amounts.
+     * @param amountOutMin_ Minimum amount you wish to receive.
      */
     function liquidate(
-        address _user,
-        address[] memory _tokens,
-        uint256[] memory _amounts,
-        address _tokenOutput,
-        uint256 _amountOutMin
-    ) public /*nonReentrant*/ onlyOwner returns (uint256) {
-        if (_tokens.length != _amounts.length) revert Nodes__InvalidArrayLength();
+        address user_,
+        uint8 provider_,
+        IAsset[] memory tokens_,
+        uint256 amount_,
+        uint256 amountOutMin_,
+        BatchSwapStep[] memory batchSwapStep_
+    ) public nonReentrant onlyOwner returns (uint256) {
 
-        uint256 amount;
-        for (uint256 _i = 0; _i < _tokens.length; _i++) {
-            address tokenInput = _tokens[_i];
-            uint256 amountInput = _amounts[_i];
-            uint256 userBalance = getBalance(_user, IERC20(tokenInput));
-            if (userBalance < amountInput) revert Nodes__InsufficientBalance();
+        uint256 userBalance = getBalance(user_, IERC20(address(tokens_[0])));
+        if (userBalance < amount_) revert Nodes__InsufficientBalance();
 
-            uint256 _amountOut;
-            if (tokenInput != _tokenOutput) {
-                _approve(tokenInput, address(swapsUni), amountInput);
-                _amountOut = swapsUni.swapTokens(tokenInput, amountInput, _tokenOutput, _amountOutMin);
+        uint256 amountOut_;
+        if (address(tokens_[0]) != address(tokens_[tokens_.length - 1])) {
+            amountOut_ = swapTokens(user_, provider_, tokens_, amount_, amountOutMin_, batchSwapStep_);
+        } else amountOut_ = amount_;
 
-                amount += _amountOut;
-            } else {
-                _amountOut = amountInput;
-                amount += amountInput;
-            }
 
-            decreaseBalance(_user, tokenInput, amountInput);
+        // decreaseBalance(user_, tokens_[0], amount_);
 
-            if(_tokenOutput == WFTM) {
-                IWETH(WFTM).withdraw(_amountOut);
-                payable(_user).transfer(_amountOut);
-            } else {
-                IERC20(_tokenOutput).safeTransfer(_user, _amountOut); 
-            }
+        if(address(tokens_[tokens_.length - 1]) == WFTM) {
+            IWETH(WFTM).withdraw(amountOut_);
+            payable(user_).transfer(amountOut_);
+        } else {
+            IERC20(address(tokens_[tokens_.length - 1])).safeTransfer(user_, amountOut_); 
         }
+        
 
-        emit Liquidate(_tokenOutput, amount);
-        return amount;
+        emit Liquidate(address(tokens_[tokens_.length - 1]), amountOut_);
+        return amountOut_;
     }
 
     /**
