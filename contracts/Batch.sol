@@ -324,7 +324,7 @@ contract Batch {
         BatchSwapStruct memory batchSwapStruct_) = abi.decode(args.arguments, (uint8, IAsset[], uint256[], uint256, BatchSwapStruct));
 
         address[] memory tokensOut = new address[](1);
-        tokensOut[0] = address(tokens_[0]); 
+        tokensOut[0] = address(tokens_[tokens_.length - 1]); 
 
         if(auxStack.length > 0) {
             amount_[0] = auxStack[auxStack.length - 1];
