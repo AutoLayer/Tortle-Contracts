@@ -252,19 +252,13 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint8[] memory providers_
         ) = abi.decode(args_, (address, IAsset[], IAsset[], uint256, uint256[], uint8[]));
 
-        amountOutTokens = new uint256[](2);
-
         if (amount_ > getBalance(user_, IERC20(address(firstTokens_[0])))) revert Nodes__InsufficientBalance();
 
         uint256 firstTokenAmount_ = mulScale(amount_, percentageAndAmountsOutMin_[0], 10000);
         
-        if (address(firstTokens_[0]) != address(firstTokens_[firstTokens_.length - 1])) {
-            amountOutTokens[0] = swapTokens(user_, providers_[0], firstTokens_, firstTokenAmount_, percentageAndAmountsOutMin_[1], batchSwapStepFirstToken_);
-        } else amountOutTokens[0] = firstTokenAmount_;
-
-        if (address(secondTokens_[0]) != address(secondTokens_[secondTokens_.length - 1])) {
-            amountOutTokens[1] = swapTokens(user_, providers_[1], secondTokens_, (amount_ - firstTokenAmount_), percentageAndAmountsOutMin_[2], batchSwapStepSecondToken_);
-        } else amountOutTokens[1] = (amount_ - firstTokenAmount_);
+        amountOutTokens = new uint256[](2);
+        amountOutTokens[0] = swapTokens(user_, providers_[0], firstTokens_, firstTokenAmount_, percentageAndAmountsOutMin_[1], batchSwapStepFirstToken_);
+        amountOutTokens[1] = swapTokens(user_, providers_[1], secondTokens_, (amount_ - firstTokenAmount_), percentageAndAmountsOutMin_[2], batchSwapStepSecondToken_);
 
         emit Split(address(firstTokens_[firstTokens_.length - 1]), amountOutTokens[0], address(secondTokens_[secondTokens_.length - 1]), amountOutTokens[1]);
     }
@@ -435,34 +429,30 @@ contract Nodes is Initializable, ReentrancyGuard {
      */
     function liquidate(
         address user_,
-        uint8 provider_,
         IAsset[] memory tokens_,
         uint256 amount_,
         uint256 amountOutMin_,
+        uint8 provider_,
         BatchSwapStep[] memory batchSwapStep_
-    ) public nonReentrant onlyOwner returns (uint256) {
+    ) public onlyOwner returns (uint256 amountOut) {
+        address tokenIn_ = address(tokens_[0]);
+        address tokenOut_ = address(tokens_[tokens_.length - 1]);
 
-        uint256 userBalance = getBalance(user_, IERC20(address(tokens_[0])));
-        if (userBalance < amount_) revert Nodes__InsufficientBalance();
+        uint256 userBalance_ = getBalance(user_, IERC20(tokenIn_));
+        if (userBalance_ < amount_) revert Nodes__InsufficientBalance();
 
-        uint256 amountOut_;
-        if (address(tokens_[0]) != address(tokens_[tokens_.length - 1])) {
-            amountOut_ = swapTokens(user_, provider_, tokens_, amount_, amountOutMin_, batchSwapStep_);
-        } else amountOut_ = amount_;
+        amountOut = swapTokens(user_, provider_, tokens_, amount_, amountOutMin_, batchSwapStep_);
 
+        decreaseBalance(user_, tokenOut_, amountOut);
 
-        // decreaseBalance(user_, tokens_[0], amount_);
-
-        if(address(tokens_[tokens_.length - 1]) == WFTM) {
-            IWETH(WFTM).withdraw(amountOut_);
-            payable(user_).transfer(amountOut_);
+        if(tokenOut_ == WFTM) {
+            IWETH(WFTM).withdraw(amountOut);
+            payable(user_).transfer(amountOut);
         } else {
-            IERC20(address(tokens_[tokens_.length - 1])).safeTransfer(user_, amountOut_); 
+            IERC20(tokenOut_).safeTransfer(user_, amountOut); 
         }
-        
 
-        emit Liquidate(address(tokens_[tokens_.length - 1]), amountOut_);
-        return amountOut_;
+        emit Liquidate(tokenOut_, amountOut);
     }
 
     /**

@@ -47,7 +47,7 @@ contract Batch {
     event AddFundsForFTM(string indexed recipeId, string indexed id, uint256 amount);
     event Split(string indexed recipeId, string indexed id, address tokenInput, uint256 amountIn, address tokenOutput1, uint256 amountOutToken1, address tokenOutput2, uint256 amountOutToken2);
     event SwapTokens(string indexed recipeId, string indexed id, address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
-    event Liquidate(string indexed recipeId, string indexed id, address[] tokensInput, uint256[] amountsIn, address tokenOutput, uint256 amountOut);
+    event Liquidate(string indexed recipeId, string indexed id, address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
     event SendToWallet(string indexed recipeId, string indexed id, address tokenOutput, uint256 amountOut);
     event lpDeposited(string indexed recipeId, string indexed id, address lpToken, uint256 amount);
     event ttDeposited(string indexed recipeId, string indexed id, address ttVault, uint256 amount);
@@ -317,17 +317,14 @@ contract Batch {
     }
 
     function liquidate(Function memory args) public onlySelf {
-        (uint8 provider_,
-        IAsset[] memory tokens_,
-        uint256[] memory amount_,
+        (IAsset[] memory tokens_,
+        uint256 amount_,
         uint256 amountOutMin_,
-        BatchSwapStruct memory batchSwapStruct_) = abi.decode(args.arguments, (uint8, IAsset[], uint256[], uint256, BatchSwapStruct));
-
-        address[] memory tokensOut = new address[](1);
-        tokensOut[0] = address(tokens_[0]); 
+        uint8 provider_,
+        BatchSwapStruct memory batchSwapStruct_) = abi.decode(args.arguments, (IAsset[], uint256, uint256, uint8, BatchSwapStruct));
 
         if(auxStack.length > 0) {
-            amount_[0] = auxStack[auxStack.length - 1];
+            amount_ = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
         
@@ -336,9 +333,9 @@ contract Batch {
             batchSwapStep_ = createBatchSwapObject(batchSwapStruct_);
         }
 
-        uint256 amountOut = nodes.liquidate(args.user, provider_, tokens_, amount_[0], amountOutMin_, batchSwapStep_);
+        uint256 amountOut = nodes.liquidate(args.user, tokens_, amount_, amountOutMin_, provider_, batchSwapStep_);
 
-        emit Liquidate(args.recipeId, args.id, tokensOut, amount_, address(tokens_[tokens_.length - 1]), amountOut);
+        emit Liquidate(args.recipeId, args.id, address(tokens_[0]), amount_, address(tokens_[tokens_.length - 1]), amountOut);
     }
 
     receive() external payable {}
