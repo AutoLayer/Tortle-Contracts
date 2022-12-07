@@ -193,7 +193,8 @@ contract Batch {
         address[] memory tokens_,
         uint256[] memory amounts_,
         uint256 amountOutMin0_,
-        uint256 amountOutMin1_) = abi.decode(args.arguments, (bytes32, address, address[], uint256[], uint256, uint256));
+        uint256 amountOutMin1_,
+        uint8 provider_) = abi.decode(args.arguments, (bytes32, address, address[], uint256[], uint256, uint256, uint8));
 
         if (auxStack.length > 0) {
             amounts_[0] = auxStack[auxStack.length - 2];
@@ -206,6 +207,7 @@ contract Batch {
             args.user,
             poolId_,
             lpToken_,
+            provider_,
             tokens_,
             amounts_,
             amountOutMin0_,

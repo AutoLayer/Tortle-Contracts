@@ -276,12 +276,13 @@ contract Nodes is Initializable, ReentrancyGuard {
         address user_,
         bytes32 poolId_,
         address lpToken_,
+        uint8 provider_,
         address[] memory tokens_,
         uint256[] memory amounts_,
         uint256 amountOutMin0_,
         uint256 amountOutMin1_
     ) external nonReentrant onlyOwner returns (uint256) {
-        if(lpToken_ != address(0)) {
+        if(provider_ == 0) {
             IUniswapV2Router02 router = swapsUni.getRouter(tokens_[0], tokens_[1]);
 
             if (lpToken_ != IUniswapV2Factory(IUniswapV2Router02(router).factory()).getPair(tokens_[0], tokens_[1])) revert  Nodes__DepositOnLPInvalidLPToken();
