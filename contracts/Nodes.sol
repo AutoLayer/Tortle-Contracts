@@ -169,7 +169,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     * @param _token Address of the token used as fees
     * @param _amount Amount of the token that is wanted to calculate its fees
     */
-    function chargeFees(address _token, uint256 _amount) internal returns (uint256) {
+    function chargeFees(address _token, uint256 _amount) private returns (uint256) {
         uint256 _amountFee = mulScale(_amount, TOTAL_FEE, 10000);
         uint256 _dojosTokens;
         uint256 _treasuryTokens;
