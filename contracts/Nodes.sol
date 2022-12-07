@@ -227,9 +227,8 @@ contract Nodes is Initializable, ReentrancyGuard {
                 amountOut = swapsBeets.swapTokens(tokens_, batchSwapStep_);
             }
 
-            increaseBalance(user_, tokenOut_, amountOut);
-
             decreaseBalance(user_, tokenIn_, amount_);
+            increaseBalance(user_, tokenOut_, amountOut);
         } else amountOut = amount_;
 
         emit Swap(tokenIn_, amount_, tokenOut_, amountOut);
