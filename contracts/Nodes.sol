@@ -324,11 +324,12 @@ contract Nodes is Initializable, ReentrancyGuard {
         address user_,
         bytes32 poolId_,
         address lpToken_,
+        uint8 provider_,
         address[] memory tokens_,
         uint256[] memory amountsOutMin_,
         uint256 amount_
     ) external nonReentrant onlyOwner returns (uint256 amountTokenDesired) {
-        if(lpToken_ != address(0)) {
+        if(provider_ == 0) {
             if (amount_ > userLp[lpToken_][user_]) revert Nodes__WithdrawFromLPInsufficientFunds();
 
             _approve(lpToken_, address(farmsUni), amount_);

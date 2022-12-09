@@ -226,14 +226,15 @@ contract Batch {
         address lpToken_,
         address[] memory tokens_,
         uint256[] memory amountsOutMin_,
-        uint256 amount_) = abi.decode(args.arguments, (bytes32, address, address[], uint256[], uint256));
+        uint256 amount_,
+        uint8 provider_) = abi.decode(args.arguments, (bytes32, address, address[], uint256[], uint256, uint8));
 
         if (auxStack.length > 0) {
             amount_ = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
 
-        uint256 amountTokenDesired = nodes.withdrawFromLp(args.user, poolId_, lpToken_, tokens_, amountsOutMin_, amount_);
+        uint256 amountTokenDesired = nodes.withdrawFromLp(args.user, poolId_, lpToken_, provider_, tokens_, amountsOutMin_, amount_);
         
         if (args.hasNext) {
             auxStack.push(amountTokenDesired);
