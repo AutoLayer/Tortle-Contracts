@@ -23,14 +23,14 @@ struct FundManagement {
 enum PoolSpecialization { GENERAL, MINIMAL_SWAP_INFO, TWO_TOKEN }
 
 struct JoinPoolRequest {
-    address[] assets;
+    IAsset[] assets;
     uint256[] maxAmountsIn;
     bytes userData;
     bool fromInternalBalance;
 }
 
 struct ExitPoolRequest {
-    address[] assets;
+    IAsset[] assets;
     uint256[] minAmountsOut;
     bytes userData;
     bool toInternalBalance;

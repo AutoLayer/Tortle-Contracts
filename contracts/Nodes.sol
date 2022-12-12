@@ -282,7 +282,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amountOutMin0_,
         uint256 amountOutMin1_
     ) external nonReentrant onlyOwner returns (uint256) {
-        if(provider_ == 0) {
+       if(provider_ == 0) {
             IUniswapV2Router02 router = swapsUni.getRouter(tokens_[0], tokens_[1]);
 
             if (lpToken_ != IUniswapV2Factory(IUniswapV2Router02(router).factory()).getPair(tokens_[0], tokens_[1])) revert  Nodes__DepositOnLPInvalidLPToken();
@@ -300,7 +300,7 @@ contract Nodes is Initializable, ReentrancyGuard {
             return lpRes;
         } else {
             if (amounts_[0] > getBalance(user_, IERC20(tokens_[0]))) revert Nodes__DepositOnLPInsufficientT0Funds();
-
+            
             _approve(tokens_[0], address(depositsBeets), amounts_[0]);
             (address bptAddress_, uint256 bptAmount_) = depositsBeets.joinPool(poolId_, tokens_, amounts_);
 

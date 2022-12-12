@@ -30,12 +30,21 @@ contract DepositsBeets is ReentrancyGuard {
         userDataEncoded = abi.encode(1, initBalances);
     }
 
-    function joinPool(bytes32 poolId_, address[] memory assets_, uint256[] memory amountsIn_) public payable returns(address bptAddress, uint256 bptAmount_) {
-        IERC20(assets_[0]).safeTransferFrom(msg.sender, address(this), amountsIn_[0]);
-        IERC20(assets_[0]).safeApprove(beets, amountsIn_[0]);
+    function tokensToAssets(address[] memory tokens_) internal pure returns(IAsset[] memory) {
+        IAsset[] memory assets = new IAsset[](tokens_.length);
+        for (uint8 i = 0; i < tokens_.length; i++) {
+            assets[i] = (IAsset(tokens_[i]));
+        }
+        return assets;
+    }
+
+    function joinPool(bytes32 poolId_, address[] memory tokens_, uint256[] memory amountsIn_) public payable returns(address bptAddress, uint256 bptAmount_) {
+        IERC20(tokens_[0]).safeTransferFrom(msg.sender, address(this), amountsIn_[0]);
+        IERC20(tokens_[0]).safeApprove(beets, amountsIn_[0]);
         
         bytes memory userDataEncoded_ = getUserDataJoin(amountsIn_[0]);
 
+        IAsset[] memory assets_ = tokensToAssets(tokens_);
         JoinPoolRequest memory request_;
         request_.assets = assets_;
         request_.maxAmountsIn = amountsIn_;
@@ -45,7 +54,7 @@ contract DepositsBeets is ReentrancyGuard {
         bptAddress = getBptAddress(poolId_); 
         uint256 bptAmountBeforeDeposit_ = IERC20(bptAddress).balanceOf(msg.sender);
 
-        IBeets(beets).joinPool{value: msg.value}(poolId_, address(this), msg.sender, request_);
+        IBeets(beets).joinPool(poolId_, address(this), msg.sender, request_);
 
         bptAmount_ = IERC20(bptAddress).balanceOf(msg.sender) - bptAmountBeforeDeposit_;
     }
@@ -54,22 +63,23 @@ contract DepositsBeets is ReentrancyGuard {
         userDataEncoded = abi.encode(0, bptAmount_, 0);
     }
 
-    function exitPool(bytes32 poolId_, address[] memory assetsOut_, uint256[] memory minAmountsOut_, uint256 bptAmount_) public returns(uint256 amountTokenDesired) {
-        IERC20(assetsOut_[0]).safeTransferFrom(msg.sender, address(this), bptAmount_);
-        IERC20(assetsOut_[0]).safeApprove(beets, bptAmount_);
+    function exitPool(bytes32 poolId_, address[] memory tokens_, uint256[] memory minAmountsOut_, uint256 bptAmount_) public returns(uint256 amountTokenDesired) {
+        IERC20(tokens_[0]).safeTransferFrom(msg.sender, address(this), bptAmount_);
+        IERC20(tokens_[0]).safeApprove(beets, bptAmount_);
         
         bytes memory userDataEncoded_ = getUserDataExit(bptAmount_);
         
+        IAsset[] memory assets_ = tokensToAssets(tokens_);
         ExitPoolRequest memory request_;
-        request_.assets = assetsOut_;
+        request_.assets = assets_;
         request_.minAmountsOut = minAmountsOut_;
         request_.userData = userDataEncoded_;
         request_.toInternalBalance = false;
 
-        uint256 tokenAmountBefore_ = IERC20(assetsOut_[0]).balanceOf(msg.sender);
+        uint256 tokenAmountBefore_ = IERC20(address(tokens_[0])).balanceOf(msg.sender);
 
         IBeets(beets).exitPool(poolId_, address(this), payable(msg.sender), request_);
     
-        amountTokenDesired = IERC20(assetsOut_[0]).balanceOf(msg.sender) - tokenAmountBefore_;
+        amountTokenDesired = IERC20(tokens_[0]).balanceOf(msg.sender) - tokenAmountBefore_;
     }
 }
