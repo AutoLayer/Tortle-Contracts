@@ -22,14 +22,6 @@ contract DepositsBeets is ReentrancyGuard {
         (bptAddress, ) = IBeets(beets).getPool(poolId_); 
     }
 
-    function getUserDataJoin(uint256 amountIn_) private pure returns(bytes memory userDataEncoded) {
-        uint256[] memory initBalances = new uint256[](2);
-        initBalances[0] = amountIn_;
-        initBalances[1] = 0;
-
-        userDataEncoded = abi.encode(1, initBalances);
-    }
-
     function tokensToAssets(address[] memory tokens_) internal pure returns(IAsset[] memory assets) {
         assets = new IAsset[](tokens_.length);
         for (uint8 i = 0; i < tokens_.length; i++) {
@@ -40,10 +32,10 @@ contract DepositsBeets is ReentrancyGuard {
     function joinPool(bytes32 poolId_, address[] memory tokens_, uint256[] memory amountsIn_) public payable returns(address bptAddress, uint256 bptAmount_) {
         IERC20(tokens_[0]).safeTransferFrom(msg.sender, address(this), amountsIn_[0]);
         IERC20(tokens_[0]).safeApprove(beets, amountsIn_[0]);
-        
-        bytes memory userDataEncoded_ = getUserDataJoin(amountsIn_[0]);
 
         IAsset[] memory assets_ = tokensToAssets(tokens_);
+        bytes memory userDataEncoded_ = abi.encode(1, amountsIn_);
+
         JoinPoolRequest memory request_;
         request_.assets = assets_;
         request_.maxAmountsIn = amountsIn_;
@@ -65,10 +57,10 @@ contract DepositsBeets is ReentrancyGuard {
     function exitPool(bytes32 poolId_, address[] memory tokens_, uint256[] memory minAmountsOut_, uint256 bptAmount_) public returns(uint256 amountTokenDesired) {
         IERC20(tokens_[0]).safeTransferFrom(msg.sender, address(this), bptAmount_);
         IERC20(tokens_[0]).safeApprove(beets, bptAmount_);
-        
+
+        IAsset[] memory assets_ = tokensToAssets(tokens_);        
         bytes memory userDataEncoded_ = getUserDataExit(bptAmount_);
-        
-        IAsset[] memory assets_ = tokensToAssets(tokens_);
+
         ExitPoolRequest memory request_;
         request_.assets = assets_;
         request_.minAmountsOut = minAmountsOut_;
