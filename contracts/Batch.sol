@@ -195,18 +195,20 @@ contract Batch {
         uint256 amountOutMin0_,
         uint256 amountOutMin1_,
         uint8 provider_) = abi.decode(args.arguments, (bytes32, address, address[], uint256[], uint256, uint256, uint8));
- 
-        if (auxStack.length > 0 && provider_ == 0) {
-            amounts_[0] = auxStack[auxStack.length - 2];
-            amounts_[1] = auxStack[auxStack.length - 1];
-            auxStack.pop();
-            auxStack.pop();
-        } else if (auxStack.length > 0 || provider_ == 1) {
-            amounts_[1] = auxStack[auxStack.length - 1];
-            auxStack.pop();
+
+        if(auxStack.length > 0) {
+            if(provider_ == 0) {
+                amounts_[0] = auxStack[auxStack.length - 2];
+                amounts_[1] = auxStack[auxStack.length - 1];
+                auxStack.pop();
+                auxStack.pop();
+            } else {
+                amounts_[0] = auxStack[auxStack.length - 1];
+                auxStack.pop();
+            }
         }
 
-       uint256 lpRes = nodes.depositOnLp(
+        uint256 lpRes = nodes.depositOnLp(
             args.user,
             poolId_,
             lpToken_,
