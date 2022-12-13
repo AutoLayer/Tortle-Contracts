@@ -29,7 +29,7 @@ contract DepositsBeets is ReentrancyGuard {
         }
     }
 
-    function joinPool(bytes32 poolId_, address[] memory tokens_, uint256[] memory amountsIn_) public payable returns(address bptAddress, uint256 bptAmount_) {
+    function joinPool(bytes32 poolId_, address[] memory tokens_, uint256[] memory amountsIn_) public returns(address bptAddress, uint256 bptAmount_) {
         IERC20(tokens_[0]).safeTransferFrom(msg.sender, address(this), amountsIn_[0]);
         IERC20(tokens_[0]).safeApprove(beets, amountsIn_[0]);
 
