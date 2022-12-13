@@ -30,12 +30,11 @@ contract DepositsBeets is ReentrancyGuard {
         userDataEncoded = abi.encode(1, initBalances);
     }
 
-    function tokensToAssets(address[] memory tokens_) internal pure returns(IAsset[] memory) {
-        IAsset[] memory assets = new IAsset[](tokens_.length);
+    function tokensToAssets(address[] memory tokens_) internal pure returns(IAsset[] memory assets) {
+        assets = new IAsset[](tokens_.length);
         for (uint8 i = 0; i < tokens_.length; i++) {
-            assets[i] = (IAsset(tokens_[i]));
+            assets[i] = IAsset(tokens_[i]);
         }
-        return assets;
     }
 
     function joinPool(bytes32 poolId_, address[] memory tokens_, uint256[] memory amountsIn_) public payable returns(address bptAddress, uint256 bptAmount_) {
