@@ -247,7 +247,7 @@ contract Batch {
 
         address tokenOut_;
         if(provider_ == 0) {
-            tokenOut_ = tokens_[3];
+            tokenOut_ = tokens_[2];
         } else {
             tokenOut_ = tokens_[0];
         }
