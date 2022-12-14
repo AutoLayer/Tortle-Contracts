@@ -336,7 +336,7 @@ contract Nodes is Initializable, ReentrancyGuard {
             amountTokenDesired = farmsUni.withdrawLpAndSwap(address(swapsUni), lpToken_, tokens_, amountsOutMin_[0], amount_);
 
             userLp[lpToken_][user_] -= amount_;
-            increaseBalance(user_, tokens_[1], amountTokenDesired);
+            increaseBalance(user_, tokens_[2], amountTokenDesired);
         } else {
             address bptToken_ = depositsBeets.getBptAddress(poolId_);
             if (amount_ > getBalance(user_, IERC20(bptToken_))) revert Nodes__WithdrawFromLPInsufficientFunds();

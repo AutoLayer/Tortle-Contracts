@@ -246,7 +246,7 @@ contract Batch {
         }
 
         address tokenOut_;
-        if(lpToken_ != address(0)) {
+        if(provider_ == 0) {
             tokenOut_ = tokens_[3];
         } else {
             tokenOut_ = tokens_[0];
