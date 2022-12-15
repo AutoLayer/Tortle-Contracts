@@ -59,7 +59,6 @@ contract DepositsBeets is ReentrancyGuard {
         IERC20(tokens_[0]).safeApprove(beets, bptAmount_);
 
         IAsset[] memory assets_ = tokensToAssets(tokens_);
-        minAmountsOut_[0] = bptAmount_;    
         bytes memory userDataEncoded_ = getUserDataExit(bptAmount_);
 
         ExitPoolRequest memory request_;
