@@ -61,6 +61,7 @@ contract DepositsBeets is ReentrancyGuard {
         IAsset[] memory assets_ = tokensToAssets(tokens_);        
         bytes memory userDataEncoded_ = getUserDataExit(bptAmount_);
 
+        minAmountsOut_[0] = bptAmount_;
         ExitPoolRequest memory request_;
         request_.assets = assets_;
         request_.minAmountsOut = minAmountsOut_;
