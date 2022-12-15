@@ -342,7 +342,7 @@ contract Nodes is Initializable, ReentrancyGuard {
             if (amount_ > getBalance(user_, IERC20(bptToken_))) revert Nodes__WithdrawFromLPInsufficientFunds();
             
             _approve(bptToken_, address(depositsBeets), amount_);
-            amountTokenDesired = depositsBeets.exitPool(poolId_, tokens_, amountsOutMin_, amount_);
+            amountTokenDesired = depositsBeets.exitPool(poolId_, bptToken_, tokens_, amountsOutMin_, amount_);
 
             decreaseBalance(user_, bptToken_, amount_);
             increaseBalance(user_, tokens_[0], amountTokenDesired);
