@@ -22,8 +22,14 @@ const deployVaults = async (tokensList) => {
     const createVault = async (farm) => {
         const lpToken = await uniswapFactory.getPair(farm.address0, farm.address1) // token0/token1
         const complexRewarderAddress = await masterChefV3.rewarder(farm.poolId)
-        const complexRewarderContract = await ethers.getContractAt('ComplexRewarder', complexRewarderAddress)
-        const rewardToken = await complexRewarderContract.rewardToken()
+        let rewardToken
+        if (complexRewarderAddress !== "0x0000000000000000000000000000000000000000") {
+            const complexRewarderContract = await ethers.getContractAt('ComplexRewarder', complexRewarderAddress)
+            rewardToken = await complexRewarderContract.rewardToken()
+        } else {
+            const boo = "0x841FAD6EAe12c286d1Fd18d1d525DFfA75C7EFFE"
+            rewardToken = boo
+        }
         console.log(rewardToken)
 
         let TortleVault = await (
