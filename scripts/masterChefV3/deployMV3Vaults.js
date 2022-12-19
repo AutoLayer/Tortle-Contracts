@@ -8,7 +8,6 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 const deployVaults = async (tokensList) => {
     const uniswapRouter = "0xF491e7B69E4244ad4002BC14e878a34207E38c29"
-    const uniswapFactory = await ethers.getContractAt('UniswapV2Factory', "0x152eE697f2E276fA89E96742e9bB9aB1F2E61bE3")
     const wftm = "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"
     const masterChefV3 = await ethers.getContractAt('MasterChefV3', "0x9c9c920e51778c4abf727b8bb223e78132f00aa4")//"0x9c9c920e51778c4abf727b8bb223e78132f00aa4"
     let tortleTreasury = process.env.TREASURY_ADDRESS
@@ -20,7 +19,7 @@ const deployVaults = async (tokensList) => {
     let farmsList = []
 
     const createVault = async (farm) => {
-        const lpToken = await uniswapFactory.getPair(farm.address0, farm.address1) // token0/token1
+        const lpToken = farm.lp // token0/token1
         const complexRewarderAddress = await masterChefV3.rewarder(farm.poolId)
         let rewardToken
         if (complexRewarderAddress !== "0x0000000000000000000000000000000000000000") {
