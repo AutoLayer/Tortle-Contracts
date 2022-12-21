@@ -13,6 +13,7 @@ import './interfaces/IWETH.sol';
 import './SwapsUni.sol';
 import './SwapsBeets.sol';
 import './DepositsBeets.sol';
+import './nestedStrategies/NestedStrategies.sol';
 import './farms/FarmsUni.sol';
 import './Batch.sol';
 
@@ -23,6 +24,8 @@ error Nodes__TransferFailed();
 error Nodes__DepositOnLPInvalidLPToken();
 error Nodes__DepositOnLPInsufficientT0Funds();
 error Nodes__DepositOnLPInsufficientT1Funds();
+error Nodes__DepositOnNestedStrategyInsufficientFunds();
+error Nodes__WithdrawFromNestedStrategyInsufficientShares();
 error Nodes__DepositOnFarmTokensInsufficientT0Funds();
 error Nodes__DepositOnFarmTokensInsufficientT1Funds();
 error Nodes__WithdrawFromLPInsufficientFunds();
@@ -39,6 +42,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     SwapsUni public swapsUni;
     SwapsBeets public swapsBeets;
     DepositsBeets public depositsBeets;
+    NestedStrategies public nestedStrategies;
     FarmsUni public farmsUni;
     Batch private batch;
     address private WFTM;
@@ -67,29 +71,31 @@ contract Nodes is Initializable, ReentrancyGuard {
     }
 
     function initializeConstructor(
-        address _owner,
-        SwapsUni _swapsUni,
-        SwapsBeets _swapsBeets,
-        DepositsBeets _depositsBeets,
-        FarmsUni _farmsUni,
-        Batch _batch,
-        address _tortleDojos,
-        address _tortleTrasury,
-        address _tortleDevFund,
-        address _wftm,
-        address _usdc
+        address owner_,
+        SwapsUni swapsUni_,
+        SwapsBeets swapsBeets_,
+        DepositsBeets depositsBeets_,
+        NestedStrategies nestedStrategies_,
+        FarmsUni farmsUni_,
+        Batch batch_,
+        address tortleDojos_,
+        address tortleTrasury_,
+        address tortleDevFund_,
+        address wftm_,
+        address usdc_
     ) public initializer {
-        owner = _owner;
-        swapsUni = _swapsUni;
-        swapsBeets = _swapsBeets;
-        depositsBeets = _depositsBeets;
-        farmsUni = _farmsUni;
-        batch = _batch;
-        tortleDojos = _tortleDojos;
-        tortleTreasury = _tortleTrasury;
-        tortleDevFund = _tortleDevFund;
-        WFTM = _wftm;
-        usdc = _usdc;
+        owner = owner_;
+        swapsUni = swapsUni_;
+        swapsBeets = swapsBeets_;
+        depositsBeets = depositsBeets_;
+        nestedStrategies = nestedStrategies_;
+        farmsUni = farmsUni_;
+        batch = batch_;
+        tortleDojos = tortleDojos_;
+        tortleTreasury = tortleTrasury_;
+        tortleDevFund = tortleDevFund_;
+        WFTM = wftm_;
+        usdc = usdc_;
     }
 
     function setBatch(Batch batch_) public onlyOwner {
@@ -106,6 +112,10 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     function setDepositsBeets(DepositsBeets depositsBeets_) public onlyOwner {
         depositsBeets = depositsBeets_;
+    }
+
+    function setNestedStrategies(NestedStrategies nestedStrategies_) public onlyOwner {
+        nestedStrategies = nestedStrategies_;
     }
 
     function setFarmsUni(FarmsUni farmsUni_) public onlyOwner {
@@ -347,6 +357,35 @@ contract Nodes is Initializable, ReentrancyGuard {
             decreaseBalance(user_, bptToken_, amount_);
             increaseBalance(user_, tokens_[0], amountTokenDesired);
         }
+    }
+
+    function depositOnNestedStrategy(
+        address user_,
+        address token_, 
+        address vaultAddress_, 
+        uint256 amount_
+    ) external nonReentrant onlyOwner returns (uint256 sharesAmount) {
+        if (amount_ > getBalance(user_, IERC20(token_))) revert Nodes__DepositOnNestedStrategyInsufficientFunds();
+
+        _approve(token_, address(nestedStrategies), amount_);
+        sharesAmount = nestedStrategies.deposit(token_, vaultAddress_, amount_);
+
+        decreaseBalance(user_, token_, amount_);
+        increaseBalance(user_, vaultAddress_, sharesAmount);
+    }
+
+    function withdrawFromNestedStrategy(
+        address user_,
+        address tokenOut_, 
+        address vaultAddress_, 
+        uint256 sharesAmount_
+    ) external nonReentrant onlyOwner returns (uint256 amountTokenDesired) {
+        if (sharesAmount_ > getBalance(user_, IERC20(vaultAddress_))) revert Nodes__WithdrawFromNestedStrategyInsufficientShares();
+    
+        amountTokenDesired = nestedStrategies.withdraw(vaultAddress_, sharesAmount_);
+
+        decreaseBalance(user_, vaultAddress_, sharesAmount_);
+        increaseBalance(user_, tokenOut_, amountTokenDesired);
     }
 
     /**
