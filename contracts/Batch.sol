@@ -51,6 +51,8 @@ contract Batch {
     event SendToWallet(string indexed recipeId, string indexed id, address tokenOutput, uint256 amountOut);
     event lpDeposited(string indexed recipeId, string indexed id, address lpToken, uint256 amount);
     event ttDeposited(string indexed recipeId, string indexed id, address ttVault, uint256 amount);
+    event DepositOnNestedStrategy(string indexed recipeId, string indexed id, address vaultAddress, uint256 amount);
+    event WithdrawFromNestedStrategy(string indexed recipeId, string indexed id, address vaultAddress, uint256 amountShares, address tokenDesired, uint256 amountDesired);
     event lpWithdrawed(string indexed recipeId, string indexed id, address lpToken, uint256 amountLp, address tokenDesired, uint256 amountTokenDesired);
     event ttWithdrawed(string indexed recipeId, string indexed id, address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired, uint256 rewardAmount);
 
@@ -260,6 +262,44 @@ contract Batch {
             tokenOut_,
             amountTokenDesired
         );
+    }
+
+    function depositOnNestedStrategy(Function memory args) public onlySelf {
+        (address token_,
+        address vaultAddress_,
+        uint256 amount_) = abi.decode(args.arguments, (address, address, uint256));
+
+        if (auxStack.length > 0) {
+            amount_ = auxStack[auxStack.length - 1];
+            auxStack.pop();
+        }
+
+        uint256 sharesAmount_ = nodes.depositOnNestedStrategy(args.user, token_, vaultAddress_, amount_);
+
+        if (args.hasNext) {
+            auxStack.push(sharesAmount_);
+        }
+
+        emit DepositOnNestedStrategy(args.recipeId, args.id, vaultAddress_, sharesAmount_);
+    }
+
+    function withdrawFromNestedStrategy(Function memory args) public onlySelf {
+        (address tokenOut_,
+        address vaultAddress_,
+        uint256 amount_) = abi.decode(args.arguments, (address, address, uint256));
+
+        if (auxStack.length > 0) {
+            amount_ = auxStack[auxStack.length - 1];
+            auxStack.pop();
+        }
+
+        uint256 amountTokenDesired_ = nodes.withdrawFromNestedStrategy(args.user, tokenOut_, vaultAddress_, amount_);
+
+        if (args.hasNext) {
+            auxStack.push(amountTokenDesired_);
+        }
+
+        emit WithdrawFromNestedStrategy(args.recipeId, args.id, vaultAddress_, amount_, tokenOut_, amountTokenDesired_);
     }
 
     function depositOnFarm(Function memory args) public onlySelf {
