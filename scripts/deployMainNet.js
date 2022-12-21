@@ -56,12 +56,17 @@ const deployMainNet = async () => {
     await (await hre.ethers.getContractFactory('DepositsBeets')).connect(deployer).deploy(deployer.getAddress(), beetsVault)
   ).deployed()
 
+  // NestedStrategies Contract
+  const NestedStrategies = await (
+    await (await hre.ethers.getContractFactory('NestedStrategies')).connect(deployer).deploy()
+  ).deployed()
+
   // FarmsUni Contract
   const FarmsUni = await (
     await (await hre.ethers.getContractFactory('FarmsUni')).connect(deployer).deploy(deployer.getAddress())
   ).deployed()
 
-  const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [Batch.address, SwapsUni.address, SwapBeets.address, DepositsBeets.address, FarmsUni.address, Batch.address, dojos, treasury, devFund, wftm, usdc], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
+  const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [Batch.address, SwapsUni.address, SwapBeets.address, DepositsBeets.address, NestedStrategies.address, FarmsUni.address, Batch.address, dojos, treasury, devFund, wftm, usdc], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
   await ProxyNodes.deployed()
   const txSetNodesBatch = await Batch.setNodeContract(ProxyNodes.address)
   await txSetNodesBatch.wait(6)
@@ -73,6 +78,7 @@ const deployMainNet = async () => {
     "SwapsUni": SwapsUni.address,
     "SwapBeets": SwapBeets.address,
     "DepositsBeets": DepositsBeets.address,
+    "NestedStrategies": NestedStrategies.address,
     "FarmsUni": FarmsUni.address,
     "Batch": Batch.address,
     "StringUtils": StringUtils.address,
