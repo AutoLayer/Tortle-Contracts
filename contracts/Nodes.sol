@@ -368,7 +368,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         if (amount_ > getBalance(user_, IERC20(token_))) revert Nodes__DepositOnNestedStrategyInsufficientFunds();
 
         _approve(token_, address(nestedStrategies), amount_);
-        sharesAmount = nestedStrategies.deposit(token_, vaultAddress_, amount_);
+        sharesAmount = nestedStrategies.deposit(user_, token_, vaultAddress_, amount_);
 
         decreaseBalance(user_, token_, amount_);
         increaseBalance(user_, vaultAddress_, sharesAmount);
@@ -382,7 +382,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     ) external nonReentrant onlyOwner returns (uint256 amountTokenDesired) {
         if (sharesAmount_ > getBalance(user_, IERC20(vaultAddress_))) revert Nodes__WithdrawFromNestedStrategyInsufficientShares();
     
-        amountTokenDesired = nestedStrategies.withdraw(vaultAddress_, sharesAmount_);
+        amountTokenDesired = nestedStrategies.withdraw(user_, vaultAddress_, sharesAmount_);
 
         decreaseBalance(user_, vaultAddress_, sharesAmount_);
         increaseBalance(user_, tokenOut_, amountTokenDesired);
