@@ -383,7 +383,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         if (sharesAmount_ > getBalance(user_, IERC20(vaultAddress_))) revert Nodes__WithdrawFromNestedStrategyInsufficientShares();
     
         _approve(vaultAddress_, address(nestedStrategies), sharesAmount_);
-        amountTokenDesired = nestedStrategies.withdraw(user_, vaultAddress_, sharesAmount_);
+        amountTokenDesired = nestedStrategies.withdraw(user_, tokenOut_, vaultAddress_, sharesAmount_);
 
         decreaseBalance(user_, vaultAddress_, sharesAmount_);
         increaseBalance(user_, tokenOut_, amountTokenDesired);

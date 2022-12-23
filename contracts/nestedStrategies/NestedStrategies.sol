@@ -29,12 +29,13 @@ contract NestedStrategies {
         sharesBalance[vaultAddress_][user_] += sharesAmount;
     }
 
-    function withdraw(address user_, address vaultAddress_, uint256 sharesAmount_) external returns (uint256 amountTokenDesired) {
+    function withdraw(address user_, address tokenOut_, address vaultAddress_, uint256 sharesAmount_) external returns (uint256 amountTokenDesired) {
         IERC20(vaultAddress_).safeTransferFrom(msg.sender, address(this), sharesAmount_);
         IERC20(vaultAddress_).safeApprove(vaultAddress_, sharesAmount_);
 
         sharesBalance[vaultAddress_][user_] -= sharesAmount_;
 
-        amountTokenDesired = IYearnVyper(vaultAddress_).withdraw(sharesAmount_, msg.sender);
+        amountTokenDesired = IYearnVyper(vaultAddress_).withdraw(sharesAmount_);
+        IERC20(tokenOut_).transfer(msg.sender, amountTokenDesired);
     }
 }
