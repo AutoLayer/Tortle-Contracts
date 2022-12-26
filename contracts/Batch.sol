@@ -344,7 +344,7 @@ contract Batch {
             args.id,
             tortleVault_,
             amount_,
-            tokens_[3],
+            tokens_[2],
             amountTokenDesired,
             rewardAmount
         );
