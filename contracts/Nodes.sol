@@ -458,7 +458,8 @@ contract Nodes is Initializable, ReentrancyGuard {
         
         _approve(lpToken_, address(farmsUni), amountLp);
         amountTokenDesired = farmsUni.withdrawLpAndSwap(address(swapsUni), lpToken_, tokens_, amountOutMin_, amountLp);
-        increaseBalance(user, tokens_[3], amountTokenDesired);
+        
+        increaseBalance(user, tokens_[2], amountTokenDesired);
     }
 
     /**
