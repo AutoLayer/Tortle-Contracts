@@ -35,7 +35,9 @@ contract NestedStrategies {
 
         sharesBalance[vaultAddress_][user_] -= sharesAmount_;
 
-        amountTokenDesired = IYearnVyper(vaultAddress_).withdraw(sharesAmount_);
+        (, bytes memory data) = vaultAddress_.call(abi.encodeWithSignature("withdraw(uint256)", sharesAmount_));
+        amountTokenDesired = abi.decode(data, (uint256));
+
         IERC20(tokenOut_).transfer(msg.sender, amountTokenDesired);
     }
 }
