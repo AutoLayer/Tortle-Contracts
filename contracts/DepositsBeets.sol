@@ -50,16 +50,12 @@ contract DepositsBeets is ReentrancyGuard {
         bptAmount_ = IERC20(bptAddress).balanceOf(msg.sender) - bptAmountBeforeDeposit_;
     }
 
-    function getUserDataExit(uint256 bptAmount_) private pure returns(bytes memory userDataEncoded) {
-        userDataEncoded = abi.encode(0, bptAmount_, 0);
-    }
-
     function exitPool(bytes32 poolId_, address bptToken_, address[] memory tokens_, uint256[] memory minAmountsOut_, uint256 bptAmount_) public returns(uint256 amountTokenDesired) {
         IERC20(bptToken_).safeTransferFrom(msg.sender, address(this), bptAmount_);
         IERC20(bptToken_).safeApprove(beets, bptAmount_);
 
         IAsset[] memory assets_ = tokensToAssets(tokens_);
-        bytes memory userDataEncoded_ = getUserDataExit(bptAmount_);
+        bytes memory userDataEncoded_ = abi.encode(0, bptAmount_, 0);
 
         ExitPoolRequest memory request_;
         request_.assets = assets_;
@@ -70,7 +66,7 @@ contract DepositsBeets is ReentrancyGuard {
         uint256 tokenAmountBefore_ = IERC20(address(tokens_[0])).balanceOf(msg.sender);
 
         IBeets(beets).exitPool(poolId_, address(this), payable(msg.sender), request_);
-    
+
         amountTokenDesired = IERC20(tokens_[0]).balanceOf(msg.sender) - tokenAmountBefore_;
     }
 }
