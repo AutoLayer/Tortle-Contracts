@@ -18,6 +18,17 @@ contract DepositsBeets is ReentrancyGuard {
         beets = beets_;
     }
 
+    /**
+     * @notice Approve of a token
+     * @param token_ Address of the token wanted to be approved
+     * @param spender_ Address that is wanted to be approved to spend the token
+     * @param amount_ Amount of the token that is wanted to be approved.
+     */
+    function _approve(address token_, address spender_, uint256 amount_) internal {
+        IERC20(token_).safeApprove(spender_, 0);
+        IERC20(token_).safeApprove(spender_, amount_);
+    }
+
     function getBptAddress(bytes32 poolId_) public view returns(address bptAddress) {
         (bptAddress, ) = IBeets(beets).getPool(poolId_); 
     }
@@ -31,7 +42,7 @@ contract DepositsBeets is ReentrancyGuard {
 
     function joinPool(bytes32 poolId_, address[] memory tokens_, uint256[] memory amountsIn_) public returns(address bptAddress, uint256 bptAmount_) {
         IERC20(tokens_[0]).safeTransferFrom(msg.sender, address(this), amountsIn_[0]);
-        IERC20(tokens_[0]).safeApprove(beets, amountsIn_[0]);
+        _approve(tokens_[0], beets, amountsIn_[0]);
 
         IAsset[] memory assets_ = tokensToAssets(tokens_);
         bytes memory userDataEncoded_ = abi.encode(1, amountsIn_);
@@ -52,7 +63,7 @@ contract DepositsBeets is ReentrancyGuard {
 
     function exitPool(bytes32 poolId_, address bptToken_, address[] memory tokens_, uint256[] memory minAmountsOut_, uint256 bptAmount_) public returns(uint256 amountTokenDesired) {
         IERC20(bptToken_).safeTransferFrom(msg.sender, address(this), bptAmount_);
-        IERC20(bptToken_).safeApprove(beets, bptAmount_);
+        _approve(bptToken_, beets, bptAmount_);
 
         IAsset[] memory assets_ = tokensToAssets(tokens_);
         bytes memory userDataEncoded_ = abi.encode(0, bptAmount_, 0);
