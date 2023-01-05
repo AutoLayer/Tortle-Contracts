@@ -50,7 +50,7 @@ contract Batch {
     event Liquidate(string indexed recipeId, string indexed id, address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
     event SendToWallet(string indexed recipeId, string indexed id, address tokenOutput, uint256 amountOut);
     event lpDeposited(string indexed recipeId, string indexed id, address lpToken, uint256 amount);
-    event ttDeposited(string indexed recipeId, string indexed id, address ttVault, uint256 amount);
+    event ttDeposited(string indexed recipeId, string indexed id, address ttVault, uint256 lpAmount, uint256 amount);
     event DepositOnNestedStrategy(string indexed recipeId, string indexed id, address vaultAddress, uint256 amount);
     event WithdrawFromNestedStrategy(string indexed recipeId, string indexed id, address vaultAddress, uint256 amountShares, address tokenDesired, uint256 amountDesired);
     event lpWithdrawed(string indexed recipeId, string indexed id, address lpToken, uint256 amountLp, address tokenDesired, uint256 amountTokenDesired);
@@ -315,7 +315,7 @@ contract Batch {
             result_[0]--;
         }
 
-        emit ttDeposited(args.recipeId, args.id, tortleVault_, result_[1]); // ttVault address and ttAmount
+        emit ttDeposited(args.recipeId, args.id, tortleVault_, result_[2], result_[1]); // ttVault address and ttAmount
         if (args.hasNext) {
             auxStack.push(result_[1]);
         }

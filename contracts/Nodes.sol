@@ -408,7 +408,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amount1_,
         uint256[] memory auxStack
     ) external nonReentrant onlyOwner returns (uint256[] memory result) {
-        result = new uint256[](2);
+        result = new uint256[](3);
         if (auxStack.length > 0) {
             amount0_ = auxStack[auxStack.length - 2];
             amount1_ = auxStack[auxStack.length - 1];
@@ -421,16 +421,17 @@ contract Nodes is Initializable, ReentrancyGuard {
         IUniswapV2Router02 router = ISwapsUni(address(swapsUni)).getRouter(tokens_[0], tokens_[1]);
         _approve(tokens_[0], address(farmsUni), amount0_);
         _approve(tokens_[1], address(farmsUni), amount1_);
-        (uint256 amount0f, uint256 amount1f, uint256 lpBal) = farmsUni.addLiquidity(router, tokens_[0], tokens_[1], amount0_, amount1_, 0, 0);
+        (uint256 amount0f_, uint256 amount1f_, uint256 lpBal_) = farmsUni.addLiquidity(router, tokens_[0], tokens_[1], amount0_, amount1_, 0, 0);
         
-        _approve(lpToken_, tortleVault_, lpBal);
-        uint256 ttAmount = ITortleVault(tortleVault_).deposit(user, lpBal);
+        _approve(lpToken_, tortleVault_, lpBal_);
+        uint256 ttAmount = ITortleVault(tortleVault_).deposit(user, lpBal_);
         userTt[tortleVault_][user] += ttAmount;
         
-        decreaseBalance(user, tokens_[0], amount0f);
-        decreaseBalance(user, tokens_[1], amount1f);
+        decreaseBalance(user, tokens_[0], amount0f_);
+        decreaseBalance(user, tokens_[1], amount1f_);
         
         result[1] = ttAmount;
+        result[2] = lpBal_;
     }
 
     /**
