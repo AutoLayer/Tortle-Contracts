@@ -450,15 +450,16 @@ contract Nodes is Initializable, ReentrancyGuard {
         address[] memory tokens_,
         uint256 amountOutMin_,
         uint256 amount
-    ) external nonReentrant onlyOwner returns (uint256 rewardAmount, uint256 amountTokenDesired) {
+    ) external nonReentrant onlyOwner returns (uint256 amountLp, uint256 rewardAmount, uint256 amountTokenDesired) {
         if (amount > userTt[tortleVault_][user]) revert Nodes__WithdrawFromFarmInsufficientFunds();
 
-        (uint256 rewardAmount_, uint256 amountLp) = ITortleVault(tortleVault_).withdraw(user, amount);
+        (uint256 rewardAmount_, uint256 amountLp_) = ITortleVault(tortleVault_).withdraw(user, amount);
         rewardAmount = rewardAmount_;
+        amountLp = amountLp_;
         userTt[tortleVault_][user] -= amount;
         
-        _approve(lpToken_, address(farmsUni), amountLp);
-        amountTokenDesired = farmsUni.withdrawLpAndSwap(address(swapsUni), lpToken_, tokens_, amountOutMin_, amountLp);
+        _approve(lpToken_, address(farmsUni), amountLp_);
+        amountTokenDesired = farmsUni.withdrawLpAndSwap(address(swapsUni), lpToken_, tokens_, amountOutMin_, amountLp_);
         
         increaseBalance(user, tokens_[2], amountTokenDesired);
     }

@@ -54,7 +54,7 @@ contract Batch {
     event DepositOnNestedStrategy(string indexed recipeId, string indexed id, address vaultAddress, uint256 amount);
     event WithdrawFromNestedStrategy(string indexed recipeId, string indexed id, address vaultAddress, uint256 amountShares, address tokenDesired, uint256 amountDesired);
     event lpWithdrawed(string indexed recipeId, string indexed id, address lpToken, uint256 amountLp, address tokenDesired, uint256 amountTokenDesired);
-    event ttWithdrawed(string indexed recipeId, string indexed id, address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired, uint256 rewardAmount);
+    event ttWithdrawed(string indexed recipeId, string indexed id, uint256 lpAmount, address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired, uint256 rewardAmount);
 
     constructor(address _owner) {
         owner = _owner;
@@ -333,7 +333,7 @@ contract Batch {
             auxStack.pop();
         }
 
-        (uint256 rewardAmount, uint256 amountTokenDesired) = nodes.withdrawFromFarm(args.user, lpToken_, tortleVault_, tokens_, amountOutMin_, amount_);
+        (uint256 amountLp, uint256 rewardAmount, uint256 amountTokenDesired) = nodes.withdrawFromFarm(args.user, lpToken_, tortleVault_, tokens_, amountOutMin_, amount_);
         
         if (args.hasNext) {
             auxStack.push(amountTokenDesired);
@@ -342,6 +342,7 @@ contract Batch {
         emit ttWithdrawed(
             args.recipeId,
             args.id,
+            amountLp,
             tortleVault_,
             amount_,
             tokens_[2],
