@@ -10,6 +10,17 @@ contract NestedStrategies {
     using SafeERC20 for IERC20;
     mapping(address => mapping(address => uint256)) public sharesBalance;
 
+    /**
+     * @notice Approve of a token
+     * @param token_ Address of the token wanted to be approved
+     * @param spender_ Address that is wanted to be approved to spend the token
+     * @param amount_ Amount of the token that is wanted to be approved.
+     */
+    function _approve(address token_, address spender_, uint256 amount_) internal {
+        IERC20(token_).safeApprove(spender_, 0);
+        IERC20(token_).safeApprove(spender_, amount_);
+    }
+
     function _addLiquidity(address token_, uint256[3] memory amounts_, bool oldContract_) private returns (uint256 lpAmount) {
         if(oldContract_) {
             uint256 balanceBefore_ = IERC20(token_).balanceOf(address(this));
@@ -22,7 +33,7 @@ contract NestedStrategies {
 
     function deposit(address user_, address token_, address vaultAddress_, uint256 amount_) external returns (uint256 sharesAmount) {
         IERC20(token_).safeTransferFrom(msg.sender, address(this), amount_);
-        IERC20(token_).safeApprove(vaultAddress_, amount_);
+        _approve(token_, vaultAddress_, amount_);
 
         sharesAmount = IYearnVyper(vaultAddress_).deposit(amount_, msg.sender);
 
@@ -31,7 +42,7 @@ contract NestedStrategies {
 
     function withdraw(address user_, address tokenOut_, address vaultAddress_, uint256 sharesAmount_) external returns (uint256 amountTokenDesired) {
         IERC20(vaultAddress_).safeTransferFrom(msg.sender, address(this), sharesAmount_);
-        IERC20(vaultAddress_).safeApprove(vaultAddress_, sharesAmount_);
+        _approve(vaultAddress_, vaultAddress_, sharesAmount_);
 
         sharesBalance[vaultAddress_][user_] -= sharesAmount_;
 
