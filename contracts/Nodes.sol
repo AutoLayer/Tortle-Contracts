@@ -48,10 +48,13 @@ contract Nodes is Initializable, ReentrancyGuard {
     address private WFTM;
     address public usdc;
 
-    uint8 public constant TOTAL_FEE = 150; //1.50%
-    uint8 public constant DOJOS_FEE = 50; //0.50%
-    uint8 public constant TREASURY_FEE = 70; //0.70%
-    uint8 public constant DEV_FUND_FEE = 30; //0.30%
+    uint8 public constant INITIAL_TOTAL_FEE = 50; //0.50%
+    uint16 public constant DOJOS_FEE = 3333; //33.33%
+    uint16 public constant TREASURY_FEE = 4666; //46.66%
+    uint16 public constant DEV_FUND_FEE = 2000; //20%
+    // uint8 public constant DOJOS_FEE = 50; //0.50%
+    // uint8 public constant TREASURY_FEE = 70; //0.70%
+    // uint8 public constant DEV_FUND_FEE = 30; //0.30%
 
     mapping(address => mapping(address => uint256)) public userLp;
     mapping(address => mapping(address => uint256)) public userTt;
@@ -135,6 +138,36 @@ contract Nodes is Initializable, ReentrancyGuard {
     }
 
     /**
+    * @notice Function used to charge the correspoding fees (returns the amount - fees)
+    * @param token_ Address of the token used as fees
+    * @param amount_ Amount of the token that is wanted to calculate its fees
+    */
+    function _chargeFees(address token_, uint256 amount_, uint8 feeAmount_) private returns (uint256) {
+        uint256 amountFee_ = mulScale(amount_, feeAmount_, 10000);
+        uint256 dojosTokens_;
+        uint256 treasuryTokens_;
+        uint256 devFundTokens_;
+
+        if (token_ == usdc) {
+            dojosTokens_ = mulScale(amountFee_, DOJOS_FEE, 10000);
+            treasuryTokens_ = mulScale(amountFee_, TREASURY_FEE, 10000);
+            devFundTokens_ = mulScale(amountFee_, DEV_FUND_FEE, 10000);
+        } else {
+            _approve(token_, address(swapsUni), amountFee_);
+            uint256 _amountSwap = swapsUni.swapTokens(token_, amountFee_, usdc, 0);
+            dojosTokens_ = _amountSwap / 3;
+            treasuryTokens_ = mulScale(_amountSwap, 2000, 10000);
+            devFundTokens_= _amountSwap - (dojosTokens_ + treasuryTokens_);
+        }
+
+        IERC20(usdc).safeTransfer(tortleDojos, dojosTokens_);
+        IERC20(usdc).safeTransfer(tortleTreasury, treasuryTokens_);
+        IERC20(usdc).safeTransfer(tortleDevFund, devFundTokens_);
+
+        return amount_ - amountFee_;
+    }
+
+    /**
      * @notice Function that allows to add funds to the contract to execute the recipes.
      * @param _token Contract of the token to be deposited.
      * @param _user Address of the user who will deposit the tokens.
@@ -152,7 +185,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 balanceAfter = IERC20(_token).balanceOf(address(this));
         if (balanceAfter <= balanceBefore) revert Nodes__TransferFailed();
 
-        amount = chargeFees(_token, balanceAfter - balanceBefore);
+        amount = _chargeFees(_token, balanceAfter - balanceBefore, INITIAL_TOTAL_FEE);
         increaseBalance(_user, _token, amount);
 
         emit AddFunds(_token, amount);
@@ -167,41 +200,11 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         IWETH(WFTM).deposit{value: msg.value}();
 
-        uint256 _amount = chargeFees(WFTM, msg.value);
+        uint256 _amount = _chargeFees(WFTM, msg.value, INITIAL_TOTAL_FEE);
         increaseBalance(_user, WFTM, _amount);
 
         emit AddFunds(WFTM, _amount);
         return (WFTM, _amount);
-    }
-
-    /**
-    * @notice Function used to charge the correspoding fees (returns the amount - fees)
-    * @param _token Address of the token used as fees
-    * @param _amount Amount of the token that is wanted to calculate its fees
-    */
-    function chargeFees(address _token, uint256 _amount) private returns (uint256) {
-        uint256 _amountFee = mulScale(_amount, TOTAL_FEE, 10000);
-        uint256 _dojosTokens;
-        uint256 _treasuryTokens;
-        uint256 _devFundTokens;
-
-        if (_token == usdc) {
-            _dojosTokens = mulScale(_amount, DOJOS_FEE, 10000);
-            _treasuryTokens = mulScale(_amount, TREASURY_FEE, 10000);
-            _devFundTokens = mulScale(_amount, DEV_FUND_FEE, 10000);
-        } else {
-            _approve(_token, address(swapsUni), _amountFee);
-            uint256 _amountSwap = swapsUni.swapTokens(_token, _amountFee, usdc, 0);
-            _dojosTokens = _amountSwap / 3;
-            _treasuryTokens = mulScale(_amountSwap, 2000, 10000);
-            _devFundTokens= _amountSwap - (_dojosTokens + _treasuryTokens);
-        }
-
-        IERC20(usdc).safeTransfer(tortleDojos, _dojosTokens);
-        IERC20(usdc).safeTransfer(tortleTreasury, _treasuryTokens);
-        IERC20(usdc).safeTransfer(tortleDevFund, _devFundTokens);
-
-        return _amount - _amountFee;
     }
 
     /**
