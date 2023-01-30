@@ -370,8 +370,9 @@ contract Batch {
         (IAsset[] memory tokens_,
         uint256 amount_,
         uint256 amountOutMin_,
+        uint256 liquidateAmountWPercentage_,
         uint8 provider_,
-        BatchSwapStruct memory batchSwapStruct_) = abi.decode(args.arguments, (IAsset[], uint256, uint256, uint8, BatchSwapStruct));
+        BatchSwapStruct memory batchSwapStruct_) = abi.decode(args.arguments, (IAsset[], uint256, uint256, uint256, uint8, BatchSwapStruct));
 
         if(auxStack.length > 0) {
             amount_ = auxStack[auxStack.length - 1];
@@ -383,7 +384,7 @@ contract Batch {
             batchSwapStep_ = createBatchSwapObject(batchSwapStruct_);
         }
 
-        uint256 amountOut = nodes.liquidate(args.user, tokens_, amount_, amountOutMin_, provider_, batchSwapStep_);
+        uint256 amountOut = nodes.liquidate(args.user, tokens_, amount_, amountOutMin_, liquidateAmountWPercentage_, provider_, batchSwapStep_);
 
         emit Liquidate(args.recipeId, args.id, address(tokens_[0]), amount_, address(tokens_[tokens_.length - 1]), amountOut);
     }

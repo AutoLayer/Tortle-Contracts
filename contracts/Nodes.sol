@@ -467,17 +467,19 @@ contract Nodes is Initializable, ReentrancyGuard {
     }
 
     /**
-     * @notice Function that allows to liquidate all tokens in your account by swapping them to a specific token.
-     * @param user_ Address of the user whose tokens are to be liquidated.
-     * @param tokens_ Array of tokens input.
-     * @param amount_ Array of amounts.
-     * @param amountOutMin_ Minimum amount you wish to receive.
+    * @notice Function that allows to liquidate all tokens in your account by swapping them to a specific token.
+    * @param user_ Address of the user whose tokens are to be liquidated.
+    * @param tokens_ Array of tokens input.
+    * @param amount_ Array of amounts.
+    * @param amountOutMin_ Minimum amount you wish to receive.
+    * @param liquidateAmountWPercentage_ AddFunds amount with percentage.
      */
     function liquidate(
         address user_,
         IAsset[] memory tokens_,
         uint256 amount_,
         uint256 amountOutMin_,
+        uint256 liquidateAmountWPercentage_,
         uint8 provider_,
         BatchSwapStep[] memory batchSwapStep_
     ) public onlyOwner returns (uint256 amountOut) {
@@ -486,6 +488,13 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         uint256 userBalance_ = getBalance(user_, IERC20(tokenIn_));
         if (userBalance_ < amount_) revert Nodes__InsufficientBalance();
+
+        int256 profitAmount = int256(amount_) - int256(liquidateAmountWPercentage_);
+
+        if (profitAmount > 0) {
+            uint256 feeAmount_ = _chargeFees(tokenIn_, uint256(profitAmount), PERFORMANCE_TOTAL_FEE);
+            amount_ -= feeAmount_;
+        }
 
         amountOut = swapTokens(user_, provider_, tokens_, amount_, amountOutMin_, batchSwapStep_);
 
