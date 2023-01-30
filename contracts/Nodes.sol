@@ -48,13 +48,11 @@ contract Nodes is Initializable, ReentrancyGuard {
     address private WFTM;
     address public usdc;
 
-    uint8 public constant INITIAL_TOTAL_FEE = 50; //0.50%
-    uint16 public constant DOJOS_FEE = 3333; //33.33%
-    uint16 public constant TREASURY_FEE = 4666; //46.66%
-    uint16 public constant DEV_FUND_FEE = 2000; //20%
-    // uint8 public constant DOJOS_FEE = 50; //0.50%
-    // uint8 public constant TREASURY_FEE = 70; //0.70%
-    // uint8 public constant DEV_FUND_FEE = 30; //0.30%
+    uint8 public constant INITIAL_TOTAL_FEE = 50; // 0.50%
+    uint16 public constant PERFORMANCE_TOTAL_FEE = 500; // 5%
+    uint16 public constant DOJOS_FEE = 3333; // 33.33%
+    uint16 public constant TREASURY_FEE = 4666; // 46.66%
+    uint16 public constant DEV_FUND_FEE = 2000; // 20%
 
     mapping(address => mapping(address => uint256)) public userLp;
     mapping(address => mapping(address => uint256)) public userTt;
@@ -138,11 +136,12 @@ contract Nodes is Initializable, ReentrancyGuard {
     }
 
     /**
-    * @notice Function used to charge the correspoding fees (returns the amount - fees)
-    * @param token_ Address of the token used as fees
-    * @param amount_ Amount of the token that is wanted to calculate its fees
+    * @notice Function used to charge the correspoding fees (returns the amount - fees).
+    * @param token_ Address of the token used as fees.
+    * @param amount_ Amount of the token that is wanted to calculate its fees.
+    * @param feeAmount_ Percentage of fees to be charged.
     */
-    function _chargeFees(address token_, uint256 amount_, uint8 feeAmount_) private returns (uint256) {
+    function _chargeFees(address token_, uint256 amount_, uint256 feeAmount_) private returns (uint256) {
         uint256 amountFee_ = mulScale(amount_, feeAmount_, 10000);
         uint256 dojosTokens_;
         uint256 treasuryTokens_;
@@ -504,29 +503,36 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     /**
     * @notice Function that allows to withdraw tokens to the user's wallet.
-    * @param _user Address of the user who wishes to remove the tokens.
-    * @param _token Token to be withdrawn.
-    * @param _amount Amount of tokens to be withdrawn.
+    * @param user_ Address of the user who wishes to remove the tokens.
+    * @param token_ Token to be withdrawn.
+    * @param amount_ Amount of tokens to be withdrawn.
+    * @param addFundsAmountWPercentage_ AddFunds amount with percentage.
     */
     function sendToWallet(
-        address _user,
-        IERC20 _token,
-        uint256 _amount
+        address user_,
+        address token_,
+        uint256 amount_,
+        uint256 addFundsAmountWPercentage_
     ) public nonReentrant onlyOwner returns (uint256) {
-        uint256 _userBalance = getBalance(_user, _token);
-        if (_userBalance < _amount) revert Nodes__InsufficientBalance();
-        
-        if(address(_token) == WFTM) {
-            IWETH(WFTM).withdraw(_amount);
-            payable(_user).transfer(_amount);
-        } else {
-            _token.safeTransfer(_user, _amount);
+        uint256 _userBalance = getBalance(user_, IERC20(token_));
+        if (_userBalance < amount_) revert Nodes__InsufficientBalance();
+
+        int256 profitAmount = int256(amount_) - int256(addFundsAmountWPercentage_);
+
+        if (profitAmount > 0) {
+            uint256 feeAmount_ = _chargeFees(token_, uint256(profitAmount), PERFORMANCE_TOTAL_FEE);
+            amount_ -= feeAmount_;
         }
 
-        decreaseBalance(_user, address(_token), _amount);
+        if (token_ == WFTM) {
+            IWETH(WFTM).withdraw(amount_);
+            payable(user_).transfer(amount_);
+        } else IERC20(token_).safeTransfer(user_, amount_);
 
-        emit SendToWallet(address(_token), _amount);
-        return _amount;
+        decreaseBalance(user_, token_, amount_);
+
+        emit SendToWallet(token_, amount_);
+        return amount_;
     }
 
     /**

@@ -353,14 +353,15 @@ contract Batch {
 
     function sendToWallet(Function memory args) public onlySelf {
         (address token_,
-        uint256 amount_) = abi.decode(args.arguments, (address, uint256));
+        uint256 amount_,
+        uint256 addFundsAmountWPercentage_) = abi.decode(args.arguments, (address, uint256, uint256));
 
         if (auxStack.length > 0) {
             amount_ = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
 
-        uint256 amount = nodes.sendToWallet(args.user, IERC20(token_), amount_);
+        uint256 amount = nodes.sendToWallet(args.user, token_, amount_, addFundsAmountWPercentage_);
 
         emit SendToWallet(args.recipeId, args.id, token_, amount);
     }
