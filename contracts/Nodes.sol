@@ -491,10 +491,7 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         int256 profitAmount = int256(amount_) - int256(liquidateAmountWPercentage_);
 
-        if (profitAmount > 0) {
-            uint256 feeAmount_ = _chargeFees(tokenIn_, uint256(profitAmount), PERFORMANCE_TOTAL_FEE);
-            amount_ -= feeAmount_;
-        }
+        if (profitAmount > 0) amount_ = _chargeFees(tokenIn_, uint256(profitAmount), PERFORMANCE_TOTAL_FEE);
 
         amountOut = swapTokens(user_, provider_, tokens_, amount_, amountOutMin_, batchSwapStep_);
 
@@ -528,10 +525,7 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         int256 profitAmount = int256(amount_) - int256(addFundsAmountWPercentage_);
 
-        if (profitAmount > 0) {
-            uint256 feeAmount_ = _chargeFees(token_, uint256(profitAmount), PERFORMANCE_TOTAL_FEE);
-            amount_ -= feeAmount_;
-        }
+        if (profitAmount > 0) amount_ = _chargeFees(token_, uint256(profitAmount), PERFORMANCE_TOTAL_FEE);
 
         if (token_ == WFTM) {
             IWETH(WFTM).withdraw(amount_);
