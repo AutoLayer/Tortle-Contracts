@@ -489,9 +489,9 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 userBalance_ = getBalance(user_, IERC20(tokenIn_));
         if (userBalance_ < amount_) revert Nodes__InsufficientBalance();
 
-        int256 profitAmount = int256(amount_) - int256(liquidateAmountWPercentage_);
+        int256 profitAmount_ = int256(amount_) - int256(liquidateAmountWPercentage_);
 
-        if (profitAmount > 0) amount_ = _chargeFees(tokenIn_, uint256(profitAmount), PERFORMANCE_TOTAL_FEE);
+        if (profitAmount_ > 0) amount_ = (amount_ - uint256(profitAmount_)) + _chargeFees(tokenIn_, uint256(profitAmount_), PERFORMANCE_TOTAL_FEE);
 
         amountOut = swapTokens(user_, provider_, tokens_, amount_, amountOutMin_, batchSwapStep_);
 
@@ -523,9 +523,9 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 _userBalance = getBalance(user_, IERC20(token_));
         if (_userBalance < amount_) revert Nodes__InsufficientBalance();
 
-        int256 profitAmount = int256(amount_) - int256(addFundsAmountWPercentage_);
+        int256 profitAmount_ = int256(amount_) - int256(addFundsAmountWPercentage_);
 
-        if (profitAmount > 0) amount_ = _chargeFees(token_, uint256(profitAmount), PERFORMANCE_TOTAL_FEE);
+        if (profitAmount_ > 0) amount_ = (amount_ - uint256(profitAmount_)) + _chargeFees(token_, uint256(profitAmount_), PERFORMANCE_TOTAL_FEE);
 
         if (token_ == WFTM) {
             IWETH(WFTM).withdraw(amount_);
