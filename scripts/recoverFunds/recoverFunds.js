@@ -17,8 +17,11 @@ const recover = async () => {
 
         const args_ = [lpToken, tortleVault, token0, token1, tokenDesired, amountTokenDesiredMin]
 
+        // const balanceBefore = await nodesContract.getBalance(user, tokenDesired)
         await nodesContract.withdrawFromFarm(user, args_, amount)
-        await nodesContract.sendToWallet(user, tokenDesired, amount)
+        // const balanceAfter = await nodesContract.getBalance(user, tokenDesired)
+        // const amountDesired = balanceAfter - balanceBefore
+        // await nodesContract.sendToWallet(user, tokenDesired, amountDesired)
     }
 }
 
