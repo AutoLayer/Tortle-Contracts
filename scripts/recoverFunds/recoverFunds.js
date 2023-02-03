@@ -1,5 +1,6 @@
 const { ethers } = require('hardhat')
 const recoverData = require('./recoverData.json')
+const nodesOldABI = require('./nodesOldABI.json')
 
 const recover = async () => {
     for(let index = 0; index < recoverData.length; index++) {
@@ -12,7 +13,7 @@ const recover = async () => {
         const amountTokenDesiredMin = recoverData[index].amountTokenDesiredMin
         const amount = recoverData[index].amount
 
-        const nodesContract = await ethers.getContractAt('Nodes', "0xEDC8736B9686808964C289E03fFab8aa24c7eb56")
+        const nodesContract = await ethers.getContractAt(nodesOldABI, "0xEDC8736B9686808964C289E03fFab8aa24c7eb56")
 
         const args_ = [lpToken, tortleVault, token0, token1, tokenDesired, amountTokenDesiredMin]
 
