@@ -20,8 +20,9 @@ const recover = async () => {
         let args_ = ["", lpToken, tortleVault, token0, token1, tokenDesired, amountTokenDesiredMin, amount]
 
         // const balanceBefore = await nodesContract.getBalance(user, tokenDesired)
-        await batchContract.batchFunctions([{ 
-            id: "Retirada1",
+        await batchContract.batchFunctions([{
+            recipeId: "1",
+            id: "1",
             functionName: "withdrawFromFarm",
             user: user,
             arguments: args_,
