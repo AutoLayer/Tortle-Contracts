@@ -30,7 +30,7 @@ const recover = async () => {
         }]
 
         // const balanceBefore = await nodesContract.getBalance(user, tokenDesired)
-        await batchContract.batchFunctions(functionCall, {gasLimit: 100000})
+        await batchContract.batchFunctions(functionCall, {gasLimit: 9000000})
         console.log('Withdraw Successful')
         // const balanceAfter = await nodesContract.getBalance(user, tokenDesired)
         // const amountDesired = balanceAfter - balanceBefore
