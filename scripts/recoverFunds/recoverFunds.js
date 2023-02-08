@@ -43,6 +43,7 @@ const recover = async () => {
             arguments: sendToWalletArgs_,
             hasNext: false
         }])
+        console.log('Send To Wallet Successful')
     }
 }
 
