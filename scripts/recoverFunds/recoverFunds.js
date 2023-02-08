@@ -22,7 +22,7 @@ const recover = async () => {
         const functionCall = [{
             recipeId: "1",
             id: "1",
-            functionName: "withdrawFromFarm((string,string,address,string[],bool))",
+            functionName: "withdrawFromFarm((string,string,string,address,string[],bool))",
             user: user,
             arguments: args_,
             hasNext: false
