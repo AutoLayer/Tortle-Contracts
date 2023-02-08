@@ -18,12 +18,11 @@ const recover = async () => {
         const batchContract = await ethers.getContractAt(batchOldABI, "0x2d8a07D9aacA94954a7474C389362eECF371971F")
 
         let args_ = ["", lpToken, tortleVault, token0, token1, tokenDesired, amountTokenDesiredMin, amount]
-        console.log(args_)
 
         const functionCall = [{
             recipeId: "1",
             id: "1",
-            functionName: "withdrawFromFarm",
+            functionName: "withdrawFromFarm((string,string,address,string[],bool))",
             user: user,
             arguments: args_,
             hasNext: false
