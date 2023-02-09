@@ -1,16 +1,6 @@
 [
     {
         "user": "0xEA1D4A8Be3B2C60c20180Dcdc7c5286c00a53d2E",
-        "lpToken": "0x5DF809e410d9CC577f0d01b4E623C567C7aD56c1",
-        "tortleVault": "0x38FfDca82776A1c71e2c30fE20aaD0C8E80b7A30",
-        "token0": "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83",
-        "token1": "0x511D35c52a3C244E7b8bd92c0C297755FbD89212",
-        "tokenDesired": "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83",
-        "amountTokenDesiredMin": "0",
-        "amount": "37992432671280658054"
-    },
-    {
-        "user": "0xEA1D4A8Be3B2C60c20180Dcdc7c5286c00a53d2E",
         "lpToken": "0xFdb9Ab8B9513Ad9E419Cf19530feE49d412C3Ee3",
         "tortleVault": "0x38E3713aC3d8fc0f17EE365493043e2a857623AA",
         "token0": "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83",

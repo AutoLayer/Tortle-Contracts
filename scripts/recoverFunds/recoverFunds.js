@@ -30,13 +30,15 @@ const recover = async () => {
 
         const balanceBefore = await nodesContract.getBalance(user, tokenDesired)
 
-        await batchContract.batchFunctions(functionCall, {gasLimit: 9000000})
+        const withdraw = await batchContract.batchFunctions(functionCall, {gasLimit: 9000000})
+        await withdraw.wait(6)
+        console.log(`Withdraw ${index} done!`)
 
         const balanceAfter = await nodesContract.getBalance(user, tokenDesired)
         const amountDesired = balanceAfter - balanceBefore
 
         const sendToWalletArgs_ = [tokenDesired, amountDesired]
-        await batchContract.batchFunctions([{
+        const sendToWallet = await batchContract.batchFunctions([{
             recipeId: "1",
             id: "SendToWallet1",
             functionName: "sendToWallet((string,string,string,address,string[],bool))",
@@ -44,6 +46,8 @@ const recover = async () => {
             arguments: sendToWalletArgs_,
             hasNext: false
         }])
+        await sendToWallet.wait(6)
+        console.log(`SendToWallet ${index} done!`)
     }
 
     console.log('Successful')
