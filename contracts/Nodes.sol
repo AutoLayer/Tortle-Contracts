@@ -137,27 +137,51 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     /**
     * @notice Function used to charge the correspoding fees (returns the amount - fees).
-    * @param token_ Address of the token used as fees.
+    * @param tokens_ Addresses of the tokens used as fees.
     * @param amount_ Amount of the token that is wanted to calculate its fees.
     * @param feeAmount_ Percentage of fees to be charged.
     */
-    function _chargeFees(address token_, uint256 amount_, uint256 feeAmount_) private returns (uint256) {
+    function _chargeFees(
+        address user_,
+        IAsset[] memory tokens_,
+        uint256 amount_,
+        uint256 amountOutMin_,
+        uint256 feeAmount_,
+        uint8 provider_,
+        BatchSwapStep[] memory batchSwapStep_
+    ) private returns (uint256) {
         uint256 amountFee_ = mulScale(amount_, feeAmount_, 10000);
         uint256 dojosTokens_;
         uint256 treasuryTokens_;
         uint256 devFundTokens_;
 
-        if (token_ == usdc) {
+        if (address(tokens_[0]) == usdc) {
             dojosTokens_ = mulScale(amountFee_, DOJOS_FEE, 10000);
             treasuryTokens_ = mulScale(amountFee_, TREASURY_FEE, 10000);
             devFundTokens_ = mulScale(amountFee_, DEV_FUND_FEE, 10000);
         } else {
-            _approve(token_, address(swapsUni), amountFee_);
-            uint256 _amountSwap = swapsUni.swapTokens(token_, amountFee_, usdc, 0);
-            dojosTokens_ = _amountSwap / 3;
-            treasuryTokens_ = mulScale(_amountSwap, 2000, 10000);
-            devFundTokens_= _amountSwap - (dojosTokens_ + treasuryTokens_);
+            uint256 amountSwap_ = swapTokens(user_, provider_, tokens_, amountFee_, amountOutMin_, batchSwapStep_);
+            dojosTokens_ = amountSwap_ / 3;
+            treasuryTokens_ = mulScale(amountSwap_, 2000, 10000);
+            devFundTokens_= amountSwap_ - (dojosTokens_ + treasuryTokens_);
         }
+
+        IERC20(usdc).safeTransfer(tortleDojos, dojosTokens_);
+        IERC20(usdc).safeTransfer(tortleTreasury, treasuryTokens_);
+        IERC20(usdc).safeTransfer(tortleDevFund, devFundTokens_);
+
+        return amount_ - amountFee_;
+    }
+
+    function _chargeFeesForWFTM(uint256 amount_) private returns (uint256) {
+        uint256 amountFee_ = mulScale(amount_, INITIAL_TOTAL_FEE, 10000);
+        
+        _approve(WFTM, address(swapsUni), amountFee_);
+        uint256 _amountSwap = swapsUni.swapTokens(WFTM, amountFee_, usdc, 0);
+        
+        uint256 dojosTokens_ = _amountSwap / 3;
+        uint256 treasuryTokens_ = mulScale(_amountSwap, 2000, 10000);
+        uint256 devFundTokens_= _amountSwap - (dojosTokens_ + treasuryTokens_);
 
         IERC20(usdc).safeTransfer(tortleDojos, dojosTokens_);
         IERC20(usdc).safeTransfer(tortleTreasury, treasuryTokens_);
@@ -168,39 +192,44 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     /**
      * @notice Function that allows to add funds to the contract to execute the recipes.
-     * @param _token Contract of the token to be deposited.
-     * @param _user Address of the user who will deposit the tokens.
-     * @param _amount Amount of tokens to be deposited.
+     * @param user_ Address of the user who will deposit the tokens.
+     * @param tokens_ Addresses of the tokens to be deposited.
+     * @param amount_ Amount of tokens to be deposited.
      */
     function addFundsForTokens(
-        address _user,
-        address _token,
-        uint256 _amount
+        address user_,
+        IAsset[] memory tokens_,
+        uint256 amount_,
+        uint256 amountOutMin_,
+        uint8 provider_,
+        BatchSwapStep[] memory batchSwapStep_
     ) public nonReentrant returns (uint256 amount) {
-        if (_amount <= 0) revert Nodes__InsufficientBalance();
+        if (amount_ <= 0) revert Nodes__InsufficientBalance();
 
-        uint256 balanceBefore = IERC20(_token).balanceOf(address(this));
-        IERC20(_token).safeTransferFrom(_user, address(this), _amount);
-        uint256 balanceAfter = IERC20(_token).balanceOf(address(this));
+        address tokenIn_ = address(tokens_[0]);
+
+        uint256 balanceBefore = IERC20(tokenIn_).balanceOf(address(this));
+        IERC20(tokenIn_).safeTransferFrom(user_, address(this), amount_);
+        uint256 balanceAfter = IERC20(tokenIn_).balanceOf(address(this));
         if (balanceAfter <= balanceBefore) revert Nodes__TransferFailed();
 
-        amount = _chargeFees(_token, balanceAfter - balanceBefore, INITIAL_TOTAL_FEE);
-        increaseBalance(_user, _token, amount);
+        amount = _chargeFees(user_, tokens_, balanceAfter - balanceBefore, amountOutMin_, INITIAL_TOTAL_FEE, provider_, batchSwapStep_);
+        increaseBalance(user_, tokenIn_, amount);
 
-        emit AddFunds(_token, amount);
+        emit AddFunds(tokenIn_, amount);
     }
 
     /**
     * @notice Function that allows to add funds to the contract to execute the recipes.
-    * @param _user Address of the user who will deposit the tokens.
+    * @param user_ Address of the user who will deposit the tokens.
     */
-    function addFundsForFTM(address _user) public payable nonReentrant returns (address token, uint256 amount) {
+    function addFundsForFTM(address user_) public payable nonReentrant returns (address token, uint256 amount) {
         if (msg.value <= 0) revert Nodes__InsufficientBalance();
 
         IWETH(WFTM).deposit{value: msg.value}();
 
-        uint256 _amount = _chargeFees(WFTM, msg.value, INITIAL_TOTAL_FEE);
-        increaseBalance(_user, WFTM, _amount);
+        uint256 _amount = _chargeFeesForWFTM(msg.value);
+        increaseBalance(user_, WFTM, _amount);
 
         emit AddFunds(WFTM, _amount);
         return (WFTM, _amount);
@@ -222,7 +251,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amount_,
         uint256 amountOutMin_,
         BatchSwapStep[] memory batchSwapStep_
-    ) public nonReentrant onlyOwner returns (uint256 amountOut) {
+    ) public onlyOwner returns (uint256 amountOut) {
         address tokenIn_ = address(tokens_[0]);
         address tokenOut_ = address(tokens_[tokens_.length - 1]);
 
@@ -473,7 +502,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     * @param amount_ Array of amounts.
     * @param amountOutMin_ Minimum amount you wish to receive.
     * @param liquidateAmountWPercentage_ AddFunds amount with percentage.
-     */
+    */
     function liquidate(
         address user_,
         IAsset[] memory tokens_,
@@ -491,7 +520,7 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         int256 profitAmount_ = int256(amount_) - int256(liquidateAmountWPercentage_);
 
-        if (profitAmount_ > 0) amount_ = (amount_ - uint256(profitAmount_)) + _chargeFees(tokenIn_, uint256(profitAmount_), PERFORMANCE_TOTAL_FEE);
+        if (profitAmount_ > 0) amount_ = (amount_ - uint256(profitAmount_)) + _chargeFees(user_, tokens_, uint256(profitAmount_), amountOutMin_, PERFORMANCE_TOTAL_FEE, provider_, batchSwapStep_);
 
         amountOut = swapTokens(user_, provider_, tokens_, amount_, amountOutMin_, batchSwapStep_);
 
@@ -510,31 +539,35 @@ contract Nodes is Initializable, ReentrancyGuard {
     /**
     * @notice Function that allows to withdraw tokens to the user's wallet.
     * @param user_ Address of the user who wishes to remove the tokens.
-    * @param token_ Token to be withdrawn.
+    * @param tokens_ Token to be withdrawn.
     * @param amount_ Amount of tokens to be withdrawn.
     * @param addFundsAmountWPercentage_ AddFunds amount with percentage.
     */
     function sendToWallet(
         address user_,
-        address token_,
+        IAsset[] memory tokens_,
         uint256 amount_,
-        uint256 addFundsAmountWPercentage_
+        uint256 amountOutMin_,
+        uint256 addFundsAmountWPercentage_,
+        uint8 provider_,
+        BatchSwapStep[] memory batchSwapStep_
     ) public nonReentrant onlyOwner returns (uint256) {
-        uint256 _userBalance = getBalance(user_, IERC20(token_));
+        address tokenOut_ = address(tokens_[0]);
+        uint256 _userBalance = getBalance(user_, IERC20(tokenOut_));
         if (_userBalance < amount_) revert Nodes__InsufficientBalance();
 
         int256 profitAmount_ = int256(amount_) - int256(addFundsAmountWPercentage_);
 
-        if (profitAmount_ > 0) amount_ = (amount_ - uint256(profitAmount_)) + _chargeFees(token_, uint256(profitAmount_), PERFORMANCE_TOTAL_FEE);
+        if (profitAmount_ > 0) amount_ = (amount_ - uint256(profitAmount_)) + _chargeFees(user_, tokens_, uint256(profitAmount_), amountOutMin_, PERFORMANCE_TOTAL_FEE, provider_, batchSwapStep_);
 
-        if (token_ == WFTM) {
+        if (tokenOut_ == WFTM) {
             IWETH(WFTM).withdraw(amount_);
             payable(user_).transfer(amount_);
-        } else IERC20(token_).safeTransfer(user_, amount_);
+        } else IERC20(tokenOut_).safeTransfer(user_, amount_);
 
-        decreaseBalance(user_, token_, amount_);
+        decreaseBalance(user_, tokenOut_, amount_);
 
-        emit SendToWallet(token_, amount_);
+        emit SendToWallet(tokenOut_, amount_);
         return amount_;
     }
 

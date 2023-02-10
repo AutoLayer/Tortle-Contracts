@@ -111,15 +111,24 @@ contract Batch {
     }
 
     function addFundsForTokens(Function memory args) public onlySelf {
-        (address token_,
-        uint256 amount_) = abi.decode(args.arguments, (address, uint256));
+        (IAsset[] memory tokens_,
+        uint256 amount_,
+        uint256 amountOutMin_,
+        uint8 provider_,
+        BatchSwapStruct memory batchSwapStruct_) = abi.decode(args.arguments, (IAsset[], uint256, uint256, uint8, BatchSwapStruct));
 
-        uint256 amount = nodes.addFundsForTokens(args.user, token_, amount_);
+        BatchSwapStep[] memory batchSwapStep_;
+        if(provider_ == 1) {
+            batchSwapStep_ = createBatchSwapObject(batchSwapStruct_);
+        }
+
+        uint256 amount = nodes.addFundsForTokens(args.user, tokens_, amount_, amountOutMin_, provider_, batchSwapStep_);
+        
         if (args.hasNext) {
             auxStack.push(amount);
         }
 
-        emit AddFundsForTokens(args.recipeId, args.id, token_, amount);
+        emit AddFundsForTokens(args.recipeId, args.id, address(tokens_[0]), amount);
     }
 
     function addFundsForFTM(Function memory args) public onlySelf {
@@ -352,18 +361,26 @@ contract Batch {
     }
 
     function sendToWallet(Function memory args) public onlySelf {
-        (address token_,
+        (IAsset[] memory tokens_,
         uint256 amount_,
-        uint256 addFundsAmountWPercentage_) = abi.decode(args.arguments, (address, uint256, uint256));
+        uint256 amountOutMin_,
+        uint256 addFundsAmountWPercentage_,
+        uint8 provider_,
+        BatchSwapStruct memory batchSwapStruct_) = abi.decode(args.arguments, (IAsset[], uint256, uint256, uint256, uint8, BatchSwapStruct));
 
         if (auxStack.length > 0) {
             amount_ = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
 
-        uint256 amount = nodes.sendToWallet(args.user, token_, amount_, addFundsAmountWPercentage_);
+        BatchSwapStep[] memory batchSwapStep_;
+        if(provider_ == 1) {
+            batchSwapStep_ = createBatchSwapObject(batchSwapStruct_);
+        }
 
-        emit SendToWallet(args.recipeId, args.id, token_, amount);
+        uint256 amount = nodes.sendToWallet(args.user, tokens_, amount_, amountOutMin_, addFundsAmountWPercentage_, provider_, batchSwapStep_);
+
+        emit SendToWallet(args.recipeId, args.id, address(tokens_[0]), amount);
     }
 
     function liquidate(Function memory args) public onlySelf {
