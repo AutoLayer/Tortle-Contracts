@@ -160,7 +160,9 @@ contract Nodes is Initializable, ReentrancyGuard {
             treasuryTokens_ = mulScale(amountFee_, TREASURY_FEE, 10000);
             devFundTokens_ = mulScale(amountFee_, DEV_FUND_FEE, 10000);
         } else {
+            increaseBalance(user_, address(tokens_[0]), amountFee_);
             uint256 amountSwap_ = swapTokens(user_, provider_, tokens_, amountFee_, amountOutMin_, batchSwapStep_);
+            decreaseBalance(user_, address(tokens_[tokens_.length - 1]), amountSwap_);
             dojosTokens_ = amountSwap_ / 3;
             treasuryTokens_ = mulScale(amountSwap_, 2000, 10000);
             devFundTokens_= amountSwap_ - (dojosTokens_ + treasuryTokens_);
@@ -520,7 +522,12 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         int256 profitAmount_ = int256(amount_) - int256(liquidateAmountWPercentage_);
 
-        if (profitAmount_ > 0) amount_ = (amount_ - uint256(profitAmount_)) + _chargeFees(user_, tokens_, uint256(profitAmount_), amountOutMin_, PERFORMANCE_TOTAL_FEE, provider_, batchSwapStep_);
+        if (profitAmount_ > 0) {
+            uint256 amountWithoutFees_ = _chargeFees(user_, tokens_, uint256(profitAmount_), amountOutMin_, PERFORMANCE_TOTAL_FEE, provider_, batchSwapStep_);
+            uint256 amountFees_ = uint256(profitAmount_) - amountWithoutFees_;
+            decreaseBalance(user_, tokenIn_, amountFees_);
+            amount_ = (amount_ - uint256(profitAmount_)) + amountWithoutFees_;
+        }
 
         amountOut = swapTokens(user_, provider_, tokens_, amount_, amountOutMin_, batchSwapStep_);
 
@@ -556,6 +563,8 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 _userBalance = getBalance(user_, IERC20(tokenOut_));
         if (_userBalance < amount_) revert Nodes__InsufficientBalance();
 
+        decreaseBalance(user_, tokenOut_, amount_);
+
         int256 profitAmount_ = int256(amount_) - int256(addFundsAmountWPercentage_);
 
         if (profitAmount_ > 0) amount_ = (amount_ - uint256(profitAmount_)) + _chargeFees(user_, tokens_, uint256(profitAmount_), amountOutMin_, PERFORMANCE_TOTAL_FEE, provider_, batchSwapStep_);
@@ -564,8 +573,6 @@ contract Nodes is Initializable, ReentrancyGuard {
             IWETH(WFTM).withdraw(amount_);
             payable(user_).transfer(amount_);
         } else IERC20(tokenOut_).safeTransfer(user_, amount_);
-
-        decreaseBalance(user_, tokenOut_, amount_);
 
         emit SendToWallet(tokenOut_, amount_);
         return amount_;
