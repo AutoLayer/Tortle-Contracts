@@ -9,7 +9,8 @@ import './lib/StringUtils.sol';
 import './interfaces/IBeets.sol';
 
 contract Batch {
-    address public owner;
+    address public masterOwner;
+    mapping(address => uint8) public owners;
     Nodes public nodes;
     uint8 public constant TOTAL_FEE = 150; //1.50%
     uint256[] public auxStack;
@@ -56,22 +57,45 @@ contract Batch {
     event lpWithdrawed(string indexed recipeId, string indexed id, address lpToken, uint256 amountLp, address tokenDesired, uint256 amountTokenDesired);
     event ttWithdrawed(string indexed recipeId, string indexed id, uint256 lpAmount, address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired, uint256 rewardAmount);
 
-    constructor(address _owner) {
-        owner = _owner;
+    constructor(address masterOwner_) {
+        masterOwner = masterOwner_;
+    }
+
+    modifier onlyMasterOwner() {
+        require(msg.sender == masterOwner, 'You must be the owner.');
+        _;
     }
 
     modifier onlyOwner() {
-        require(msg.sender == owner, 'You must be the owner.');
+        require(msg.sender == masterOwner || owners[msg.sender] == 1, 'You must be the owner.');
         _;
-    }
-
-    function setNodeContract(Nodes _nodes) public onlyOwner {
-        nodes = _nodes;
     }
 
     modifier onlySelf() {
-        require(msg.sender == address(this), 'This function is internal');
+        require(msg.sender == address(this), 'This function is internal.');
         _;
+    }
+
+    function setNodeContract(Nodes _nodes) public onlyMasterOwner {
+        nodes = _nodes;
+    }
+
+    function addOwners(address[] memory owners_) public onlyMasterOwner {
+        require(owners_.length > 0, 'The array must have at least one address.');
+
+        for (uint8 i = 0; i < owners_.length; i++) {
+            require(owners_[i] != address(0), 'Invalid address.');
+
+            owners[owners_[i]] = 1;
+        }
+    }
+
+    function removeOwners(address[] memory owners_) public onlyMasterOwner {
+        require(owners_.length > 0, 'The array must have at least one address.');
+
+        for (uint8 i = 0; i < owners_.length; i++) {
+            owners[owners_[i]] = 0;
+        }
     }
 
     function batchFunctions(Function[] memory _functions) public onlyOwner {
