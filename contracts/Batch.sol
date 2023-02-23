@@ -86,7 +86,7 @@ contract Batch {
         for (uint8 i = 0; i < owners_.length; i++) {
             require(owners_[i] != address(0), 'Invalid address.');
 
-            owners[owners_[i]] = 1;
+            if (owners[owners_[i]] == 0) owners[owners_[i]] = 1;
         }
     }
 
@@ -94,7 +94,7 @@ contract Batch {
         require(owners_.length > 0, 'The array must have at least one address.');
 
         for (uint8 i = 0; i < owners_.length; i++) {
-            owners[owners_[i]] = 0;
+            if (owners[owners_[i]] == 1) owners[owners_[i]] = 0;
         }
     }
 
