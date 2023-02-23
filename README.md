@@ -197,3 +197,13 @@ But, With this method in tortle we have that only 1 is done, so autocompose beco
 And, the user could have one token that is not on the pool, but with the Add funds node in the UI, connecting it to the pool, Tortle will make the deposit under the hood. We can even make that the user withdraw some tokens from the pool when some condition is met and autocompose this tokens another pool, The only thing to do put the Nodes in the correct order on the TortleUI.
 
 The Strategy hasn't receive any fee, since the tortle team has made it. So it is more cheaper than every other pprotocol out there
+
+### Manage Owners
+  Through the `addOwners` and `removeOwners` scripts, we can add or remove owners. These functions can only be executed by the `masterOwner`. The objective of these scripts is to be able to add owners so that the executions in the different versions of the app do not collapse, and also to be able to scale the app further in the long term as the number of users increases.
+
+  The operation would be as follows:
+  - We create one or several new wallets.
+  - We add the wallet(s) to the json called `addOrRemoveOwnersList`.
+  - We execute the `addOwners` script to add the owner(s).
+  - When deploying the application in the API, according to the version we are in, we will add the wallet we want to  use as an owner in the `.env` file.
+  - If at any time we want to discard this account, we will have to execute the `removeOwners` script to remove this wallet as an owner.
