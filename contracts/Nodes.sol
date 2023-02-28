@@ -60,6 +60,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     mapping(address => AddressToUintIterableMap.Map) private balance;
 
     event AddFunds(address tokenInput, uint256 amount);
+    event AddFundsForFTM(string indexed recipeId, address tokenInput, uint256 amount);
     event Swap(address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
     event Split(address tokenOutput1, uint256 amountOutToken1, address tokenOutput2, uint256 amountOutToken2);
     event Liquidate(address tokenOutput, uint256 amountOut);
@@ -225,16 +226,16 @@ contract Nodes is Initializable, ReentrancyGuard {
     * @notice Function that allows to add funds to the contract to execute the recipes.
     * @param user_ Address of the user who will deposit the tokens.
     */
-    function addFundsForFTM(address user_) public payable nonReentrant returns (address token, uint256 amount) {
+    function addFundsForFTM(address user_, string memory recipeId_) public payable nonReentrant returns (address token, uint256 amount) {
         if (msg.value <= 0) revert Nodes__InsufficientBalance();
 
         IWETH(WFTM).deposit{value: msg.value}();
 
-        uint256 _amount = _chargeFeesForWFTM(msg.value);
-        increaseBalance(user_, WFTM, _amount);
+        uint256 amount_ = _chargeFeesForWFTM(msg.value);
+        increaseBalance(user_, WFTM, amount_);
 
-        emit AddFunds(WFTM, _amount);
-        return (WFTM, _amount);
+        emit AddFundsForFTM(recipeId_, WFTM, amount_);
+        return (WFTM, amount_);
     }
 
     /**
