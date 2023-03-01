@@ -50,6 +50,11 @@ module.exports = {
       blockGasLimit: 100000000429729999990,
       allowUnlimitedContractSize: true,
     },
+    ftmFork: {
+      url: 'https://flashy-falling-lake.fantom.discover.quiknode.pro/88e107ef00efdd426ed39b28f01b35710f1256b4/',
+      allowUnlimitedContractSize: true,
+      accounts: [process.env.PRIVATE_KEY],
+    },
     ftm: {
       url: 'https://rpc.ftm.tools/',
       allowUnlimitedContractSize: true,
