@@ -12,7 +12,7 @@
     "recoverFunds": "npx hardhat run ./scripts/recoverFunds/recoverFunds.js --network ftm",
     "addOwners": "npx hardhat run ./scripts/owners/addOwners.js --network ftm",
     "removeOwners": "npx hardhat run ./scripts/owners/removeOwners.js --network ftm",
-    "startLocalNode": "npx hardhat node --fork https://flashy-falling-lake.fantom.discover.quiknode.pro/88e107ef00efdd426ed39b28f01b35710f1256b4/"
+    "startLocalNode": "npx hardhat node --fork https://rpcapi.fantom.network/"
   },
   "author": "Alex Pinilla",
   "license": "ISC",
