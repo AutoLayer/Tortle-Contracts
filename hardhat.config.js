@@ -43,17 +43,17 @@ module.exports = {
   defaultNetwork: 'hardhat',
   networks: {
     hardhat: {
-      allowUnlimitedContractSize: true,
+      forking: {
+        enabled: true,
+        url: 'https://rpc.ftm.tools/',
+        allowUnlimitedContractSize: true,
+        accounts: [process.env.PRIVATE_KEY],
+      }
     },
     localhost: {
       url: 'http://127.0.0.1:8545',
       blockGasLimit: 100000000429729999990,
       allowUnlimitedContractSize: true,
-    },
-    ftmFork: {
-      url: 'https://rpcapi.fantom.network/',
-      allowUnlimitedContractSize: true,
-      accounts: [process.env.PRIVATE_KEY],
     },
     ftm: {
       url: 'https://rpc.ftm.tools/',
