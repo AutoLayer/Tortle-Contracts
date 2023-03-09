@@ -51,7 +51,7 @@ module.exports = {
       allowUnlimitedContractSize: true,
     },
     ftmFork: {
-      url: 'https://flashy-falling-lake.fantom.discover.quiknode.pro/88e107ef00efdd426ed39b28f01b35710f1256b4/',
+      url: 'https://rpcapi.fantom.network/',
       allowUnlimitedContractSize: true,
       accounts: [process.env.PRIVATE_KEY],
     },
