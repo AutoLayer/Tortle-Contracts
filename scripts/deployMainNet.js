@@ -5,7 +5,6 @@ require('dotenv').config()
 const deployMainNet = async () => {
   const accounts = await hre.ethers.getSigners()
   const deployer = accounts[0]
-  console.log('deploy: ', deployer.getAddress())
   const dojos = process.env.DOJOS_ADDRESS
   const treasury = process.env.TREASURY_ADDRESS
   const devFund = process.env.DEV_FUND_ADDRESS
