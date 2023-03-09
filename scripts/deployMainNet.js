@@ -5,6 +5,7 @@ require('dotenv').config()
 const deployMainNet = async () => {
   const accounts = await hre.ethers.getSigners()
   const deployer = accounts[0]
+  console.log('deploy: ', deployer.getAddress())
   const dojos = process.env.DOJOS_ADDRESS
   const treasury = process.env.TREASURY_ADDRESS
   const devFund = process.env.DEV_FUND_ADDRESS
@@ -66,7 +67,7 @@ const deployMainNet = async () => {
     await (await hre.ethers.getContractFactory('FarmsUni')).connect(deployer).deploy(deployer.getAddress())
   ).deployed()
 
-  const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [Batch.address, SwapsUni.address, SwapBeets.address, DepositsBeets.address, NestedStrategies.address, FarmsUni.address, Batch.address, dojos, treasury, devFund, wftm, usdc], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
+  const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [deployer.getAddress(), SwapsUni.address, SwapBeets.address, DepositsBeets.address, NestedStrategies.address, FarmsUni.address, Batch.address, dojos, treasury, devFund, wftm, usdc], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
   await ProxyNodes.deployed()
   const txSetNodesBatch = await Batch.setNodeContract(ProxyNodes.address)
   await txSetNodesBatch.wait(6)
