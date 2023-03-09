@@ -94,3 +94,5 @@ const deployMainNet = async () => {
 }
 
 deployMainNet()
+
+module.exports = { deployMainNet }
