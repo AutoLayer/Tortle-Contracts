@@ -30,7 +30,6 @@ const addLiquidityETH = async (uniswapRouter, token, amountDesired, amountETHMin
 
 module.exports = {
   addLiquidity,
-  beefIn,
   createNode,
   addLiquidityETH,
 }
