@@ -1,9 +1,12 @@
 const hre = require('hardhat')
 const fs = require('fs')
 
-const deployMainNet = async ({ noWait = false } = {}) => {
-  const accounts = await hre.ethers.getSigners()
-  const deployer = accounts[0]
+const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
+  if (deployer === undefined) {
+    const accounts = await hre.ethers.getSigners()
+    deployer = accounts[0]
+  }
+
   const dojos = process.env.DOJOS_ADDRESS
   const treasury = process.env.TREASURY_ADDRESS
   const devFund = process.env.DEV_FUND_ADDRESS

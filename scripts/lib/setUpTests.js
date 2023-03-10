@@ -7,10 +7,11 @@ const setUpTests = async () => {
     await impersonateAccount(deployerAddress)
     const deployer = await ethers.getSigner(deployerAddress)
 
-    const contractsAddresses = await deployMainNet({noWait: true})
+    const contractsAddresses = await deployMainNet({noWait: true, deployer})
     nodes = await ethers.getContractAt('Nodes', contractsAddresses.ProxyNodes)
 
     await nodes.connect(deployer).addFundsForFTM(deployerAddress, "1", { value: TEST_AMOUNT })
+
     return { nodes, deployer }
 }
 
