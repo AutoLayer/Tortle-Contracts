@@ -89,6 +89,8 @@ const deployMainNet = async ({ noWait = false } = {}) => {
 
     console.log('JSON data is saved.')
   })
+
+  return contractsAddresses
 }
 
 module.exports = { deployMainNet }
