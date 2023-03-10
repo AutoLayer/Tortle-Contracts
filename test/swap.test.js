@@ -17,12 +17,11 @@ describe('Swap', function () {
     before(async () => {
         const accounts = await ethers.getSigners()
         deployer = accounts[0]
+
         const contractsAddresses = await deployMainNet({noWait: true})
         nodes = await ethers.getContractAt('Nodes', contractsAddresses.ProxyNodes)
-        tx = await nodes.connect(deployer).addFundsForFTM(deployer.getAddress(), "1", { value: amount })
-        receipt = await tx.wait()
-        const addFundsEvent = getEvent(receipt, "AddFundsForFTM")
-        console.log(addFundsEvent.args)
+
+        await nodes.connect(deployer).addFundsForFTM(deployer.getAddress(), "1", { value: amount })
     })
 
     // beforeAll(async () => await reset())
