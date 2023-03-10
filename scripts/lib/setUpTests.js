@@ -1,6 +1,7 @@
 const { deployMainNet } = require('./deployMainnet')
 const { impersonateAccount }  = require('@nomicfoundation/hardhat-network-helpers')
 const { TEST_AMOUNT } = require('../../test/utils')
+const { userAddress } = require('../../config')
 
 const setUpTests = async () => {
     const deployerAddress = "0x1a84F1f9CE6f4bF0FD2b1B4689Db53776e64bF1c"
@@ -10,7 +11,7 @@ const setUpTests = async () => {
     const contractsAddresses = await deployMainNet({noWait: true, deployer})
     nodes = await ethers.getContractAt('Nodes', contractsAddresses.ProxyNodes)
 
-    await nodes.connect(deployer).addFundsForFTM(deployerAddress, "1", { value: TEST_AMOUNT })
+    await nodes.connect(deployer).addFundsForFTM(userAddress, "1", { value: TEST_AMOUNT })
 
     return { nodes, deployer }
 }
