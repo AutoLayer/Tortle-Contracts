@@ -14,7 +14,7 @@
     "removeOwners": "npx hardhat run ./scripts/owners/removeOwners.js --network ftm",
     "startLocalNode": "npx hardhat node --fork https://rpcapi.fantom.network/"
   },
-  "author": "Alex Pinilla",
+  "author": "Tortle Ninja",
   "license": "ISC",
   "devDependencies": {},
   "dependencies": {
