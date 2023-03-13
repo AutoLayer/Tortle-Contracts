@@ -1,5 +1,4 @@
-import dotenv from 'dotenv'
-import { deployMainNet } from './lib/deployMainNet'
+require('dotenv').config()
+const { deployMainNet } = require('./lib/deployMainNet')
 
-dotenv.config()
 deployMainNet()
