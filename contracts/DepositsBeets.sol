@@ -25,8 +25,8 @@ contract DepositsBeets is ReentrancyGuard {
      * @param amount_ Amount of the token that is wanted to be approved.
      */
     function _approve(address token_, address spender_, uint256 amount_) internal {
-        IERC20(token_).safeApprove(spender_, 0);
-        IERC20(token_).safeApprove(spender_, amount_);
+        IERC20(token_).approve(spender_, 0);
+        IERC20(token_).approve(spender_, amount_);
     }
 
     function getBptAddress(bytes32 poolId_) public view returns(address bptAddress) {
