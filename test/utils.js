@@ -4,6 +4,7 @@ const TEST_AMOUNT = "10000000000000000000" // 10 Ether
 const WFTM = "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83"
 const USDC = "0x04068da6c83afcfa0e13ba15a6696662335d5b75"
 const BOO = "0x841fad6eae12c286d1fd18d1d525dffa75c7effe"
+const BEETS = "0xf24bcf4d1e507740041c9cfd2dddb29585adce1e"
 
 const BN = (n) => { return BigNumber.from(n) }
 
@@ -14,6 +15,7 @@ module.exports = {
   WFTM,
   USDC,
   BOO,
+  BEETS,
   BN,
   getEvent
 }
