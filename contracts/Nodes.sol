@@ -63,6 +63,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     event AddFundsForFTM(string indexed recipeId, address tokenInput, uint256 amount);
     event Swap(address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
     event Split(address tokenOutput1, uint256 amountOutToken1, address tokenOutput2, uint256 amountOutToken2);
+    event DepositOnLP(uint256 lpAmount);
     event Liquidate(address tokenOutput, uint256 amountOut);
     event SendToWallet(address tokenOutput, uint256 amountOut);
     event RecoverAll(address tokenOut, uint256 amountOut);
@@ -325,7 +326,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256[] memory amounts_,
         uint256 amountOutMin0_,
         uint256 amountOutMin1_
-    ) external nonReentrant onlyOwner returns (uint256) {
+    ) external nonReentrant onlyOwner returns (uint256 lpAmount) {
        if(provider_ == 0) {
             IUniswapV2Router02 router = swapsUni.getRouter(tokens_[0], tokens_[1]);
 
@@ -341,7 +342,7 @@ contract Nodes is Initializable, ReentrancyGuard {
             decreaseBalance(user_, tokens_[0], amount0f);
             decreaseBalance(user_, tokens_[1], amount1f);
 
-            return lpRes;
+            lpAmount = lpRes;
         } else {
             if (amounts_[0] > getBalance(user_, IERC20(tokens_[0]))) revert Nodes__DepositOnLPInsufficientT0Funds();
             
@@ -351,8 +352,10 @@ contract Nodes is Initializable, ReentrancyGuard {
             decreaseBalance(user_, tokens_[0], amounts_[0]);
             increaseBalance(user_, bptAddress_, bptAmount_);
 
-            return bptAmount_;
+            lpAmount = bptAmount_;
         }
+
+        emit DepositOnLP(lpAmount);
     }
 
     /**
