@@ -4,7 +4,7 @@ const { loadFixture } = require('ethereum-waffle')
 const { setUpTests } = require('../scripts/lib/setUpTests')
 const { userAddress } = require('../config')
 
-describe('Deposit', function () {
+describe('Withdraw Beets', function () {
     let deployer
     let nodes
     let poolId = '0x56ad84b777ff732de69e85813daee1393a9ffe1000020000000000000000060e' // opera act II
