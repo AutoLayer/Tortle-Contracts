@@ -1,5 +1,4 @@
-const { ethers } = require('hardhat')
-const { TEST_AMOUNT } = require('./utils')
+const { TEST_AMOUNT, calculateAmountWithoutFees } = require('./utils')
 const { loadFixture } = require('ethereum-waffle')
 const { setUpTests } = require('../scripts/lib/setUpTests')
 const { userAddress, WFTM, BEETS } = require('../config')
@@ -18,11 +17,8 @@ describe('Deposit', function () {
     })
 
     it('Deposit from beets pool', async () => {
-        const amountInEthers = ethers.utils.formatEther(TEST_AMOUNT)
-        const amountWithoutFeeInEthers = amountInEthers - (amountInEthers * 0.005)
-        const amountWithoutFeeInWei = ethers.utils.parseEther(amountWithoutFeeInEthers.toString())
-
-        const depositTx = await nodes.connect(deployer).depositOnLp(userAddress, poolId, pairId, 1, [WFTM, BEETS], [amountWithoutFeeInWei.toString(), 0], 0, 0)
+        const amountWithoutFeeInWei = calculateAmountWithoutFees(TEST_AMOUNT)
+        const depositTx = await nodes.connect(deployer).depositOnLp(userAddress, poolId, pairId, 1, [WFTM, BEETS], [amountWithoutFeeInWei, 0], 0, 0)
         console.log("depositTx", depositTx)
     })
 })

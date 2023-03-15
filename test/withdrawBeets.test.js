@@ -1,5 +1,4 @@
-const { ethers } = require('hardhat')
-const { TEST_AMOUNT, getEvent} = require('./utils')
+const { TEST_AMOUNT, getEvent, calculateAmountWithoutFees } = require('./utils')
 const { loadFixture } = require('ethereum-waffle')
 const { setUpTests } = require('../scripts/lib/setUpTests')
 const { userAddress, WFTM, USDC } = require('../config')
@@ -20,9 +19,7 @@ describe('Withdraw Beets', function () {
     })
 
     it('Withdraw from beets pool', async () => {
-        const amountInEthers = ethers.utils.formatEther(TEST_AMOUNT)
-        const amountWithoutFeeInEthers = amountInEthers - (amountInEthers * 0.005)
-        const amountWithoutFeeInWei = ethers.utils.parseEther(amountWithoutFeeInEthers.toString())
+        const amountWithoutFeeInWei = calculateAmountWithoutFees(TEST_AMOUNT)
         tx = await nodes.connect(deployer).swapTokens(userAddress, "0", [WFTM, USDC], amountWithoutFeeInWei, "0", [])
         receipt = await tx.wait()
         const swapEvent = getEvent(receipt, "Swap")
