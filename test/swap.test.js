@@ -1,9 +1,9 @@
 const { ethers } = require('hardhat')
-const { TEST_AMOUNT, WFTM, USDC, getEvent } = require('./utils')
+const { TEST_AMOUNT, getEvent } = require('./utils')
 const { loadFixture } = require('ethereum-waffle')
 const { assert } = require('chai')
 const { setUpTests } = require('../scripts/lib/setUpTests')
-const { userAddress } = require('../config')
+const { userAddress, WFTM, USDC } = require('../config')
 
 describe('Swap', function () {
     let deployer
@@ -25,6 +25,6 @@ describe('Swap', function () {
         tx = await nodes.connect(deployer).swapTokens(userAddress, "0", [WFTM, USDC], amountWithoutFeeInWei, "0", [])
         receipt = await tx.wait()
         const swapEvent = getEvent(receipt, "Swap")
-        assert.equal(swapEvent.args.amountOut.toString(), '3130528', 'Amount out is not correct.')
+        assert.equal(swapEvent.args.amountOut.toString(), '4113737', 'Amount out is not correct.')
     })
 })

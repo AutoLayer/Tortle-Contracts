@@ -1,8 +1,8 @@
 const { ethers } = require('hardhat')
-const { TEST_AMOUNT, WFTM, BEETS, USDC, getEvent} = require('./utils')
+const { TEST_AMOUNT, getEvent} = require('./utils')
 const { loadFixture } = require('ethereum-waffle')
 const { setUpTests } = require('../scripts/lib/setUpTests')
-const { userAddress } = require('../config')
+const { userAddress, WFTM, USDC } = require('../config')
 
 describe('Withdraw Beets', function () {
     let deployer

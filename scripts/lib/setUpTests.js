@@ -1,10 +1,9 @@
 const { deployMainNet } = require('./deployMainnet')
 const { impersonateAccount }  = require('@nomicfoundation/hardhat-network-helpers')
 const { TEST_AMOUNT } = require('../../test/utils')
-const { userAddress } = require('../../config')
+const { deployerAddress, userAddress } = require('../../config')
 
 const setUpTests = async () => {
-    const deployerAddress = "0x1a84F1f9CE6f4bF0FD2b1B4689Db53776e64bF1c"
     await impersonateAccount(deployerAddress)
     const deployer = await ethers.getSigner(deployerAddress)
 

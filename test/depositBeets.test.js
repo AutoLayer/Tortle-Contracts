@@ -1,8 +1,8 @@
 const { ethers } = require('hardhat')
-const { TEST_AMOUNT, WFTM, BEETS } = require('./utils')
+const { TEST_AMOUNT } = require('./utils')
 const { loadFixture } = require('ethereum-waffle')
 const { setUpTests } = require('../scripts/lib/setUpTests')
-const { userAddress } = require('../config')
+const { userAddress, WFTM, BEETS } = require('../config')
 
 describe('Deposit', function () {
     let deployer
