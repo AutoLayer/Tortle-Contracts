@@ -2,7 +2,7 @@ const { ethers } = require('hardhat')
 const { deployerAddress, userWithFarmBug, nodeContractAddress, WFTM, DEUS, WFTMDEUSLp, WFTMDEUStortleVault } = require('../config')
 const { impersonateAccount }  = require('@nomicfoundation/hardhat-network-helpers')
 
-describe('Withdraw Spooky', function () {
+describe('Withdraw From Farm', function () {
     let deployer
     let nodes
     let tx

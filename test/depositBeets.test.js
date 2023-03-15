@@ -3,7 +3,7 @@ const { loadFixture } = require('ethereum-waffle')
 const { setUpTests } = require('../scripts/lib/setUpTests')
 const { userAddress, WFTM, BEETS } = require('../config')
 
-describe('Deposit', function () {
+describe('DepositBeets', function () {
     let deployer
     let nodes
     let poolId = '0x9e4341acef4147196e99d648c5e43b3fc9d026780002000000000000000005ec' // FTM - BEETS
