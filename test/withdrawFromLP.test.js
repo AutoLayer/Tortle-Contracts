@@ -1,13 +1,11 @@
 const { TEST_AMOUNT, getEvent, calculateAmountWithoutFees } = require('./utils')
 const { loadFixture } = require('ethereum-waffle')
 const { setUpTests } = require('../scripts/lib/setUpTests')
-const { userAddress, WFTM, USDC } = require('../config')
+const { userAddress, WFTM, USDC, OPERA_ACT_II_PoolId, OPERA_ACT_II_Pair, FTMUSDCSpookyPool } = require('../config')
 
 describe('Withdraw Beets', function () {
     let deployer
     let nodes
-    let poolId = '0x56ad84b777ff732de69e85813daee1393a9ffe1000020000000000000000060e' // opera act II
-    let pairId = '0x56ad84b777ff732de69e85813daee1393a9ffe10'
     let tx
     let receipt
     // this.timeout(300000)
@@ -18,18 +16,41 @@ describe('Withdraw Beets', function () {
         deployer = setUp.deployer
     })
 
-    it('Withdraw from beets pool', async () => {
+    it('Withdraw from Beets Pool', async () => {
         const amountWithoutFeeInWei = calculateAmountWithoutFees(TEST_AMOUNT)
         tx = await nodes.connect(deployer).swapTokens(userAddress, "0", [WFTM, USDC], amountWithoutFeeInWei, "0", [])
         receipt = await tx.wait()
         const swapEvent = getEvent(receipt, "Swap")
         const usdcAmountOut = swapEvent.args.amountOut.toString()
 
-        const depositTx = await nodes.connect(deployer).depositOnLp(userAddress, poolId, pairId, 1, [USDC, WFTM], [usdcAmountOut.toString(), 0], 0, 0)
-        receipt = await depositTx.wait()
+        tx = await nodes.connect(deployer).depositOnLp(userAddress, OPERA_ACT_II_PoolId, OPERA_ACT_II_Pair, 1, [USDC, WFTM], [usdcAmountOut.toString(), 0], 0, 0)
+        receipt = await tx.wait()
         const depositEvent = getEvent(receipt, "DepositOnLP")
         const bptAmount = depositEvent.args.lpAmount.toString()
 
-        const withdrawTx = await nodes.connect(deployer).withdrawFromLp(userAddress, poolId, pairId, 1, [USDC, WFTM], [0, 0], bptAmount)
+        tx = await nodes.connect(deployer).withdrawFromLp(userAddress, OPERA_ACT_II_PoolId, OPERA_ACT_II_Pair, 1, [USDC, WFTM], [0, 0], bptAmount)
+    })
+
+    it('Withdraw from Spooky Pool', async () => {
+        await nodes.connect(deployer).addFundsForFTM(userAddress, "1", { value: TEST_AMOUNT })
+
+        const amountWithoutFeeInWei = calculateAmountWithoutFees(TEST_AMOUNT)
+        const args = ethers.utils.defaultAbiCoder.encode(
+            ['address', 'address[]', 'address[]', 'uint256', 'uint256[]', 'uint8[]'],
+            [userAddress, [WFTM, USDC], [WFTM, WFTM], amountWithoutFeeInWei, [5000, 0, 0], [0, 0]]
+        )
+        tx = await nodes.connect(deployer).split(args, [], [])
+        receipt = await tx.wait()
+        const splitEvent = getEvent(receipt, "Split")
+        const amountOutToken1 = splitEvent.args.amountOutToken1.toString()
+        const amountOutToken2 = splitEvent.args.amountOutToken2.toString()
+
+        tx = await nodes.connect(deployer).depositOnLp(userAddress, '0x0000000000000000000000000000000000000000000000000000000000000000', FTMUSDCSpookyPool, 0, [USDC, WFTM], [amountOutToken1, amountOutToken2], 0, 0)
+        receipt = await tx.wait()
+        const depositEvent = getEvent(receipt, "DepositOnLP")
+        const lpAmount = depositEvent.args.lpAmount.toString()
+
+        tx = await nodes.connect(deployer).withdrawFromLp(userAddress, '0x0000000000000000000000000000000000000000000000000000000000000000', FTMUSDCSpookyPool, 0, [USDC, WFTM, USDC], [0], lpAmount)
+        console.log(tx)
     })
 })
