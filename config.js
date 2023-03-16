@@ -21,6 +21,13 @@ const WFTMDEUStortleVault = "0x4FD27cFB53eDa8C1CEF352f8adE693AeAf9ea4D8"
 const WFTMDAILp = "0xe120ffBDA0d14f3Bb6d6053E90E63c572A66a428"
 const WFTMDAItortleVault = "0x3B5a65E1De232f0f06da8622D7FfAa30eA42F00f"
 
+// Spooky Pools
+const FTMBEETSSpookyPool = "0x648a7452DA25B4fB4BDB79bADf374a8f8a5ea2b5"
+
+// Beets Pools
+const FTMBEETSPoolId = '0x9e4341acef4147196e99d648c5e43b3fc9d026780002000000000000000005ec'
+const FTMBEETSPair = '0x9e4341acef4147196e99d648c5e43b3fc9d02678'
+
 // Yearn Vaults
 const BOOYearnVault = "0x0fBbf9848D969776a5Eb842EdAfAf29ef4467698"
 
@@ -39,5 +46,8 @@ module.exports = {
     WFTMDEUStortleVault,
     WFTMDAILp,
     WFTMDAItortleVault,
+    FTMBEETSSpookyPool,
+    FTMBEETSPoolId,
+    FTMBEETSPair,
     BOOYearnVault
 }
