@@ -29,6 +29,10 @@ describe('Withdraw From Nested Strategy', function () {
         const sharesAmount = await nodes.getBalance(userAddress, BOOYearnVault)
 
         tx = await nodes.connect(deployer).withdrawFromNestedStrategy(userAddress, BOO, BOOYearnVault, sharesAmount)
-        console.log(tx)
+        receipt = await tx.wait()
+        const withdrawEvent = getEvent(receipt, "WithdrawFromNestedStrategy")
+
+        assert.equal(withdrawEvent.args.tokenOut.toLowerCase(), BOO, 'Token desired is not correct.')
+        assert.equal(withdrawEvent.args.amountTokenDesired.toString(), '2408768646669697922', 'Token desired amount is not correct.')
     })
 })
