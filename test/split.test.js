@@ -26,6 +26,10 @@ describe('Split', function () {
         tx = await nodes.connect(deployer).split(args, [], [])
         receipt = await tx.wait()
         const splitEvent = getEvent(receipt, "Split")
-        console.log(splitEvent)
+
+        assert.equal(splitEvent.args.tokenOutput1.toLowerCase(), USDC, 'First token out is not correct.')
+        assert.equal(splitEvent.args.amountOutToken1.toString(), '2056869', 'First amount out is not correct.')
+        assert.equal(splitEvent.args.tokenOutput2.toLowerCase(), BOO, 'Second token out is not correct.')
+        assert.equal(splitEvent.args.amountOutToken2.toString(), '1204384981521426656', 'Second amount out is not correct.')
     })
 })
