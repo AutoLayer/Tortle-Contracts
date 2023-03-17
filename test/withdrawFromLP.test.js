@@ -2,6 +2,7 @@ const { TEST_AMOUNT, getEvent, calculateAmountWithoutFees } = require('./utils')
 const { loadFixture } = require('ethereum-waffle')
 const { setUpTests } = require('../scripts/lib/setUpTests')
 const { userAddress, WFTM, USDC, OPERA_ACT_II_PoolId, OPERA_ACT_II_Pair, FTMUSDCSpookyPool } = require('../config')
+const { assert } = require('chai')
 
 describe('Withdraw Beets', function () {
     let deployer
@@ -51,6 +52,9 @@ describe('Withdraw Beets', function () {
         const lpAmount = depositEvent.args.lpAmount.toString()
 
         tx = await nodes.connect(deployer).withdrawFromLp(userAddress, '0x0000000000000000000000000000000000000000000000000000000000000000', FTMUSDCSpookyPool, 0, [USDC, WFTM, USDC], [0], lpAmount)
-        console.log(tx)
+        receipt = await tx.wait()
+        const withdrawEvent = getEvent(receipt, "WithdrawFromLP")
+
+        assert.equal(withdrawEvent.args.amountTokenDesired.toString(), '4109614', 'Token desired amount is not correct.')
     })
 })
