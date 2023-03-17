@@ -64,6 +64,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     event Swap(address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
     event Split(address tokenOutput1, uint256 amountOutToken1, address tokenOutput2, uint256 amountOutToken2);
     event DepositOnLP(uint256 lpAmount);
+    event WithdrawFromFarm(address tokenDesided, uint256 amountTokenDesired, uint256 rewardAmount);
     event Liquidate(address tokenOutput, uint256 amountOut);
     event SendToWallet(address tokenOutput, uint256 amountOut);
     event RecoverAll(address tokenOut, uint256 amountOut);
@@ -499,6 +500,8 @@ contract Nodes is Initializable, ReentrancyGuard {
         amountTokenDesired = farmsUni.withdrawLpAndSwap(address(swapsUni), lpToken_, tokens_, amountOutMin_, amountLp_);
         
         increaseBalance(user, tokens_[2], amountTokenDesired);
+
+        emit WithdrawFromFarm(tokens_[2], amountTokenDesired, rewardAmount);
     }
 
     /**
