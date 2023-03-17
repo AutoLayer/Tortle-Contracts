@@ -22,6 +22,8 @@ describe('Swap', function () {
         tx = await nodes.connect(deployer).swapTokens(userAddress, "0", [WFTM, USDC], amountWithoutFeeInWei, "0", [])
         receipt = await tx.wait()
         const swapEvent = getEvent(receipt, "Swap")
+
+        assert.equal(swapEvent.args.tokenOutput.toLowerCase(), USDC, 'Token out is not correct.')
         assert.equal(swapEvent.args.amountOut.toString(), '4113737', 'Amount out is not correct.')
     })
 })
