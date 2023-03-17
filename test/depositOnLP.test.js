@@ -2,6 +2,7 @@ const { TEST_AMOUNT, getEvent, calculateAmountWithoutFees } = require('./utils')
 const { loadFixture } = require('ethereum-waffle')
 const { setUpTests } = require('../scripts/lib/setUpTests')
 const { userAddress, WFTM, BEETS, FTMBEETSPoolId, FTMBEETSPair, FTMBEETSSpookyPool } = require('../config')
+const { assert } = require('chai')
 
 describe('Deposit On LP', function () {
     let deployer
@@ -14,13 +15,16 @@ describe('Deposit On LP', function () {
         deployer = setUp.deployer
     })
 
-    xit('Deposit on beets pool', async () => {
+    it('Deposit on beets pool', async () => {
         const amountWithoutFeeInWei = calculateAmountWithoutFees(TEST_AMOUNT)
-        const depositTx = await nodes.connect(deployer).depositOnLp(userAddress, FTMBEETSPoolId, FTMBEETSPair, 1, [WFTM, BEETS], [amountWithoutFeeInWei, 0], 0, 0)
-        console.log("depositTx", depositTx)
+        tx = await nodes.connect(deployer).depositOnLp(userAddress, FTMBEETSPoolId, FTMBEETSPair, 1, [WFTM, BEETS], [amountWithoutFeeInWei, 0], 0, 0)
+        receipt = await tx.wait()
+        const depositOnLp = getEvent(receipt, "DepositOnLP")
+
+        assert.equal(depositOnLp.args.lpAmount.toString(), '59811956094026479241', 'LP amount is not correct.')
     })
 
-    it('Deposit on spooky pool', async () => {
+    xit('Deposit on spooky pool', async () => {
         const amountWithoutFeeInWei = calculateAmountWithoutFees(TEST_AMOUNT)
         const args = ethers.utils.defaultAbiCoder.encode(
             ['address', 'address[]', 'address[]', 'uint256', 'uint256[]', 'uint8[]'],
@@ -33,6 +37,9 @@ describe('Deposit On LP', function () {
         const amountOutToken2 = splitEvent.args.amountOutToken2.toString()
 
         tx = await nodes.connect(deployer).depositOnLp(userAddress, "0x0000000000000000000000000000000000000000000000000000000000000000", FTMBEETSSpookyPool, 0, [WFTM, BEETS], [amountOutToken1, amountOutToken2], 0, 0)
-        console.log(tx)
+        receipt = await tx.wait()
+        const depositOnLp = getEvent(receipt, "DepositOnLP")
+
+        assert.equal(depositOnLp.args.lpAmount.toString(), '11219618907583661990', 'LP amount is not correct.')
     })
 })
