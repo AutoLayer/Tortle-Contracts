@@ -30,6 +30,10 @@ describe('Deposit On Farm', function () {
         const amountOutToken2 = splitEvent.args.amountOutToken2.toString()
 
         tx = await nodes.connect(deployer).depositOnFarmTokens(userAddress, WFTMDEUSLp, WFTMDEUStortleVault, [WFTM, DEUS], amountOutToken1, amountOutToken2, [])
-        console.log(tx)
+        receipt = await tx.wait()
+        const depositOnFarmEvent = getEvent(receipt, "DepositOnFarm")
+
+        assert.equal(depositOnFarmEvent.args.ttAmount.toString(), '339603668395867400', 'TT amount is not correct.')
+        assert.equal(depositOnFarmEvent.args.lpBalance.toString(), '343668445926858085', 'LP amount is not correct.')
     })
 })
