@@ -22,6 +22,8 @@ describe('Liquidate', function () {
         tx = await nodes.connect(deployer).liquidate(userAddress, [WFTM, USDC], amountWithoutFeeInWei, 0, amountWithoutFeeInWei, 0, [])
         receipt = await tx.wait()
         const liquidateEvent = getEvent(receipt, "Liquidate")
-        console.log(liquidateEvent)
+    
+        assert.equal(liquidateEvent.args.tokenOutput.toLowerCase(), USDC, 'Token out is not correct.')
+        assert.equal(liquidateEvent.args.amountOut.toString(), '4113737', 'Amount out is not correct.')
     })
 })
