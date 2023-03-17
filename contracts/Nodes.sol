@@ -64,6 +64,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     event Swap(address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
     event Split(address tokenOutput1, uint256 amountOutToken1, address tokenOutput2, uint256 amountOutToken2);
     event DepositOnLP(uint256 lpAmount);
+    event DepositOnNestedStrategy(address vaultAddress, uint256 sharesAmount);
     event DepositOnFarm(uint256 ttAmount, uint256 lpBalance);
     event WithdrawFromFarm(address tokenDesided, uint256 amountTokenDesired, uint256 rewardAmount);
     event Liquidate(address tokenOutput, uint256 amountOut);
@@ -411,6 +412,8 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         decreaseBalance(user_, token_, amount_);
         increaseBalance(user_, vaultAddress_, sharesAmount);
+
+        emit DepositOnNestedStrategy(vaultAddress_, sharesAmount);
     }
 
     function withdrawFromNestedStrategy(
