@@ -22,6 +22,8 @@ describe('SendToWallet', function () {
         tx = await nodes.connect(deployer).sendToWallet(userAddress, [WFTM], amountWithoutFeeInWei, 0, amountWithoutFeeInWei, 0, [])
         receipt = await tx.wait()
         const sendToWalletEvent = getEvent(receipt, "SendToWallet")
-        console.log(sendToWalletEvent)
+
+        assert.equal(sendToWalletEvent.args.tokenOutput.toLowerCase(), WFTM, 'Token out is not correct.')
+        assert.equal(sendToWalletEvent.args.amountOut.toString(), amountWithoutFeeInWei, 'Amount out is not correct.')
     })
 })
