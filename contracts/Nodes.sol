@@ -64,6 +64,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     event Swap(address tokenInput, uint256 amountIn, address tokenOutput, uint256 amountOut);
     event Split(address tokenOutput1, uint256 amountOutToken1, address tokenOutput2, uint256 amountOutToken2);
     event DepositOnLP(uint256 lpAmount);
+    event DepositOnFarm(uint256 ttAmount, uint256 lpBalance);
     event WithdrawFromFarm(address tokenDesided, uint256 amountTokenDesired, uint256 rewardAmount);
     event Liquidate(address tokenOutput, uint256 amountOut);
     event SendToWallet(address tokenOutput, uint256 amountOut);
@@ -470,6 +471,8 @@ contract Nodes is Initializable, ReentrancyGuard {
         
         result[1] = ttAmount;
         result[2] = lpBal_;
+
+        emit DepositOnFarm(ttAmount, lpBal_);
     }
 
     /**
