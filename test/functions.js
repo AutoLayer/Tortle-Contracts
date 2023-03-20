@@ -1,6 +1,14 @@
 const { ethers } = require('hardhat')
 const { getEvent } = require('./utils')
 
+const swapFunction = async (deployer, userAddress, inputToken, amountIn, outputToken) => {
+    const tx = await nodes.connect(deployer).swapTokens(userAddress, "0", [inputToken, outputToken], amountIn, "0", [])
+    const receipt = await tx.wait()
+    const swapEvent = getEvent(receipt, "Swap")
+
+    return swapEvent.args.amountOut.toString()
+}
+
 const splitFunction = async (deployer, userAddress, inputToken, amountIn, outputToken1, outputToken2) => {
     const args = ethers.utils.defaultAbiCoder.encode(
         ['address', 'address[]', 'address[]', 'uint256', 'uint256[]', 'uint8[]'],
@@ -16,5 +24,6 @@ const splitFunction = async (deployer, userAddress, inputToken, amountIn, output
 }
 
 module.exports = {
+    swapFunction,
     splitFunction
 }
