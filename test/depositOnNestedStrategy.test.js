@@ -3,6 +3,7 @@ const { loadFixture } = require('ethereum-waffle')
 const { assert } = require('chai')
 const { setUpTests } = require('../scripts/lib/setUpTests')
 const { userAddress, WFTM, BOO, BOOYearnVault } = require('../config')
+const { swapFunction } = require('./functions')
 
 describe('Deposit On Nested Strategy', function () {
     let deployer
@@ -19,10 +20,8 @@ describe('Deposit On Nested Strategy', function () {
 
     it('Deposit on Nested Strategy', async () => {
         const amountWithoutFeeInWei = calculateAmountWithoutFees(TEST_AMOUNT)
-        tx = await nodes.connect(deployer).swapTokens(userAddress, "0", [WFTM, BOO], amountWithoutFeeInWei, "0", [])
-        receipt = await tx.wait()
-        const swapEvent = getEvent(receipt, "Swap")
-        const swapAmountOut = swapEvent.args.amountOut.toString()
+
+        const swapAmountOut = swapFunction(deployer, userAddress, WFTM, amountWithoutFeeInWei, BOO)
 
         tx = await nodes.connect(deployer).depositOnNestedStrategy(userAddress, BOO, BOOYearnVault, swapAmountOut)
         receipt = await tx.wait()
