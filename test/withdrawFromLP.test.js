@@ -2,6 +2,7 @@ const { TEST_AMOUNT, getEvent, calculateAmountWithoutFees } = require('./utils')
 const { loadFixture } = require('ethereum-waffle')
 const { setUpTests } = require('../scripts/lib/setUpTests')
 const { userAddress, WFTM, USDC, OPERA_ACT_II_PoolId, OPERA_ACT_II_Pair, FTMUSDCSpookyPool } = require('../config')
+const { splitFunction } = require('./functions')
 const { assert } = require('chai')
 
 describe('Withdraw Beets', function () {
@@ -36,15 +37,8 @@ describe('Withdraw Beets', function () {
         await nodes.connect(deployer).addFundsForFTM(userAddress, "1", { value: TEST_AMOUNT })
 
         const amountWithoutFeeInWei = calculateAmountWithoutFees(TEST_AMOUNT)
-        const args = ethers.utils.defaultAbiCoder.encode(
-            ['address', 'address[]', 'address[]', 'uint256', 'uint256[]', 'uint8[]'],
-            [userAddress, [WFTM, USDC], [WFTM, WFTM], amountWithoutFeeInWei, [5000, 0, 0], [0, 0]]
-        )
-        tx = await nodes.connect(deployer).split(args, [], [])
-        receipt = await tx.wait()
-        const splitEvent = getEvent(receipt, "Split")
-        const amountOutToken1 = splitEvent.args.amountOutToken1.toString()
-        const amountOutToken2 = splitEvent.args.amountOutToken2.toString()
+
+        const [amountOutToken1, amountOutToken2] = await splitFunction(deployer, userAddress, WFTM, amountWithoutFeeInWei, USDC, WFTM)
 
         tx = await nodes.connect(deployer).depositOnLp(userAddress, '0x0000000000000000000000000000000000000000000000000000000000000000', FTMUSDCSpookyPool, 0, [USDC, WFTM], [amountOutToken1, amountOutToken2], 0, 0)
         receipt = await tx.wait()

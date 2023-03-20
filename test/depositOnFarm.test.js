@@ -3,6 +3,7 @@ const { loadFixture } = require('ethereum-waffle')
 const { assert } = require('chai')
 const { setUpTests } = require('../scripts/lib/setUpTests')
 const { userAddress, WFTM, DEUS, WFTMDEUSLp, WFTMDEUStortleVault } = require('../config')
+const { splitFunction } = require('./functions')
 
 describe('Deposit On Farm', function () {
     let deployer
@@ -19,15 +20,8 @@ describe('Deposit On Farm', function () {
 
     it('Deposit on spooky farm', async () => {
         const amountWithoutFeeInWei = calculateAmountWithoutFees(TEST_AMOUNT)
-        const args = ethers.utils.defaultAbiCoder.encode(
-            ['address', 'address[]', 'address[]', 'uint256', 'uint256[]', 'uint8[]'],
-            [userAddress, [WFTM, WFTM], [WFTM, DEUS], amountWithoutFeeInWei, [5000, 0, 0], [0, 0]]
-        )
-        tx = await nodes.connect(deployer).split(args, [], [])
-        receipt = await tx.wait()
-        const splitEvent = getEvent(receipt, "Split")
-        const amountOutToken1 = splitEvent.args.amountOutToken1.toString()
-        const amountOutToken2 = splitEvent.args.amountOutToken2.toString()
+
+        const [amountOutToken1, amountOutToken2] = await splitFunction(deployer, userAddress, WFTM, amountWithoutFeeInWei, WFTM, DEUS)
 
         tx = await nodes.connect(deployer).depositOnFarmTokens(userAddress, WFTMDEUSLp, WFTMDEUStortleVault, [WFTM, DEUS], amountOutToken1, amountOutToken2, [])
         receipt = await tx.wait()
