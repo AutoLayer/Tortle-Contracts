@@ -43,6 +43,9 @@ const OPERA_ACT_II_Pair = '0x56ad84b777ff732de69e85813daee1393a9ffe10'
 // Yearn Vaults
 const BOOYearnVault = '0x0fBbf9848D969776a5Eb842EdAfAf29ef4467698'
 
+// Reaper Vaults
+const XBOOReaperVault = '0xFC550BAD3c14160CBA7bc05ee263b3F060149AFF'
+
 module.exports = {
     deployerAddress,
     userAddress,
@@ -67,8 +70,9 @@ module.exports = {
     OPERA_ACT_II_PoolId,
     OPERA_ACT_II_Pair,
     BOOYearnVault,
+    XBOOReaperVault,
     FUSTWFTMLp,
     FUSTWFTMtortleVault,
     USDCWFTMLp,
-    USDCWFTMtortleVault
+    USDCWFTMtortleVault,
 }

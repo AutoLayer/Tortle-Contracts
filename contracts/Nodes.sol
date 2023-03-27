@@ -13,7 +13,7 @@ import './interfaces/IWETH.sol';
 import './SwapsUni.sol';
 import './SwapsBeets.sol';
 import './DepositsBeets.sol';
-import './nestedStrategies/NestedStrategies.sol';
+import './nestedStrategies/SelectNestedRoute.sol';
 import './farms/FarmsUni.sol';
 import './Batch.sol';
 
@@ -42,7 +42,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     SwapsUni public swapsUni;
     SwapsBeets public swapsBeets;
     DepositsBeets public depositsBeets;
-    NestedStrategies public nestedStrategies;
+    SelectNestedRoute public selectNestedRoute;
     FarmsUni public farmsUni;
     Batch private batch;
     address private WFTM;
@@ -83,7 +83,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         SwapsUni swapsUni_,
         SwapsBeets swapsBeets_,
         DepositsBeets depositsBeets_,
-        NestedStrategies nestedStrategies_,
+        SelectNestedRoute selectNestedRoute_,
         FarmsUni farmsUni_,
         Batch batch_,
         address tortleDojos_,
@@ -96,7 +96,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         swapsUni = swapsUni_;
         swapsBeets = swapsBeets_;
         depositsBeets = depositsBeets_;
-        nestedStrategies = nestedStrategies_;
+        selectNestedRoute = selectNestedRoute_;
         farmsUni = farmsUni_;
         batch = batch_;
         tortleDojos = tortleDojos_;
@@ -122,8 +122,8 @@ contract Nodes is Initializable, ReentrancyGuard {
         depositsBeets = depositsBeets_;
     }
 
-    function setNestedStrategies(NestedStrategies nestedStrategies_) public onlyOwner {
-        nestedStrategies = nestedStrategies_;
+    function setSelectNestedRoute(SelectNestedRoute selectNestedRoute_) public onlyOwner {
+        selectNestedRoute = selectNestedRoute_;
     }
 
     function setFarmsUni(FarmsUni farmsUni_) public onlyOwner {
@@ -184,10 +184,10 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     function _chargeFeesForWFTM(uint256 amount_) private returns (uint256) {
         uint256 amountFee_ = mulScale(amount_, INITIAL_TOTAL_FEE, 10000);
-        
+
         _approve(WFTM, address(swapsUni), amountFee_);
         uint256 _amountSwap = swapsUni.swapTokens(WFTM, amountFee_, usdc, 0);
-        
+
         uint256 dojosTokens_ = _amountSwap / 3;
         uint256 treasuryTokens_ = mulScale(_amountSwap, 2000, 10000);
         uint256 devFundTokens_= _amountSwap - (dojosTokens_ + treasuryTokens_);
@@ -403,16 +403,25 @@ contract Nodes is Initializable, ReentrancyGuard {
         emit WithdrawFromLP(amountTokenDesired);
     }
 
+    /**
+    * @notice Function used to withdraw tokens from a LPfarm
+    * @param user_ Address of the user.
+    * @param token_ Input token to deposit on the vault
+    * @param vaultAddress_ Address of the vault.
+    * @param amount_ Amount of LPTokens desired to withdraw.
+    * @param provider_ Type of Nested strategies.
+    */
     function depositOnNestedStrategy(
         address user_,
         address token_, 
         address vaultAddress_, 
-        uint256 amount_
+        uint256 amount_,
+        uint8 provider_
     ) external nonReentrant onlyOwner returns (uint256 sharesAmount) {
         if (amount_ > getBalance(user_, IERC20(token_))) revert Nodes__DepositOnNestedStrategyInsufficientFunds();
 
-        _approve(token_, address(nestedStrategies), amount_);
-        sharesAmount = nestedStrategies.deposit(user_, token_, vaultAddress_, amount_);
+        _approve(token_, address(selectNestedRoute), amount_);
+        sharesAmount = selectNestedRoute.deposit(user_, token_, vaultAddress_, amount_, provider_);
 
         decreaseBalance(user_, token_, amount_);
         increaseBalance(user_, vaultAddress_, sharesAmount);
@@ -420,16 +429,25 @@ contract Nodes is Initializable, ReentrancyGuard {
         emit DepositOnNestedStrategy(vaultAddress_, sharesAmount);
     }
 
+    /**
+    * @notice Function used to withdraw tokens from a LPfarm
+    * @param user_ Address of the user.
+    * @param tokenOut_ Output token to withdraw from the vault
+    * @param vaultAddress_ Address of the vault.
+    * @param sharesAmount_ Amount of Vault share tokens desired to withdraw.
+    * @param provider_ Type of Nested strategies.
+    */
     function withdrawFromNestedStrategy(
         address user_,
         address tokenOut_, 
         address vaultAddress_, 
-        uint256 sharesAmount_
+        uint256 sharesAmount_,
+        uint8 provider_
     ) external nonReentrant onlyOwner returns (uint256 amountTokenDesired) {
         if (sharesAmount_ > getBalance(user_, IERC20(vaultAddress_))) revert Nodes__WithdrawFromNestedStrategyInsufficientShares();
     
-        _approve(vaultAddress_, address(nestedStrategies), sharesAmount_);
-        amountTokenDesired = nestedStrategies.withdraw(user_, tokenOut_, vaultAddress_, sharesAmount_);
+        _approve(vaultAddress_, address(selectNestedRoute), sharesAmount_);
+        amountTokenDesired = selectNestedRoute.withdraw(user_, tokenOut_, vaultAddress_, sharesAmount_, provider_);
 
         decreaseBalance(user_, vaultAddress_, sharesAmount_);
         increaseBalance(user_, tokenOut_, amountTokenDesired);

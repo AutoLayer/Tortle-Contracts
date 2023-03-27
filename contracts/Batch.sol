@@ -300,14 +300,15 @@ contract Batch {
     function depositOnNestedStrategy(Function memory args) public onlySelf {
         (address token_,
         address vaultAddress_,
-        uint256 amount_) = abi.decode(args.arguments, (address, address, uint256));
+        uint256 amount_,
+        uint8 provider_) = abi.decode(args.arguments, (address, address, uint256, uint8));
 
         if (auxStack.length > 0) {
             amount_ = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
 
-        uint256 sharesAmount_ = nodes.depositOnNestedStrategy(args.user, token_, vaultAddress_, amount_);
+        uint256 sharesAmount_ = nodes.depositOnNestedStrategy(args.user, token_, vaultAddress_, amount_, provider_);
 
         if (args.hasNext) {
             auxStack.push(sharesAmount_);
@@ -319,14 +320,15 @@ contract Batch {
     function withdrawFromNestedStrategy(Function memory args) public onlySelf {
         (address tokenOut_,
         address vaultAddress_,
-        uint256 amount_) = abi.decode(args.arguments, (address, address, uint256));
+        uint256 amount_,
+        uint8 provider_) = abi.decode(args.arguments, (address, address, uint256, uint8));
 
         if (auxStack.length > 0) {
             amount_ = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
 
-        uint256 amountTokenDesired_ = nodes.withdrawFromNestedStrategy(args.user, tokenOut_, vaultAddress_, amount_);
+        uint256 amountTokenDesired_ = nodes.withdrawFromNestedStrategy(args.user, tokenOut_, vaultAddress_, amount_, provider_);
 
         if (args.hasNext) {
             auxStack.push(amountTokenDesired_);

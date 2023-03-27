@@ -58,16 +58,21 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
     await (await hre.ethers.getContractFactory('DepositsBeets')).connect(deployer).deploy(deployer.getAddress(), beetsVault)
   ).deployed()
 
-  // NestedStrategies Contract
-  const NestedStrategies = await (
-    await (await hre.ethers.getContractFactory('NestedStrategies')).connect(deployer).deploy()
+  // FirstTypeNestedStrategies Contract
+  const FirstTypeNestedStrategies = await (
+    await (await hre.ethers.getContractFactory('FirstTypeNestedStrategies')).connect(deployer).deploy()
+  ).deployed()
+
+  // SelectNestedRoute Contract
+  const SelectNestedRoute = await (
+    await (await hre.ethers.getContractFactory('SelectNestedRoute')).connect(deployer).deploy(FirstTypeNestedStrategies.address)
   ).deployed()
 
   // FarmsUni Contract
   const FarmsUni = await (
     await (await hre.ethers.getContractFactory('FarmsUni')).connect(deployer).deploy(deployer.getAddress())
   ).deployed()
-  const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [await deployer.getAddress(), SwapsUni.address, SwapBeets.address, DepositsBeets.address, NestedStrategies.address, FarmsUni.address, Batch.address, dojos, treasury, devFund, wftm, usdc], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
+  const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [await deployer.getAddress(), SwapsUni.address, SwapBeets.address, DepositsBeets.address, /*NestedStrategies.address*/ SelectNestedRoute.address, FarmsUni.address, Batch.address, dojos, treasury, devFund, wftm, usdc], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
   await ProxyNodes.deployed()
   const txSetNodesBatch = await Batch.setNodeContract(ProxyNodes.address)
   if (!noWait) await txSetNodesBatch.wait(6)
@@ -79,7 +84,8 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
     "SwapsUni": SwapsUni.address,
     "SwapBeets": SwapBeets.address,
     "DepositsBeets": DepositsBeets.address,
-    "NestedStrategies": NestedStrategies.address,
+    "SelectNestedRoute": SelectNestedRoute.address,
+    "FirstTypeNestedStrategies": FirstTypeNestedStrategies.address,
     "FarmsUni": FarmsUni.address,
     "Batch": Batch.address,
     "StringUtils": StringUtils.address,
