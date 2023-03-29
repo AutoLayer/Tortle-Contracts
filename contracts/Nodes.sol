@@ -13,7 +13,8 @@ import './interfaces/IWETH.sol';
 import './SwapsUni.sol';
 import './SwapsBeets.sol';
 import './DepositsBeets.sol';
-import './nestedStrategies/SelectNestedRoute.sol';
+import './selectRoute/SelectSwapRoute.sol';
+import './selectRoute/SelectNestedRoute.sol';
 import './farms/FarmsUni.sol';
 import './Batch.sol';
 
@@ -42,6 +43,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     SwapsUni public swapsUni;
     SwapsBeets public swapsBeets;
     DepositsBeets public depositsBeets;
+    SelectSwapRoute public selectSwapRoute;
     SelectNestedRoute public selectNestedRoute;
     FarmsUni public farmsUni;
     Batch private batch;
@@ -83,6 +85,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         SwapsUni swapsUni_,
         SwapsBeets swapsBeets_,
         DepositsBeets depositsBeets_,
+        SelectSwapRoute selectSwapRoute_,
         SelectNestedRoute selectNestedRoute_,
         FarmsUni farmsUni_,
         Batch batch_,
@@ -96,6 +99,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         swapsUni = swapsUni_;
         swapsBeets = swapsBeets_;
         depositsBeets = depositsBeets_;
+        selectSwapRoute = selectSwapRoute_;
         selectNestedRoute = selectNestedRoute_;
         farmsUni = farmsUni_;
         batch = batch_;
@@ -120,6 +124,10 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     function setDepositsBeets(DepositsBeets depositsBeets_) public onlyOwner {
         depositsBeets = depositsBeets_;
+    }
+
+    function setSelectSwapRoute(SelectSwapRoute selectSwapRoute_) public onlyOwner {
+        selectSwapRoute = selectSwapRoute_;
     }
 
     function setSelectNestedRoute(SelectNestedRoute selectNestedRoute_) public onlyOwner {
@@ -268,14 +276,16 @@ contract Nodes is Initializable, ReentrancyGuard {
         if (amount_ > _userBalance) revert Nodes__InsufficientBalance();
 
         if (tokenIn_ != tokenOut_) {
-            if (provider_ == 0) {
+            _approve(tokenIn_, address(selectSwapRoute), amount_);
+            amountOut = selectSwapRoute.swapTokens(tokens_, amount_, amountOutMin_, batchSwapStep_, provider_);
+            /*if (provider_ == 0) {
                 _approve(tokenIn_, address(swapsUni), amount_);
                 amountOut = swapsUni.swapTokens(tokenIn_, amount_, tokenOut_, amountOutMin_);
             } else {
                 _approve(tokenIn_, address(swapsBeets), amount_);
                 batchSwapStep_[0].amount = amount_;
                 amountOut = swapsBeets.swapTokens(tokens_, batchSwapStep_);
-            }
+            }*/
 
             decreaseBalance(user_, tokenIn_, amount_);
             increaseBalance(user_, tokenOut_, amountOut);
