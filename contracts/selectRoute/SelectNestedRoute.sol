@@ -4,20 +4,31 @@ pragma solidity ^0.8.7;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IFirstTypeNestedStrategies.sol";
+import '@openzeppelin/contracts/access/Ownable.sol';
 
-contract SelectNestedRoute {
+contract SelectNestedRoute is Ownable {
     using SafeERC20 for IERC20;
 
     address immutable firstTypeNestedStrategies;
+    address private nodes;
+
+    modifier onlyAllowed() {
+        require(msg.sender == owner() || msg.sender == nodes, 'You must be the owner.');
+        _;
+    }
 
     constructor(address firstTypeNestedStrategies_) {
         firstTypeNestedStrategies = firstTypeNestedStrategies_;
     }
 
+    function setNodes(address nodes_) public onlyOwner {
+        nodes = nodes_;
+    }
+
     /**
      * @param provider_ Value: 0 - Yearn and Reaper nested strategies
     */
-    function deposit(address user_, address token_, address vaultAddress_, uint256 amount_, uint8 provider_) external returns (uint256 sharesAmount) {
+    function deposit(address user_, address token_, address vaultAddress_, uint256 amount_, uint8 provider_) external onlyAllowed returns (uint256 sharesAmount) {
         IERC20(token_).safeTransferFrom(msg.sender, address(this), amount_);
         if (provider_ == 0) {
             _approve(token_, address(firstTypeNestedStrategies), amount_);
@@ -28,7 +39,7 @@ contract SelectNestedRoute {
     /**
      * @param provider_ Value: 0 - Yearn and Reaper nested strategies
     */
-    function withdraw(address user_, address tokenOut_, address vaultAddress_, uint256 sharesAmount_, uint8 provider_) external returns (uint256 amountTokenDesired) {
+    function withdraw(address user_, address tokenOut_, address vaultAddress_, uint256 sharesAmount_, uint8 provider_) external onlyAllowed returns (uint256 amountTokenDesired) {
         IERC20(vaultAddress_).safeTransferFrom(msg.sender, address(this), sharesAmount_);
         if (provider_ == 0) {
             _approve(vaultAddress_, address(firstTypeNestedStrategies), sharesAmount_);

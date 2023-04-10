@@ -11,11 +11,9 @@ import './interfaces/ITortleVault.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import './interfaces/IWETH.sol';
 import './SwapsUni.sol';
-import './SwapsBeets.sol';
-import './DepositsBeets.sol';
 import './selectRoute/SelectSwapRoute.sol';
+import './selectRoute/SelectLPRoute.sol';
 import './selectRoute/SelectNestedRoute.sol';
-import './farms/FarmsUni.sol';
 import './Batch.sol';
 
 error Nodes__InsufficientBalance();
@@ -41,11 +39,9 @@ contract Nodes is Initializable, ReentrancyGuard {
     address public tortleTreasury;
     address public tortleDevFund;
     SwapsUni public swapsUni;
-    SwapsBeets public swapsBeets;
-    DepositsBeets public depositsBeets;
     SelectSwapRoute public selectSwapRoute;
+    SelectLPRoute public selectLPRoute;
     SelectNestedRoute public selectNestedRoute;
-    FarmsUni public farmsUni;
     Batch private batch;
     address private WFTM;
     address public usdc;
@@ -55,9 +51,6 @@ contract Nodes is Initializable, ReentrancyGuard {
     uint16 public constant DOJOS_FEE = 3333; // 33.33%
     uint16 public constant TREASURY_FEE = 4666; // 46.66%
     uint16 public constant DEV_FUND_FEE = 2000; // 20%
-
-    mapping(address => mapping(address => uint256)) public userLp;
-    mapping(address => mapping(address => uint256)) public userTt;
 
     mapping(address => AddressToUintIterableMap.Map) private balance;
 
@@ -83,11 +76,9 @@ contract Nodes is Initializable, ReentrancyGuard {
     function initializeConstructor(
         address owner_,
         SwapsUni swapsUni_,
-        SwapsBeets swapsBeets_,
-        DepositsBeets depositsBeets_,
         SelectSwapRoute selectSwapRoute_,
+        SelectLPRoute selectLPRoute_,
         SelectNestedRoute selectNestedRoute_,
-        FarmsUni farmsUni_,
         Batch batch_,
         address tortleDojos_,
         address tortleTrasury_,
@@ -97,11 +88,9 @@ contract Nodes is Initializable, ReentrancyGuard {
     ) public initializer {
         owner = owner_;
         swapsUni = swapsUni_;
-        swapsBeets = swapsBeets_;
-        depositsBeets = depositsBeets_;
         selectSwapRoute = selectSwapRoute_;
+        selectLPRoute = selectLPRoute_;
         selectNestedRoute = selectNestedRoute_;
-        farmsUni = farmsUni_;
         batch = batch_;
         tortleDojos = tortleDojos_;
         tortleTreasury = tortleTrasury_;
@@ -118,24 +107,16 @@ contract Nodes is Initializable, ReentrancyGuard {
         swapsUni = swapsUni_;
     }
 
-    function setSwapsBeets(SwapsBeets swapsBeets_) public onlyOwner {
-        swapsBeets = swapsBeets_;
-    }
-
-    function setDepositsBeets(DepositsBeets depositsBeets_) public onlyOwner {
-        depositsBeets = depositsBeets_;
-    }
-
     function setSelectSwapRoute(SelectSwapRoute selectSwapRoute_) public onlyOwner {
         selectSwapRoute = selectSwapRoute_;
     }
 
-    function setSelectNestedRoute(SelectNestedRoute selectNestedRoute_) public onlyOwner {
-        selectNestedRoute = selectNestedRoute_;
+    function setSelectLPRoute(SelectLPRoute selectLPRoute_) public onlyOwner {
+        selectLPRoute = selectLPRoute_;
     }
 
-    function setFarmsUni(FarmsUni farmsUni_) public onlyOwner {
-        farmsUni = farmsUni_;
+    function setSelectNestedRoute(SelectNestedRoute selectNestedRoute_) public onlyOwner {
+        selectNestedRoute = selectNestedRoute_;
     }
 
     function setTortleDojos(address tortleDojos_) public onlyOwner {
@@ -278,14 +259,6 @@ contract Nodes is Initializable, ReentrancyGuard {
         if (tokenIn_ != tokenOut_) {
             _approve(tokenIn_, address(selectSwapRoute), amount_);
             amountOut = selectSwapRoute.swapTokens(tokens_, amount_, amountOutMin_, batchSwapStep_, provider_);
-            /*if (provider_ == 0) {
-                _approve(tokenIn_, address(swapsUni), amount_);
-                amountOut = swapsUni.swapTokens(tokenIn_, amount_, tokenOut_, amountOutMin_);
-            } else {
-                _approve(tokenIn_, address(swapsBeets), amount_);
-                batchSwapStep_[0].amount = amount_;
-                amountOut = swapsBeets.swapTokens(tokens_, batchSwapStep_);
-            }*/
 
             decreaseBalance(user_, tokenIn_, amount_);
             increaseBalance(user_, tokenOut_, amountOut);
@@ -342,34 +315,19 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amountOutMin0_,
         uint256 amountOutMin1_
     ) external nonReentrant onlyOwner returns (uint256 lpAmount) {
-       if(provider_ == 0) {
-            IUniswapV2Router02 router = swapsUni.getRouter(tokens_[0], tokens_[1]);
 
-            if (lpToken_ != IUniswapV2Factory(IUniswapV2Router02(router).factory()).getPair(tokens_[0], tokens_[1])) revert  Nodes__DepositOnLPInvalidLPToken();
-            if (amounts_[0] > getBalance(user_, IERC20(tokens_[0]))) revert Nodes__DepositOnLPInsufficientT0Funds();
-            if (amounts_[1] > getBalance(user_, IERC20(tokens_[1]))) revert Nodes__DepositOnLPInsufficientT1Funds();
-
-            _approve(tokens_[0], address(farmsUni), amounts_[0]);
-            _approve(tokens_[1], address(farmsUni), amounts_[1]);
-            (uint256 amount0f, uint256 amount1f, uint256 lpRes) = farmsUni.addLiquidity(router, tokens_[0], tokens_[1], amounts_[0], amounts_[1], amountOutMin0_, amountOutMin1_);
-            userLp[lpToken_][user_] += lpRes;
-
-            decreaseBalance(user_, tokens_[0], amount0f);
-            decreaseBalance(user_, tokens_[1], amount1f);
-
-            lpAmount = lpRes;
-        } else {
-            if (amounts_[0] > getBalance(user_, IERC20(tokens_[0]))) revert Nodes__DepositOnLPInsufficientT0Funds();
-            
-            _approve(tokens_[0], address(depositsBeets), amounts_[0]);
-            (address bptAddress_, uint256 bptAmount_) = depositsBeets.joinPool(poolId_, tokens_, amounts_);
-
-            decreaseBalance(user_, tokens_[0], amounts_[0]);
-            increaseBalance(user_, bptAddress_, bptAmount_);
-
-            lpAmount = bptAmount_;
+        for (uint8 i = 0; i < tokens_.length; i++) {
+            if (amounts_[i] > getBalance(user_, IERC20(tokens_[i]))) revert Nodes__DepositOnLPInsufficientT0Funds();
+            _approve(tokens_[i], address(selectLPRoute), amounts_[i]);
         }
 
+        (uint256[] memory amountsOut, uint256 amountIn, address lpToken, uint256 numTokensOut) = selectLPRoute.depositOnLP(poolId_, lpToken_, provider_, tokens_, amounts_, amountOutMin0_, amountOutMin1_);
+
+        for (uint8 i = 0; i < numTokensOut; i++) {
+            decreaseBalance(user_, tokens_[i], amountsOut[i]);
+            increaseBalance(user_, lpToken, amountIn);
+        }
+        lpAmount = amountIn;
         emit DepositOnLP(lpAmount);
     }
 
@@ -391,24 +349,15 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256[] memory amountsOutMin_,
         uint256 amount_
     ) external nonReentrant onlyOwner returns (uint256 amountTokenDesired) {
-        if(provider_ == 0) {
-            if (amount_ > userLp[lpToken_][user_]) revert Nodes__WithdrawFromLPInsufficientFunds();
 
-            _approve(lpToken_, address(farmsUni), amount_);
-            amountTokenDesired = farmsUni.withdrawLpAndSwap(address(swapsUni), lpToken_, tokens_, amountsOutMin_[0], amount_);
+        if (amount_ > getBalance(user_, IERC20(lpToken_))) revert Nodes__WithdrawFromLPInsufficientFunds(); // check what to do with bp token
+        _approve(lpToken_, address(selectLPRoute), amount_);
 
-            userLp[lpToken_][user_] -= amount_;
-            increaseBalance(user_, tokens_[2], amountTokenDesired);
-        } else {
-            address bptToken_ = depositsBeets.getBptAddress(poolId_);
-            if (amount_ > getBalance(user_, IERC20(bptToken_))) revert Nodes__WithdrawFromLPInsufficientFunds();
-            
-            _approve(bptToken_, address(depositsBeets), amount_);
-            amountTokenDesired = depositsBeets.exitPool(poolId_, bptToken_, tokens_, amountsOutMin_, amount_);
+        address tokenDesired;
+        (tokenDesired, amountTokenDesired) = selectLPRoute.withdrawFromLp(poolId_, lpToken_, provider_, tokens_, amountsOutMin_, amount_);
 
-            decreaseBalance(user_, bptToken_, amount_);
-            increaseBalance(user_, tokens_[0], amountTokenDesired);
-        }
+        decreaseBalance(user_, lpToken_, amount_);
+        increaseBalance(user_, tokenDesired, amountTokenDesired);
 
         emit WithdrawFromLP(amountTokenDesired);
     }
@@ -455,7 +404,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint8 provider_
     ) external nonReentrant onlyOwner returns (uint256 amountTokenDesired) {
         if (sharesAmount_ > getBalance(user_, IERC20(vaultAddress_))) revert Nodes__WithdrawFromNestedStrategyInsufficientShares();
-    
+
         _approve(vaultAddress_, address(selectNestedRoute), sharesAmount_);
         amountTokenDesired = selectNestedRoute.withdraw(user_, tokenOut_, vaultAddress_, sharesAmount_, provider_);
 
@@ -482,7 +431,8 @@ contract Nodes is Initializable, ReentrancyGuard {
         address[] memory tokens_,
         uint256 amount0_,
         uint256 amount1_,
-        uint256[] memory auxStack
+        uint256[] memory auxStack,
+        uint8 provider_
     ) external nonReentrant onlyOwner returns (uint256[] memory result) {
         result = new uint256[](3);
         if (auxStack.length > 0) {
@@ -494,18 +444,17 @@ contract Nodes is Initializable, ReentrancyGuard {
         if (amount0_ > getBalance(user, IERC20(tokens_[0]))) revert Nodes__DepositOnFarmTokensInsufficientT0Funds();
         if (amount1_ > getBalance(user, IERC20(tokens_[1]))) revert Nodes__DepositOnFarmTokensInsufficientT1Funds();
 
-        IUniswapV2Router02 router = ISwapsUni(address(swapsUni)).getRouter(tokens_[0], tokens_[1]);
-        _approve(tokens_[0], address(farmsUni), amount0_);
-        _approve(tokens_[1], address(farmsUni), amount1_);
-        (uint256 amount0f_, uint256 amount1f_, uint256 lpBal_) = farmsUni.addLiquidity(router, tokens_[0], tokens_[1], amount0_, amount1_, 0, 0);
-        
+        _approve(tokens_[0], address(selectLPRoute), amount0_);
+        _approve(tokens_[1], address(selectLPRoute), amount1_);
+        (uint256 amount0f_, uint256 amount1f_, uint256 lpBal_) = selectLPRoute.depositOnFarmTokens(lpToken_, tokens_, amount0_, amount1_, provider_);
+
         _approve(lpToken_, tortleVault_, lpBal_);
         uint256 ttAmount = ITortleVault(tortleVault_).deposit(user, lpBal_);
-        userTt[tortleVault_][user] += ttAmount;
-        
+
         decreaseBalance(user, tokens_[0], amount0f_);
         decreaseBalance(user, tokens_[1], amount1f_);
-        
+        increaseBalance(user, tortleVault_, ttAmount);
+
         result[1] = ttAmount;
         result[2] = lpBal_;
 
@@ -519,7 +468,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     * @param tortleVault_ Address of the tortle vault where we are going to deposit.
     * @param tokens_ Addresses of tokens that are going to be deposited.
     * @param amountOutMin_ Minimum amount to be withdrawed.
-    * @param amount Amount of tokens desired to withdraw.
+    * @param amount_ Amount of tokens desired to withdraw.
     */
     function withdrawFromFarm(
         address user,
@@ -527,18 +476,19 @@ contract Nodes is Initializable, ReentrancyGuard {
         address tortleVault_,
         address[] memory tokens_,
         uint256 amountOutMin_,
-        uint256 amount
+        uint256 amount_, 
+        uint8 provider_
     ) external nonReentrant onlyOwner returns (uint256 amountLp, uint256 rewardAmount, uint256 amountTokenDesired) {
-        if (amount > userTt[tortleVault_][user]) revert Nodes__WithdrawFromFarmInsufficientFunds();
+        if (amount_ > getBalance(user, IERC20(tortleVault_))) revert Nodes__WithdrawFromFarmInsufficientFunds();
 
-        (uint256 rewardAmount_, uint256 amountLp_) = ITortleVault(tortleVault_).withdraw(user, amount);
+        (uint256 rewardAmount_, uint256 amountLp_) = ITortleVault(tortleVault_).withdraw(user, amount_);
         rewardAmount = rewardAmount_;
         amountLp = amountLp_;
-        userTt[tortleVault_][user] -= amount;
-        
-        _approve(lpToken_, address(farmsUni), amountLp_);
-        amountTokenDesired = farmsUni.withdrawLpAndSwap(address(swapsUni), lpToken_, tokens_, amountOutMin_, amountLp_);
-        
+        decreaseBalance(user, tortleVault_, amount_);
+
+        _approve(lpToken_, address(selectLPRoute), amountLp_);
+        amountTokenDesired = selectLPRoute.withdrawFromFarm(lpToken_, tokens_, amountOutMin_, amountLp_, provider_);
+
         increaseBalance(user, tokens_[2], amountTokenDesired);
 
         emit WithdrawFromFarm(tokens_[2], amountTokenDesired, rewardAmount);
