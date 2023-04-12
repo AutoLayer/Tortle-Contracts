@@ -11,6 +11,7 @@ import "../interfaces/IFarmsUni.sol";
 import "../interfaces/IDepositsBeets.sol";
 
 error SelectLPRoute__DepositOnLPInvalidLPToken();
+
 contract SelectLPRoute is Ownable {
     using SafeERC20 for IERC20;
 
@@ -41,7 +42,8 @@ contract SelectLPRoute is Ownable {
         address[] memory tokens_,
         uint256[] memory amounts_,
         uint256 amountOutMin0_,
-        uint256 amountOutMin1_) public onlyAllowed returns (uint256[] memory amountsOut, uint256 amountIn, address lpToken, uint256 numTokensOut){
+        uint256 amountOutMin1_
+    ) public onlyAllowed returns (uint256[] memory amountsOut, uint256 amountIn, address lpToken, uint256 numTokensOut) {
         if (provider_ == 0) { // spookySwap
             IERC20(tokens_[0]).safeTransferFrom(msg.sender, address(this), amounts_[0]);
             IERC20(tokens_[1]).safeTransferFrom(msg.sender, address(this), amounts_[1]);
@@ -63,7 +65,8 @@ contract SelectLPRoute is Ownable {
             numTokensOut = 1;
         }
         IERC20(lpToken).safeTransfer(msg.sender, amountIn);
-        }
+    }
+
     function withdrawFromLp(
         bytes32 poolId_,
         address lpToken_,
@@ -73,15 +76,16 @@ contract SelectLPRoute is Ownable {
         uint256 amount_
     ) public onlyAllowed returns(address tokenDesired, uint256 amountTokenDesired) {
         IERC20(lpToken_).safeTransferFrom(msg.sender, address(this), amount_);
+
         if (provider_ == 0) { // spookySwap
             _approve(lpToken_, address(farmsUni), amount_);
             amountTokenDesired = IFarmsUni(farmsUni).withdrawLpAndSwap(address(swapsUni), lpToken_, tokens_, amountsOutMin_[0], amount_);
             tokenDesired = tokens_[2];
-         } else { // beets
+        } else { // beets
             _approve(lpToken_, address(depositsBeets), amount_);
             amountTokenDesired = IDepositsBeets(depositsBeets).exitPool(poolId_, lpToken_, tokens_, amountsOutMin_, amount_);
             tokenDesired = tokens_[0];
-         }
+        }
         IERC20(tokenDesired).safeTransfer(msg.sender, amountTokenDesired);
     }
 
@@ -94,6 +98,7 @@ contract SelectLPRoute is Ownable {
     ) public onlyAllowed returns(uint256 amount0f_, uint256 amount1f_, uint256 lpBal_) {
         IERC20(tokens_[0]).safeTransferFrom(msg.sender, address(this), amount0_);
         IERC20(tokens_[1]).safeTransferFrom(msg.sender, address(this), amount1_);
+
         if (provider_ == 0) { // spooky
             IUniswapV2Router02 router = ISwapsUni(address(swapsUni)).getRouter(tokens_[0], tokens_[1]);
             _approve(tokens_[0], address(farmsUni), amount0_);
@@ -111,9 +116,10 @@ contract SelectLPRoute is Ownable {
         uint256 provider_
     ) public onlyAllowed returns (uint256 amountTokenDesired) {
         IERC20(lpToken_).safeTransferFrom(msg.sender, address(this), amountLp_);
+
         if (provider_ == 0) { // spooky
-        _approve(lpToken_, address(farmsUni), amountLp_);
-        amountTokenDesired = IFarmsUni(farmsUni).withdrawLpAndSwap(address(swapsUni), lpToken_, tokens_, amountOutMin_, amountLp_);
+            _approve(lpToken_, address(farmsUni), amountLp_);
+            amountTokenDesired = IFarmsUni(farmsUni).withdrawLpAndSwap(address(swapsUni), lpToken_, tokens_, amountOutMin_, amountLp_);
         }
         IERC20(tokens_[2]).safeTransfer(msg.sender, amountTokenDesired);
     }
