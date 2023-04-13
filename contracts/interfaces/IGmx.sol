@@ -27,4 +27,6 @@ interface IGmx {
         bool _withdrawETH,
         address _callbackTarget
     ) external payable returns (bytes32);
+
+    function weth() external view returns (address);
 }
