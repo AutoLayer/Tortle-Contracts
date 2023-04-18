@@ -510,26 +510,22 @@ contract Nodes is Initializable, ReentrancyGuard {
     function openPerpPosition(
         address user_,
         string memory nodeId_,
-        address[] memory path_,
-        address indexToken_,
-        uint256 amount_,
-        uint256 indexTokenPrice_,
-        bool isLong_,
-        uint256 executionFee_,
-        uint256 amountOutMin_,
-        uint8 leverage_,
-        uint8 provider_
+        bytes memory args_
     ) external nonReentrant onlyOwner returns (bytes32 data, uint256 sizeDelta, uint256 acceptablePrice) {
+        (, address indexToken_,,
+        uint256 amount_,,
+        uint256 executionFee_,,,) = abi.decode(args_, (address[], address, bool, uint256, uint256, uint256, uint256, uint8, uint8));
+
         if (amount_ > getBalance(user_, IERC20(indexToken_))) revert Nodes__OpenPerpPositionInsufficientFunds();
 
-        uint256 amountWithoutFees_ = amount_ - executionFee_;
-        _approve(indexToken_, selectPerpRoute.perpetualContract(), amountWithoutFees_);
-        (data, sizeDelta, acceptablePrice) = selectPerpRoute.openPerpPosition(path_, indexToken_, amountWithoutFees_, indexTokenPrice_, isLong_, executionFee_, amountOutMin_, leverage_, provider_);
+        amount_ -= executionFee_;
+        _approve(indexToken_, selectPerpRoute.perpetualContract(), amount_);
+        (data, sizeDelta, acceptablePrice) = selectPerpRoute.openPerpPosition(args_, amount_);
 
-        decreaseBalance(user_, indexToken_, amountWithoutFees_);
+        decreaseBalance(user_, indexToken_, amount_);
         perpPositions[user_][nodeId_] = sizeDelta;
 
-        emit OpenPosition(indexToken_, amountWithoutFees_, sizeDelta, acceptablePrice);
+        emit OpenPosition(indexToken_, amount_, sizeDelta, acceptablePrice);
     }
 
     function closePerpPosition(

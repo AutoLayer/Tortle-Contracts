@@ -37,20 +37,19 @@ contract SelectPerpRoute {
         IERC20(token_).safeApprove(spender_, amount_);
     }
 
-    /**
-     * @param provider_ Value: 0 - MummyFinance
-    */
     function openPerpPosition(
-        address[] memory path_,
+        bytes memory args_,
+        uint256 amount_
+    ) public onlyAllowed returns (bytes32 data, uint256 sizeDelta, uint256 acceptablePrice) {
+        (address[] memory path_,
         address indexToken_,
-        uint256 amount_,
+        bool isLong_,,
         uint256 indexTokenPrice_,
-        bool isLong_,
         uint256 executionFee_,
         uint256 amountOutMin_,
         uint8 leverage_,
-        uint8 provider_
-    ) public onlyAllowed returns (bytes32 data, uint256 sizeDelta, uint256 acceptablePrice) {
+        uint8 provider_) = abi.decode(args_, (address[], address, bool, uint256, uint256, uint256, uint256, uint8, uint8));
+
         IERC20(indexToken_).safeTransferFrom(msg.sender, perpetualContract, amount_);
 
         if (provider_ == 0) {

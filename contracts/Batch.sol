@@ -391,22 +391,14 @@ contract Batch {
     }
 
     function openPerpPosition(Function memory args) public onlySelf {
-        (address[] memory path_,
-        address indexToken_,
-        bool isLong_,
-        uint256 amount_,
-        uint256 indexTokenPrice_,
-        uint256 executionFee_,
-        uint256 amountOutMin_,
-        uint8 leverage_,
-        uint8 provider_) = abi.decode(args.arguments, (address[], address, bool, uint256, uint256, uint256, uint256, uint8, uint8));
+        (, address indexToken_,, uint256 amount_,,,,,) = abi.decode(args.arguments, (address[], address, bool, uint256, uint256, uint256, uint256, uint8, uint8));
 
         if (auxStack.length > 0) {
             amount_ = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
 
-        (, uint256 sizeDelta, uint256 acceptablePrice) = nodes.openPerpPosition(args.user, args.id, path_, indexToken_, amount_, indexTokenPrice_, isLong_, executionFee_, amountOutMin_, leverage_, provider_);
+        (, uint256 sizeDelta, uint256 acceptablePrice) = nodes.openPerpPosition(args.user, args.id, args.arguments);
 
         if (args.hasNext) {
             auxStack.push(sizeDelta);
