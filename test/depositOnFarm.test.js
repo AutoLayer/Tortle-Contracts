@@ -23,7 +23,8 @@ describe('Deposit On Farm', function () {
 
         const [amountOutToken1, amountOutToken2] = await splitFunction(deployer, userAddress, WFTM, amountWithoutFeeInWei, WFTM, DEUS)
 
-        tx = await nodes.connect(deployer).depositOnFarmTokens(userAddress, WFTMDEUSLp, WFTMDEUStortleVault, [WFTM, DEUS], amountOutToken1, amountOutToken2, [])
+        const provider = 0
+        tx = await nodes.connect(deployer).depositOnFarmTokens(userAddress, WFTMDEUSLp, WFTMDEUStortleVault, [WFTM, DEUS], amountOutToken1, amountOutToken2, [], provider)
         receipt = await tx.wait()
         const depositOnFarmEvent = getEvent(receipt, "DepositOnFarm")
 

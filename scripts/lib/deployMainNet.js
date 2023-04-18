@@ -58,20 +58,46 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
     await (await hre.ethers.getContractFactory('DepositsBeets')).connect(deployer).deploy(deployer.getAddress(), beetsVault)
   ).deployed()
 
-  // NestedStrategies Contract
-  const NestedStrategies = await (
-    await (await hre.ethers.getContractFactory('NestedStrategies')).connect(deployer).deploy()
+  // FirstTypeNestedStrategies Contract
+  const FirstTypeNestedStrategies = await (
+    await (await hre.ethers.getContractFactory('FirstTypeNestedStrategies')).connect(deployer).deploy()
   ).deployed()
+
+  // SelectNestedRoute Contract
+  const SelectNestedRoute = await (
+    await (await hre.ethers.getContractFactory('SelectNestedRoute')).connect(deployer).deploy(FirstTypeNestedStrategies.address)
+  ).deployed()
+
+  // SelectSwapRoute Contract
+  const SelectSwapRoute = await (
+    await (await hre.ethers.getContractFactory('SelectSwapRoute')).connect(deployer).deploy(SwapsUni.address, SwapBeets.address)
+  ).deployed()
+
 
   // FarmsUni Contract
   const FarmsUni = await (
     await (await hre.ethers.getContractFactory('FarmsUni')).connect(deployer).deploy(deployer.getAddress())
   ).deployed()
-  const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [await deployer.getAddress(), SwapsUni.address, SwapBeets.address, DepositsBeets.address, NestedStrategies.address, FarmsUni.address, Batch.address, dojos, treasury, devFund, wftm, usdc], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
+
+  // SelectLPRoute Contract
+  const SelectLPRoute = await (
+    await (await hre.ethers.getContractFactory('SelectLPRoute')).connect(deployer).deploy(FarmsUni.address, SwapsUni.address, DepositsBeets.address)
+  ).deployed()
+
+  const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [await deployer.getAddress(), SwapsUni.address, /*SwapBeets.address, DepositsBeets.address, NestedStrategies.address*/ SelectSwapRoute.address, SelectLPRoute.address, SelectNestedRoute.address, Batch.address, dojos, treasury, devFund, wftm, usdc], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
   await ProxyNodes.deployed()
-  const txSetNodesBatch = await Batch.setNodeContract(ProxyNodes.address)
-  if (!noWait) await txSetNodesBatch.wait(6)
-  await FarmsUni.setNodeContract(ProxyNodes.address)
+  const txSetContract0 = await Batch.setNodeContract(ProxyNodes.address)
+  if (!noWait) await txSetContract0.wait(6)
+  const txSetContract1 = await FarmsUni.setNodeContract(ProxyNodes.address)
+  if (!noWait) await txSetContract1.wait(6)
+  const txSetContract2 = await FarmsUni.setSelectLPRouteContract(SelectLPRoute.address)
+  if (!noWait) await txSetContract2.wait(6)
+  const txSetContract3 = await SelectNestedRoute.setNodes(ProxyNodes.address)
+  if (!noWait) await txSetContract3.wait(6)
+  const txSetContract4 = await SelectLPRoute.setNodes(ProxyNodes.address)
+  if (!noWait) await txSetContract4.wait(6)
+  const txSetContract5 = await SelectSwapRoute.setNodes(ProxyNodes.address)
+  if (!noWait) await txSetContract5.wait(6)
 
   const contractsAddresses = {
     "ProxyNodes": ProxyNodes.address,
@@ -79,7 +105,10 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
     "SwapsUni": SwapsUni.address,
     "SwapBeets": SwapBeets.address,
     "DepositsBeets": DepositsBeets.address,
-    "NestedStrategies": NestedStrategies.address,
+    "SelectSwapRoute": SelectSwapRoute.address,
+    "SelectLPRoute": SelectLPRoute.address,
+    "SelectNestedRoute": SelectNestedRoute.address,
+    "FirstTypeNestedStrategies": FirstTypeNestedStrategies.address,
     "FarmsUni": FarmsUni.address,
     "Batch": Batch.address,
     "StringUtils": StringUtils.address,

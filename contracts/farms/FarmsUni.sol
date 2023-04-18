@@ -7,6 +7,7 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 import "../Nodes.sol";
+import "../selectRoute/SelectLPRoute.sol";
 import "../interfaces/ISwapsUni.sol";
 
 error FarmsUni_WithdrawLpAndSwapError();
@@ -16,9 +17,10 @@ contract FarmsUni is ReentrancyGuard {
 
     address public immutable owner;
     Nodes private nodes;
+    SelectLPRoute private selectLPRoute;
 
     modifier onlyOwner() {
-        require(msg.sender == owner || msg.sender == address(nodes), 'You must be the owner.');
+        require(msg.sender == owner || msg.sender == address(nodes) || msg.sender == address(selectLPRoute), 'You must be the owner.');
         _;
     }
 
@@ -109,6 +111,10 @@ contract FarmsUni is ReentrancyGuard {
 
     function setNodeContract(Nodes nodes_) public onlyOwner {
         nodes = nodes_;
+    }
+
+    function setSelectLPRouteContract(SelectLPRoute selectLPRoute_) public onlyOwner {
+        selectLPRoute = selectLPRoute_;
     }
 
     receive() external payable {}

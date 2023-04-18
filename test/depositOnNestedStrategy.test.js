@@ -2,7 +2,7 @@ const { TEST_AMOUNT, getEvent, calculateAmountWithoutFees } = require('./utils')
 const { loadFixture } = require('ethereum-waffle')
 const { assert } = require('chai')
 const { setUpTests } = require('../scripts/lib/setUpTests')
-const { userAddress, WFTM, BOO, BOOYearnVault } = require('../config')
+const { userAddress, WFTM, BOO, BOOYearnVault /*, XBOOReaperVault*/ } = require('../config')
 const { swapFunction } = require('./functions')
 
 describe('Deposit On Nested Strategy', function () {
@@ -19,11 +19,12 @@ describe('Deposit On Nested Strategy', function () {
     })
 
     it('Deposit on Nested Strategy', async () => {
+        const provider = '0'
         const amountWithoutFeeInWei = calculateAmountWithoutFees(TEST_AMOUNT)
 
-        const swapAmountOut = swapFunction(deployer, userAddress, WFTM, amountWithoutFeeInWei, BOO)
+        const swapAmountOut = await swapFunction(deployer, userAddress, WFTM, amountWithoutFeeInWei, BOO)
 
-        tx = await nodes.connect(deployer).depositOnNestedStrategy(userAddress, BOO, BOOYearnVault, swapAmountOut)
+        tx = await nodes.connect(deployer).depositOnNestedStrategy(userAddress, BOO, BOOYearnVault, swapAmountOut, provider)
         receipt = await tx.wait()
         const depositOnNestedStrategyEvent = getEvent(receipt, "DepositOnNestedStrategy")
 

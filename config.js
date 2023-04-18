@@ -15,6 +15,7 @@ const BEETS = '0xf24bcf4d1e507740041c9cfd2dddb29585adce1e'
 const DEUS = '0xDE5ed76E7c05eC5e4572CfC88d1ACEA165109E44'
 const DAI = '0x8D11eC38a3EB5E956B052f67Da8Bdc9bef8Abf3E'
 const FUSDT = '0x049d68029688eAbF473097a2fC38ef61633A3C7A'
+const SOLID = '0x888EF71766ca594DED1F0FA3AE64eD2941740A20'
 
 // Spooky Vaults
 const WFTMDEUSLp = '0xaF918eF5b9f33231764A5557881E6D3e5277d456'
@@ -43,6 +44,9 @@ const OPERA_ACT_II_Pair = '0x56ad84b777ff732de69e85813daee1393a9ffe10'
 // Yearn Vaults
 const BOOYearnVault = '0x0fBbf9848D969776a5Eb842EdAfAf29ef4467698'
 
+// Reaper Vaults
+const XBOOReaperVault = '0xFC550BAD3c14160CBA7bc05ee263b3F060149AFF'
+
 module.exports = {
     deployerAddress,
     userAddress,
@@ -55,6 +59,7 @@ module.exports = {
     BEETS,
     DEUS,
     DAI,
+    SOLID,
     FUSDT,
     WFTMDEUSLp,
     WFTMDEUStortleVault,
@@ -67,8 +72,9 @@ module.exports = {
     OPERA_ACT_II_PoolId,
     OPERA_ACT_II_Pair,
     BOOYearnVault,
+    XBOOReaperVault,
     FUSTWFTMLp,
     FUSTWFTMtortleVault,
     USDCWFTMLp,
-    USDCWFTMtortleVault
+    USDCWFTMtortleVault,
 }

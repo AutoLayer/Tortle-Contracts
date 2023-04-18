@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat')
-const { deployerAddress, userWithFarmBug, nodeContractAddress, WFTM, DEUS, WFTMDEUSLp, WFTMDEUStortleVault } = require('../config')
+const { deployerAddress, nodeContractAddress, WFTM, DEUS, WFTMDEUSLp, WFTMDEUStortleVault, userAddress } = require('../config')
 const { impersonateAccount }  = require('@nomicfoundation/hardhat-network-helpers')
 
 describe('Withdraw From Farm', function () {
@@ -16,8 +16,9 @@ describe('Withdraw From Farm', function () {
     })
 
     it('Withdraw from Spooky Farm', async () => {
-        const userTT = await nodes.userTt(WFTMDEUStortleVault, userWithFarmBug)
-        tx = await nodes.connect(deployer).withdrawFromFarm(userWithFarmBug, WFTMDEUSLp, WFTMDEUStortleVault, [WFTM, DEUS, DEUS], 0, userTT.toString())
+        const userTT = await nodes.getBalance(userAddress, WFTMDEUStortleVault)
+        const provider = 0
+        tx = await nodes.connect(deployer).withdrawFromFarm(userAddress, WFTMDEUSLp, WFTMDEUStortleVault, [WFTM, DEUS, DEUS], 0, userTT.toString(), provider)
         receipt = await tx.wait()
         console.log("Withdraw receipt", receipt)
     })
