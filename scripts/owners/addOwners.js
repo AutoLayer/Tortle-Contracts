@@ -1,5 +1,9 @@
 const { ethers } = require('hardhat')
-const contractAddresses = require('../../contractsAddresses.json')
+require('dotenv').config()
+const fs = require('fs')
+const contractAddressesPath = process.env.CONTRACTS_PATH ? process.env.CONTRACTS_PATH : '/tmp/contractsAddresses.json'
+const contractAddressesRaw = fs.readFileSync(contractAddressesPath)
+const contractAddresses = JSON.parse(contractAddressesRaw)
 const addOwnersList = require('./addOrRemoveOwnersList.json')
 
 const addOwners = async () => {
