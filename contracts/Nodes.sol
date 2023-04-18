@@ -14,6 +14,7 @@ import './SwapsUni.sol';
 import './selectRoute/SelectSwapRoute.sol';
 import './selectRoute/SelectLPRoute.sol';
 import './selectRoute/SelectNestedRoute.sol';
+import './selectRoute/SelectPerpRoute.sol';
 import './Batch.sol';
 
 error Nodes__InsufficientBalance();
@@ -29,6 +30,8 @@ error Nodes__DepositOnFarmTokensInsufficientT0Funds();
 error Nodes__DepositOnFarmTokensInsufficientT1Funds();
 error Nodes__WithdrawFromLPInsufficientFunds();
 error Nodes__WithdrawFromFarmInsufficientFunds();
+error Nodes__OpenPerpPositionInsufficientFunds();
+error Nodes__ClosePerpPositionSizePositionError();
 
 contract Nodes is Initializable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -42,6 +45,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     SelectSwapRoute public selectSwapRoute;
     SelectLPRoute public selectLPRoute;
     SelectNestedRoute public selectNestedRoute;
+    SelectPerpRoute public selectPerpRoute;
     Batch private batch;
     address private WFTM;
     address public usdc;
@@ -53,6 +57,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     uint16 public constant DEV_FUND_FEE = 2000; // 20%
 
     mapping(address => AddressToUintIterableMap.Map) private balance;
+    mapping(address => mapping(string => uint256)) private perpPositions;
 
     event AddFunds(address tokenInput, uint256 amount);
     event AddFundsForFTM(string indexed recipeId, address tokenInput, uint256 amount);
@@ -63,7 +68,9 @@ contract Nodes is Initializable, ReentrancyGuard {
     event DepositOnNestedStrategy(address vaultAddress, uint256 sharesAmount);
     event WithdrawFromNestedStrategy(address tokenOut, uint256 amountTokenDesired);
     event DepositOnFarm(uint256 ttAmount, uint256 lpBalance);
-    event WithdrawFromFarm(address tokenDesided, uint256 amountTokenDesired, uint256 rewardAmount);
+    event WithdrawFromFarm(address tokenDesired, uint256 amountTokenDesired, uint256 rewardAmount);
+    event OpenPosition(address tokenInput, uint256 amountIn, uint256 sizeDelta, uint256 acceptablePrice);
+    event ClosePosition(address tokenOut, uint256 amountOut);
     event Liquidate(address tokenOutput, uint256 amountOut);
     event SendToWallet(address tokenOutput, uint256 amountOut);
     event RecoverAll(address tokenOut, uint256 amountOut);
@@ -79,6 +86,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         SelectSwapRoute selectSwapRoute_,
         SelectLPRoute selectLPRoute_,
         SelectNestedRoute selectNestedRoute_,
+        SelectPerpRoute selectPerpRoute_,
         Batch batch_,
         address tortleDojos_,
         address tortleTrasury_,
@@ -91,6 +99,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         selectSwapRoute = selectSwapRoute_;
         selectLPRoute = selectLPRoute_;
         selectNestedRoute = selectNestedRoute_;
+        selectPerpRoute = selectPerpRoute_;
         batch = batch_;
         tortleDojos = tortleDojos_;
         tortleTreasury = tortleTrasury_;
@@ -117,6 +126,10 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     function setSelectNestedRoute(SelectNestedRoute selectNestedRoute_) public onlyOwner {
         selectNestedRoute = selectNestedRoute_;
+    }
+
+    function setSelectPerpRoute(SelectPerpRoute selectPerpRoute_) public onlyOwner {
+        selectPerpRoute = selectPerpRoute_;
     }
 
     function setTortleDojos(address tortleDojos_) public onlyOwner {
@@ -494,6 +507,58 @@ contract Nodes is Initializable, ReentrancyGuard {
         emit WithdrawFromFarm(tokens_[2], amountTokenDesired, rewardAmount);
     }
 
+    function openPerpPosition(
+        address user_,
+        string memory nodeId_,
+        address[] memory path_,
+        address indexToken_,
+        uint256 amount_,
+        uint256 indexTokenPrice_,
+        bool isLong_,
+        uint256 executionFee_,
+        uint256 amountOutMin_,
+        uint8 leverage_,
+        uint8 provider_
+    ) external nonReentrant onlyOwner returns (bytes32 data, uint256 sizeDelta, uint256 acceptablePrice) {
+        if (amount_ > getBalance(user_, IERC20(indexToken_))) revert Nodes__OpenPerpPositionInsufficientFunds();
+
+        uint256 amountWithoutFees_ = amount_ - executionFee_;
+        _approve(indexToken_, selectPerpRoute.perpetualContract(), amountWithoutFees_);
+        (data, sizeDelta, acceptablePrice) = selectPerpRoute.openPerpPosition(path_, indexToken_, amountWithoutFees_, indexTokenPrice_, isLong_, executionFee_, amountOutMin_, leverage_, provider_);
+
+        decreaseBalance(user_, indexToken_, amountWithoutFees_);
+        perpPositions[user_][nodeId_] = sizeDelta;
+
+        emit OpenPosition(indexToken_, amountWithoutFees_, sizeDelta, acceptablePrice);
+    }
+
+    function closePerpPosition(
+        address user_,
+        string memory nodeId_,
+        address[] memory path_,
+        address indexToken_,
+        uint256 collateralDelta_,
+        uint256 sizeDelta_,
+        bool isLong_,
+        uint256 acceptablePrice_,
+        uint256 executionFee_,
+        uint256 amountOutMin_,
+        uint8 provider_
+    ) external nonReentrant onlyOwner returns (bytes32 data, uint256 amount) {
+        if (sizeDelta_ != perpPositions[user_][nodeId_]) revert Nodes__ClosePerpPositionSizePositionError();
+
+        if (provider_ == 0) {
+            _approve(WFTM, selectPerpRoute.perpetualContract(), executionFee_);
+            decreaseBalance(user_, WFTM, executionFee_);
+        }
+        (data, amount) = selectPerpRoute.closePerpPosition(path_, indexToken_, WFTM, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, executionFee_, amountOutMin_, provider_);
+
+        perpPositions[user_][nodeId_] -= sizeDelta_;
+        increaseBalance(user_, WFTM, amount);
+
+        emit ClosePosition(WFTM, amount);
+    }
+
     /**
     * @notice Function that allows to liquidate all tokens in your account by swapping them to a specific token.
     * @param user_ Address of the user whose tokens are to be liquidated.
@@ -678,6 +743,5 @@ contract Nodes is Initializable, ReentrancyGuard {
         balance[_user].set(address(_token), _userBalance);
     }
 
-    
     receive() external payable {}
 }

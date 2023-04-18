@@ -17,6 +17,7 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
   const weth = "0x74b23882a30290451a17c44f4f05243b6b58c76d"
 
   const beetsVault = "0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce"
+  const mummyFinance = "0x2d270f66fee6ac9e27ff6551af5a8cfb5c8a7493"
 
   const StringUtils = await (await (await hre.ethers.getContractFactory('StringUtils')).connect(deployer).deploy()).deployed()
   const AddressToUintIterableMap = await (
@@ -73,7 +74,6 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
     await (await hre.ethers.getContractFactory('SelectSwapRoute')).connect(deployer).deploy(SwapsUni.address, SwapBeets.address)
   ).deployed()
 
-
   // FarmsUni Contract
   const FarmsUni = await (
     await (await hre.ethers.getContractFactory('FarmsUni')).connect(deployer).deploy(deployer.getAddress())
@@ -82,6 +82,16 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
   // SelectLPRoute Contract
   const SelectLPRoute = await (
     await (await hre.ethers.getContractFactory('SelectLPRoute')).connect(deployer).deploy(FarmsUni.address, SwapsUni.address, DepositsBeets.address)
+  ).deployed()
+
+  // Perpetual Contract
+  const Perpetual = await (
+    await (await hre.ethers.getContractFactory('SelectPerpRoute')).connect(deployer).deploy(deployer.getAddress(), mummyFinance)
+  ).deployed()
+
+  // SelectPerpRoute Contract
+  const SelectPerpRoute = await (
+    await (await hre.ethers.getContractFactory('SelectPerpRoute')).connect(deployer).deploy(deployer.getAddress(), Perpetual.address)
   ).deployed()
 
   const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [await deployer.getAddress(), SwapsUni.address, /*SwapBeets.address, DepositsBeets.address, NestedStrategies.address*/ SelectSwapRoute.address, SelectLPRoute.address, SelectNestedRoute.address, Batch.address, dojos, treasury, devFund, wftm, usdc], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
@@ -98,6 +108,8 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
   if (!noWait) await txSetContract4.wait(6)
   const txSetContract5 = await SelectSwapRoute.setNodes(ProxyNodes.address)
   if (!noWait) await txSetContract5.wait(6)
+  const txSetContract6 = await SelectPerpRoute.setNodes(ProxyNodes.address)
+  if (!noWait) await txSetContract6.wait(6)
 
   const contractsAddresses = {
     "ProxyNodes": ProxyNodes.address,
@@ -108,6 +120,8 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
     "SelectSwapRoute": SelectSwapRoute.address,
     "SelectLPRoute": SelectLPRoute.address,
     "SelectNestedRoute": SelectNestedRoute.address,
+    "Perpetual": Perpetual.address,
+    "SelectPerpRoute": SelectPerpRoute.address,
     "FirstTypeNestedStrategies": FirstTypeNestedStrategies.address,
     "FarmsUni": FarmsUni.address,
     "Batch": Batch.address,

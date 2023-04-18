@@ -56,6 +56,8 @@ contract Batch {
     event WithdrawFromNestedStrategy(string indexed recipeId, string indexed id, address vaultAddress, uint256 amountShares, address tokenDesired, uint256 amountDesired);
     event lpWithdrawed(string indexed recipeId, string indexed id, address lpToken, uint256 amountLp, address tokenDesired, uint256 amountTokenDesired);
     event ttWithdrawed(string indexed recipeId, string indexed id, uint256 lpAmount, address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired, uint256 rewardAmount);
+    event OpenPosition(string indexed recipeId, string indexed id, address tokenInput, uint256 amountIn, uint256 sizeDelta, uint256 acceptablePrice);
+    event ClosePosition(string indexed recipeId, string indexed id, address tokenOut, uint256 amountOut);
 
     constructor(address masterOwner_) {
         masterOwner = masterOwner_;
@@ -386,6 +388,56 @@ contract Batch {
             amountTokenDesired,
             rewardAmount
         );
+    }
+
+    function openPerpPosition(Function memory args) public onlySelf {
+        (address[] memory path_,
+        address indexToken_,
+        bool isLong_,
+        uint256 amount_,
+        uint256 indexTokenPrice_,
+        uint256 executionFee_,
+        uint256 amountOutMin_,
+        uint8 leverage_,
+        uint8 provider_) = abi.decode(args.arguments, (address[], address, bool, uint256, uint256, uint256, uint256, uint8, uint8));
+
+        if (auxStack.length > 0) {
+            amount_ = auxStack[auxStack.length - 1];
+            auxStack.pop();
+        }
+
+        (, uint256 sizeDelta, uint256 acceptablePrice) = nodes.openPerpPosition(args.user, args.id, path_, indexToken_, amount_, indexTokenPrice_, isLong_, executionFee_, amountOutMin_, leverage_, provider_);
+
+        if (args.hasNext) {
+            auxStack.push(sizeDelta);
+        }
+
+        emit OpenPosition(args.recipeId, args.id, indexToken_, amount_, sizeDelta, acceptablePrice);
+    }
+
+    function closePerpPosition(Function memory args) public onlySelf {
+        (address[] memory path_,
+        address indexToken_,
+        bool isLong_,
+        uint256 collateralDelta_,
+        uint256 sizeDelta_,
+        uint256 acceptablePrice_,
+        uint256 executionFee_,
+        uint256 amountOutMin_,
+        uint8 provider_) = abi.decode(args.arguments, (address[], address, bool, uint256, uint256, uint256, uint256, uint256, uint8));
+
+        if (auxStack.length > 0) {
+            sizeDelta_ = auxStack[auxStack.length - 1];
+            auxStack.pop();
+        }
+
+        (, uint256 amount_) = nodes.closePerpPosition(args.user, args.id, path_, indexToken_, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, executionFee_, amountOutMin_, provider_);
+
+        if (args.hasNext) {
+            auxStack.push(amount_);
+        }
+
+        emit ClosePosition(args.recipeId, args.id, indexToken_, amount_);
     }
 
     function sendToWallet(Function memory args) public onlySelf {
