@@ -22,9 +22,8 @@ const deployVaults = async (tokensList) => {
 
     const createVault = async (farm) => {
         const lpToken = await uniswapFactory.getPair(farm.address0, farm.address1) // token0/token1
-
         let TortleVault = await (
-            await _TortleVault.deploy(lpToken, `${farm.token0}-${farm.token1} Spooky Vault`, `tt${farm.token0}${farm.token1}`, WEI(9999999))
+            await _TortleVault.deploy(lpToken, `${farm.token0}-${farm.token1} Spooky Vault`, `tt${farm.token0}${farm.token1}`, WEI(9999999).toString())
         ).deployed()
         console.log('TortleVault Address: ', TortleVault.address)
 
