@@ -84,17 +84,12 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
     await (await hre.ethers.getContractFactory('SelectLPRoute')).connect(deployer).deploy(FarmsUni.address, SwapsUni.address, DepositsBeets.address)
   ).deployed()
 
-  // Perpetual Contract
-  const Perpetual = await (
+  // SelectPerpRoute Contract
+  const SelectPerpRoute = await (
     await (await hre.ethers.getContractFactory('SelectPerpRoute')).connect(deployer).deploy(deployer.getAddress(), mummyFinance)
   ).deployed()
 
-  // SelectPerpRoute Contract
-  const SelectPerpRoute = await (
-    await (await hre.ethers.getContractFactory('SelectPerpRoute')).connect(deployer).deploy(deployer.getAddress(), Perpetual.address)
-  ).deployed()
-
-  const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [await deployer.getAddress(), SwapsUni.address, /*SwapBeets.address, DepositsBeets.address, NestedStrategies.address*/ SelectSwapRoute.address, SelectLPRoute.address, SelectNestedRoute.address, Batch.address, dojos, treasury, devFund, wftm, usdc], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
+  const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [await deployer.getAddress(), SwapsUni.address, SelectSwapRoute.address, SelectLPRoute.address, SelectNestedRoute.address, SelectPerpRoute.address,Batch.address, dojos, treasury, devFund, wftm, usdc], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
   await ProxyNodes.deployed()
   const txSetContract0 = await Batch.setNodeContract(ProxyNodes.address)
   if (!noWait) await txSetContract0.wait(6)
@@ -120,7 +115,6 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
     "SelectSwapRoute": SelectSwapRoute.address,
     "SelectLPRoute": SelectLPRoute.address,
     "SelectNestedRoute": SelectNestedRoute.address,
-    "Perpetual": Perpetual.address,
     "SelectPerpRoute": SelectPerpRoute.address,
     "FirstTypeNestedStrategies": FirstTypeNestedStrategies.address,
     "FarmsUni": FarmsUni.address,
