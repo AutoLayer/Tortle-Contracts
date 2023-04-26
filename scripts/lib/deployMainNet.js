@@ -64,6 +64,11 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
     await (await hre.ethers.getContractFactory('FirstTypeNestedStrategies')).connect(deployer).deploy()
   ).deployed()
 
+   // FirstTypePerp Contract
+   const FirstTypePerpetual = await (
+    await (await hre.ethers.getContractFactory('FirstTypePerpetual')).connect(deployer).deploy(deployer.getAddress(), mummyFinance)
+  ).deployed()
+
   // SelectNestedRoute Contract
   const SelectNestedRoute = await (
     await (await hre.ethers.getContractFactory('SelectNestedRoute')).connect(deployer).deploy(FirstTypeNestedStrategies.address)
@@ -86,7 +91,7 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
 
   // SelectPerpRoute Contract
   const SelectPerpRoute = await (
-    await (await hre.ethers.getContractFactory('SelectPerpRoute')).connect(deployer).deploy(deployer.getAddress(), mummyFinance)
+    await (await hre.ethers.getContractFactory('SelectPerpRoute')).connect(deployer).deploy(deployer.getAddress(), FirstTypePerpetual.address)
   ).deployed()
 
   const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [await deployer.getAddress(), SwapsUni.address, SelectSwapRoute.address, SelectLPRoute.address, SelectNestedRoute.address, SelectPerpRoute.address,Batch.address, dojos, treasury, devFund, wftm, usdc], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
@@ -105,6 +110,8 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
   if (!noWait) await txSetContract5.wait(6)
   const txSetContract6 = await SelectPerpRoute.setNodes(ProxyNodes.address)
   if (!noWait) await txSetContract6.wait(6)
+  const txSetContract7 = await FirstTypePerpetual.setSelectPerpRoute(SelectPerpRoute.address)
+  if (!noWait) await txSetContract7.wait(7)
 
   const contractsAddresses = {
     "ProxyNodes": ProxyNodes.address,
