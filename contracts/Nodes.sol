@@ -513,13 +513,12 @@ contract Nodes is Initializable, ReentrancyGuard {
         bytes memory args_
     ) external nonReentrant onlyOwner returns (bytes32 data, uint256 sizeDelta, uint256 acceptablePrice) {
         (, address indexToken_,,
-        uint256 amount_,,
-        uint256 executionFee_,,,) = abi.decode(args_, (address[], address, bool, uint256, uint256, uint256, uint256, uint8, uint8));
+        uint256 amount_,,,,,) = abi.decode(args_, (address[], address, bool, uint256, uint256, uint256, uint256, uint8, uint8));
 
         if (amount_ > getBalance(user_, IERC20(indexToken_))) revert Nodes__OpenPerpPositionInsufficientFunds();
 
-        amount_ -= executionFee_;
-        _approve(indexToken_, selectPerpRoute.perpetualContract(), amount_);
+        // amount_ -= executionFee_;
+        _approve(indexToken_, address(selectPerpRoute), amount_);
         (data, sizeDelta, acceptablePrice) = selectPerpRoute.openPerpPosition(args_, amount_);
 
         decreaseBalance(user_, indexToken_, amount_);
@@ -543,10 +542,10 @@ contract Nodes is Initializable, ReentrancyGuard {
     ) external nonReentrant onlyOwner returns (bytes32 data, uint256 amount) {
         if (sizeDelta_ != perpPositions[user_][nodeId_]) revert Nodes__ClosePerpPositionSizePositionError();
 
-        if (provider_ == 0) {
-            _approve(WFTM, selectPerpRoute.perpetualContract(), executionFee_);
-            decreaseBalance(user_, WFTM, executionFee_);
-        }
+    
+        _approve(WFTM, address(selectPerpRoute), executionFee_);
+        decreaseBalance(user_, WFTM, executionFee_);
+
         (data, amount) = selectPerpRoute.closePerpPosition(path_, indexToken_, WFTM, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, executionFee_, amountOutMin_, provider_);
 
         perpPositions[user_][nodeId_] -= sizeDelta_;

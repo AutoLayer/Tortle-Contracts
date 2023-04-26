@@ -2,16 +2,17 @@
 pragma solidity ^0.8.6;
 
 interface IPerpetual {
-    function openPerpPosition(
+    function createIncreasePositionETH(
         address[] memory path_,
         address indexToken_,
-        uint256 amount_,
+        uint256 minOut_,
         uint256 sizeDelta_,
         bool isLong_,
         uint256 acceptablePrice_,
         uint256 executionFee_,
-        uint256 amountOutMin_
-    ) external returns (bytes32);
+        bytes32 referralCode_,
+        address callbackTarget_
+    ) external payable returns (bytes32);
 
     function closePerpPosition(
         address[] memory path_,
