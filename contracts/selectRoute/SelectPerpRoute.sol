@@ -57,18 +57,15 @@ contract SelectPerpRoute {
     function closePerpPosition(
         address[] memory path_,
         address indexToken_,
-        address wftm_,
         uint256 collateralDelta_,
         uint256 sizeDelta_,
         bool isLong_,
         uint256 acceptablePrice_,
-        uint256 executionFee_,
         uint256 amountOutMin_,
         uint8 provider_
     ) public onlyAllowed returns (bytes32 data, uint256 amount) {
         if (provider_ == 0) {
-            IERC20(wftm_).safeTransferFrom(msg.sender, firstTypePerpContract, executionFee_);
-            (data, amount) = IFirstTypePerpetual(firstTypePerpContract).closePerpPosition(path_, indexToken_, wftm_, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, amountOutMin_);
+            (data, amount) = IFirstTypePerpetual(firstTypePerpContract).closePerpPosition(path_, indexToken_, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, amountOutMin_, msg.sender);
         }
     }
 }

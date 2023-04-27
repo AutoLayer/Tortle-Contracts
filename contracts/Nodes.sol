@@ -517,7 +517,6 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         if (amount_ > getBalance(user_, IERC20(indexToken_))) revert Nodes__OpenPerpPositionInsufficientFunds();
 
-        // amount_ -= executionFee_;
         _approve(indexToken_, address(selectPerpRoute), amount_);
         (data, sizeDelta, acceptablePrice) = selectPerpRoute.openPerpPosition(args_, amount_);
 
@@ -536,17 +535,12 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 sizeDelta_,
         bool isLong_,
         uint256 acceptablePrice_,
-        uint256 executionFee_,
         uint256 amountOutMin_,
         uint8 provider_
     ) external nonReentrant onlyOwner returns (bytes32 data, uint256 amount) {
         if (sizeDelta_ != perpPositions[user_][nodeId_]) revert Nodes__ClosePerpPositionSizePositionError();
 
-    
-        _approve(WFTM, address(selectPerpRoute), executionFee_);
-        decreaseBalance(user_, WFTM, executionFee_);
-
-        (data, amount) = selectPerpRoute.closePerpPosition(path_, indexToken_, WFTM, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, executionFee_, amountOutMin_, provider_);
+        (data, amount) = selectPerpRoute.closePerpPosition(path_, indexToken_, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, amountOutMin_, provider_);
 
         perpPositions[user_][nodeId_] -= sizeDelta_;
         increaseBalance(user_, WFTM, amount);

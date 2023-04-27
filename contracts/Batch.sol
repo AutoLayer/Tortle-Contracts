@@ -414,16 +414,15 @@ contract Batch {
         uint256 collateralDelta_,
         uint256 sizeDelta_,
         uint256 acceptablePrice_,
-        uint256 executionFee_,
         uint256 amountOutMin_,
-        uint8 provider_) = abi.decode(args.arguments, (address[], address, bool, uint256, uint256, uint256, uint256, uint256, uint8));
+        uint8 provider_) = abi.decode(args.arguments, (address[], address, bool, uint256, uint256, uint256, uint256, uint8));
 
         if (auxStack.length > 0) {
             sizeDelta_ = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
 
-        (, uint256 amount_) = nodes.closePerpPosition(args.user, args.id, path_, indexToken_, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, executionFee_, amountOutMin_, provider_);
+        (, uint256 amount_) = nodes.closePerpPosition(args.user, args.id, path_, indexToken_, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, amountOutMin_, provider_);
 
         if (args.hasNext) {
             auxStack.push(amount_);
