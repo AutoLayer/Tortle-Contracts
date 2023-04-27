@@ -27,10 +27,9 @@ describe('Open Perpetual Position', function () {
         let amount_ = amountWithoutFeeInWei
         let leverage = 2
         let indexTokenPrice = BigInt(0.4281 * 1000000000000000000000000000000 * leverage).toString()// 1 entryToken USD price multiplied * 10^30 -> 0.47$ FTM ^10 ^30
-        let executionFee_ = '200000000000000000'
         let amountOutMin_ = '0'
         let provider_ = 0
-        const args = ethers.utils.defaultAbiCoder.encode(['address[]', 'address', 'bool', 'uint256', 'uint256', 'uint256', 'uint256', 'uint8'], [path_, indexToken_, isLong_, amount_, indexTokenPrice, executionFee_, amountOutMin_, /*leverage,*/ provider_]);
+        const args = ethers.utils.defaultAbiCoder.encode(['address[]', 'address', 'bool', 'uint256', 'uint256', 'uint256', 'uint8'], [path_, indexToken_, isLong_, amount_, indexTokenPrice, amountOutMin_, provider_]);
         tx = await nodes.connect(deployer).openPerpPosition(userAddress, "1", args)
         receipt = await tx.wait()
         const CreateIncreasePosition = getEvent(receipt, "OpenPosition")
