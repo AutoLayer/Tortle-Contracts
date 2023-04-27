@@ -11,7 +11,6 @@ interface IFirstTypePerpetual {
         uint256 sizeDelta_,
         bool isLong_,
         uint256 acceptablePrice_,
-        uint256 executionFee_,
         uint256 amountOutMin_
     ) external returns (bytes32 data, uint256 amount);
 

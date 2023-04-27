@@ -52,14 +52,17 @@ contract FirstTypePerpetual is ReentrancyGuard {
     function closePerpPosition(
         address[] memory path_,
         address indexToken_,
-        address wftm_,
         uint256 collateralDelta_,
         uint256 sizeDelta_,
         bool isLong_,
         uint256 acceptablePrice_,
-        uint256 executionFee_,
         uint256 amountOutMin_
     ) public returns (bytes32 data, uint256 amount) {
-        // (data, amount) = IPerpetual(mummyFinanceContract).closePerpPosition(path_, indexToken_, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, executionFee_, amountOutMin_); // hay que lllamar a createDecreasePosition no a closePosition
+        uint256 balanceBefore = address(this).balance;
+        uint256 fee = IFirstTypePerpetual(mummyFinanceContract).minExecutionFee();
+        (data) = IPerpetual(mummyFinanceContract).createDecreasePosition(path_, indexToken_, collateralDelta_, sizeDelta_, isLong_, address(this), acceptablePrice_, amountOutMin_, fee, true, address(0));
+        uint256 balanceAfter = address(this).balance;
+        amount = balanceAfter - balanceBefore;
+        
     }
 }

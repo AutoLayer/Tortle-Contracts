@@ -14,14 +14,17 @@ interface IPerpetual {
         address callbackTarget_
     ) external payable returns (bytes32);
 
-    function closePerpPosition(
+    function createDecreasePosition(
         address[] memory path_,
         address indexToken_,
         uint256 collateralDelta_,
         uint256 sizeDelta_,
         bool isLong_,
+        address receiver,
         uint256 acceptablePrice_,
+        uint256 minOut_,
         uint256 executionFee_,
-        uint256 minOut_
-    ) external returns (bytes32 data, uint256 amount);
+        bool _withdrawETH,
+        address callbackTarget_
+    ) external payable returns (bytes32 data);
 }

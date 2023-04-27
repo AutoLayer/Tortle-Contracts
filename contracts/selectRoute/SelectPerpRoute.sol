@@ -68,7 +68,7 @@ contract SelectPerpRoute {
     ) public onlyAllowed returns (bytes32 data, uint256 amount) {
         if (provider_ == 0) {
             IERC20(wftm_).safeTransferFrom(msg.sender, firstTypePerpContract, executionFee_);
-            (data, amount) = IFirstTypePerpetual(firstTypePerpContract).closePerpPosition(path_, indexToken_, wftm_, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, executionFee_, amountOutMin_);
+            (data, amount) = IFirstTypePerpetual(firstTypePerpContract).closePerpPosition(path_, indexToken_, wftm_, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, amountOutMin_);
         }
     }
 }
