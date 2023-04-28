@@ -398,7 +398,7 @@ contract Batch {
             auxStack.pop();
         }
 
-        (, uint256 sizeDelta, uint256 acceptablePrice) = nodes.openPerpPosition(args.user, args.id, args.arguments);
+        (, uint256 sizeDelta, uint256 acceptablePrice) = nodes.openPerpPosition(args.user, args.id, amount_, args.arguments);
 
         if (args.hasNext) {
             auxStack.push(sizeDelta);
