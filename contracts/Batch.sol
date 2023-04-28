@@ -174,7 +174,7 @@ contract Batch {
         uint256 amountOutMin_,
         BatchSwapStruct memory batchSwapStruct_,
         uint8 provider_) = abi.decode(args.arguments, (IAsset[], uint256, uint256, BatchSwapStruct, uint8));
-        
+
         if (auxStack.length > 0) {
             amount_ = auxStack[auxStack.length - 1];
             auxStack.pop();
@@ -391,7 +391,7 @@ contract Batch {
     }
 
     function openPerpPosition(Function memory args) public onlySelf {
-        (, address indexToken_,, uint256 amount_,,,,) = abi.decode(args.arguments, (address[], address, bool, uint256, uint256, uint256, uint8, uint8));
+        (, address indexToken_,, uint256 amount_,,,) = abi.decode(args.arguments, (address[], address, bool, uint256, uint256, uint256, uint8));
 
         if (auxStack.length > 0) {
             amount_ = auxStack[auxStack.length - 1];
