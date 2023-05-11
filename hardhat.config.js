@@ -2,6 +2,7 @@ require('hardhat-contract-sizer');
 require('@nomiclabs/hardhat-waffle')
 require('@nomiclabs/hardhat-ethers')
 require('@openzeppelin/hardhat-upgrades')
+require("@nomicfoundation/hardhat-verify");
 require('dotenv').config()
 
 task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
@@ -67,4 +68,9 @@ module.exports = {
       accounts: [process.env.PRIVATE_KEY],
     },
   },
+  etherscan: {
+    apiKey: {
+      opera: `${process.env.FTMSCAN_API_KEY}`
+    }
+  }
 }
