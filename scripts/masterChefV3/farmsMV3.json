@@ -1,9 +1,9 @@
 [
     {
-        "token0": "WFTM",
-        "token1": "PEPE",
-        "address0": "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83",
-        "address1": "0x0f730D43d85f722903b8ADed334B32332466b207",
+        "token0": "PEPE",
+        "token1": "WFTM",
+        "address0": "0x0f730D43d85f722903b8ADed334B32332466b207",
+        "address1": "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83",
         "lp": "0xcD13614b29420C04be0620057bccB719d966AD0c",
         "poolId": "5"
     }
