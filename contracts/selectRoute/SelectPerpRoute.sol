@@ -46,7 +46,6 @@ contract SelectPerpRoute {
 
         if (provider_ == 0) {
             IERC20(indexToken_).safeTransferFrom(msg.sender, firstTypePerpContract, amount_);
-
             (data, sizeDelta, acceptablePrice) = IFirstTypePerpetual(firstTypePerpContract).openPerpPosition(args_, amount_);
         }
     }
@@ -55,6 +54,7 @@ contract SelectPerpRoute {
      * @param provider_ Value: 0 - MummyFinance
     */
     function closePerpPosition(
+        /*address user_,*/
         address[] memory path_,
         address indexToken_,
         uint256 collateralDelta_,
@@ -63,9 +63,15 @@ contract SelectPerpRoute {
         uint256 acceptablePrice_,
         uint256 amountOutMin_,
         uint8 provider_
-    ) public onlyAllowed returns (bytes32 data, uint256 amount) {
+    ) public onlyAllowed returns (bytes32 data) {
         if (provider_ == 0) {
-            (data, amount) = IFirstTypePerpetual(firstTypePerpContract).closePerpPosition(path_, indexToken_, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, amountOutMin_, msg.sender);
+            data = IFirstTypePerpetual(firstTypePerpContract).closePerpPosition(path_, indexToken_, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, amountOutMin_);
+        }
+    }
+
+    function executeClosePerpPosition(address token_, uint256 amount_, uint8 provider_) public onlyAllowed {
+        if (provider_ == 0) {
+            IFirstTypePerpetual(firstTypePerpContract).executeClosePerpPosition(token_, amount_);
         }
     }
 }

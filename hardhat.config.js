@@ -46,7 +46,7 @@ module.exports = {
       forking: {
         enabled: true,
         url: 'https://rpc.ftm.tools/',
-        blockNumber: 57558604,
+        blockNumber: 62959790,
         allowUnlimitedContractSize: true,
         accounts: [process.env.PRIVATE_KEY],
       }

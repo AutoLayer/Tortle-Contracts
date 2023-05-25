@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat')
 const { BigNumber } = require('ethers')
 
-const TEST_AMOUNT = "10000000000000000000" // 10 Ether
+const TEST_AMOUNT = "50000000000000000000" // 50 Ether
 const FEE_AMOUNT = 0.005 // 0.50%
 
 const BN = (n) => { return BigNumber.from(n) }

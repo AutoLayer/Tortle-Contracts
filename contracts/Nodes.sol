@@ -16,6 +16,7 @@ import './selectRoute/SelectLPRoute.sol';
 import './selectRoute/SelectNestedRoute.sol';
 import './selectRoute/SelectPerpRoute.sol';
 import './Batch.sol';
+import "hardhat/console.sol";
 
 error Nodes__InsufficientBalance();
 error Nodes__EmptyArray();
@@ -69,8 +70,9 @@ contract Nodes is Initializable, ReentrancyGuard {
     event WithdrawFromNestedStrategy(address tokenOut, uint256 amountTokenDesired);
     event DepositOnFarm(uint256 ttAmount, uint256 lpBalance);
     event WithdrawFromFarm(address tokenDesired, uint256 amountTokenDesired, uint256 rewardAmount);
-    event OpenPosition(address tokenInput, uint256 amountIn, uint256 sizeDelta, uint256 acceptablePrice);
-    event ClosePosition(address tokenOut, uint256 amountOut);
+    event OpenPosition(bytes32 data, address tokenInput, uint256 amountIn, uint256 sizeDelta, uint256 acceptablePrice);
+    event ClosePosition(address tokenOut, uint256 amountOut, bytes32 key);
+    event ExecuteClosePosition(address user, address tokenIndex, uint256 amount);
     event Liquidate(address tokenOutput, uint256 amountOut);
     event SendToWallet(address tokenOutput, uint256 amountOut);
     event RecoverAll(address tokenOut, uint256 amountOut);
@@ -216,17 +218,14 @@ contract Nodes is Initializable, ReentrancyGuard {
         BatchSwapStep[] memory batchSwapStep_
     ) public nonReentrant returns (uint256 amount) {
         if (amount_ <= 0) revert Nodes__InsufficientBalance();
-
         address tokenIn_ = address(tokens_[0]);
 
         uint256 balanceBefore = IERC20(tokenIn_).balanceOf(address(this));
         IERC20(tokenIn_).safeTransferFrom(user_, address(this), amount_);
         uint256 balanceAfter = IERC20(tokenIn_).balanceOf(address(this));
         if (balanceAfter <= balanceBefore) revert Nodes__TransferFailed();
-
         amount = _chargeFees(user_, tokens_, balanceAfter - balanceBefore, amountOutMin_, INITIAL_TOTAL_FEE, provider_, batchSwapStep_);
         increaseBalance(user_, tokenIn_, amount);
-
         emit AddFunds(tokenIn_, amount);
     }
 
@@ -300,7 +299,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         if (amount_ > getBalance(user_, IERC20(address(firstTokens_[0])))) revert Nodes__InsufficientBalance();
 
         uint256 firstTokenAmount_ = mulScale(amount_, percentageAndAmountsOutMin_[0], 10000);
-        
+
         amountOutTokens = new uint256[](2);
         amountOutTokens[0] = swapTokens(user_, providers_[0], firstTokens_, firstTokenAmount_, percentageAndAmountsOutMin_[1], batchSwapStepFirstToken_);
         amountOutTokens[1] = swapTokens(user_, providers_[1], secondTokens_, (amount_ - firstTokenAmount_), percentageAndAmountsOutMin_[2], batchSwapStepSecondToken_);
@@ -513,8 +512,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amount_,
         bytes memory args_
     ) external nonReentrant onlyOwner returns (bytes32 data, uint256 sizeDelta, uint256 acceptablePrice) {
-        (, address indexToken_,,,,,) = abi.decode(args_, (address[], address, bool, uint256, uint256, uint256, uint8));
-
+        (, address indexToken_,,,,,,) = abi.decode(args_, (address[], address, bool, uint256, uint256, uint256, uint256, uint8));
         if (amount_ > getBalance(user_, IERC20(indexToken_))) revert Nodes__OpenPerpPositionInsufficientFunds();
 
         _approve(indexToken_, address(selectPerpRoute), amount_);
@@ -523,7 +521,7 @@ contract Nodes is Initializable, ReentrancyGuard {
         decreaseBalance(user_, indexToken_, amount_);
         perpPositions[user_][nodeId_] = sizeDelta;
 
-        emit OpenPosition(indexToken_, amount_, sizeDelta, acceptablePrice);
+        emit OpenPosition(data, indexToken_, amount_, sizeDelta, acceptablePrice);
     }
 
     function closePerpPosition(
@@ -537,15 +535,21 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 acceptablePrice_,
         uint256 amountOutMin_,
         uint8 provider_
-    ) external nonReentrant onlyOwner returns (bytes32 data, uint256 amount) {
+    ) external nonReentrant onlyOwner returns (bytes32 data) {
         if (sizeDelta_ != perpPositions[user_][nodeId_]) revert Nodes__ClosePerpPositionSizePositionError();
 
-        (data, amount) = selectPerpRoute.closePerpPosition(path_, indexToken_, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, amountOutMin_, provider_);
+        data= selectPerpRoute.closePerpPosition(path_, indexToken_, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, amountOutMin_, provider_);
 
         perpPositions[user_][nodeId_] -= sizeDelta_;
-        increaseBalance(user_, WFTM, amount);
 
-        emit ClosePosition(WFTM, amount);
+        emit ClosePosition(WFTM, sizeDelta_, data);
+    }
+
+    function executeClosePerpPosition(address user_, address token_, uint256 amount_, uint8 provider_) external nonReentrant onlyOwner {
+        selectPerpRoute.executeClosePerpPosition(token_, amount_, provider_);
+        increaseBalance(user_, token_, amount_);
+
+        emit ExecuteClosePosition(user_, token_, amount_);
     }
 
     /**

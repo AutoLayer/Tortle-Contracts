@@ -58,6 +58,7 @@ contract Batch {
     event ttWithdrawed(string indexed recipeId, string indexed id, uint256 lpAmount, address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired, uint256 rewardAmount);
     event OpenPosition(string indexed recipeId, string indexed id, address tokenInput, uint256 amountIn, uint256 sizeDelta, uint256 acceptablePrice);
     event ClosePosition(string indexed recipeId, string indexed id, address tokenOut, uint256 amountOut);
+    event ExecuteClosePosition(address user, address tokenOut, uint256 amountOut);
 
     constructor(address masterOwner_) {
         masterOwner = masterOwner_;
@@ -75,6 +76,11 @@ contract Batch {
 
     modifier onlySelf() {
         require(msg.sender == address(this), 'This function is internal.');
+        _;
+    }
+
+    modifier onlyNodes() {
+        require(msg.sender == address(nodes), 'You must be Nodes contract.');
         _;
     }
 
@@ -373,7 +379,7 @@ contract Batch {
         }
 
         (uint256 amountLp, uint256 rewardAmount, uint256 amountTokenDesired) = nodes.withdrawFromFarm(args.user, lpToken_, tortleVault_, tokens_, amountOutMin_, amount_, provider_);
-        
+
         if (args.hasNext) {
             auxStack.push(amountTokenDesired);
         }
@@ -390,8 +396,8 @@ contract Batch {
         );
     }
 
-    function openPerpPosition(Function memory args) public onlySelf {
-        (, address indexToken_,, uint256 amount_,,,) = abi.decode(args.arguments, (address[], address, bool, uint256, uint256, uint256, uint8));
+    function depositOnShortLong(Function memory args) public onlySelf {
+        (, address indexToken_,, uint256 amount_,,,,) = abi.decode(args.arguments, (address[], address, bool, uint256, uint256, uint256, uint256, uint8));
 
         if (auxStack.length > 0) {
             amount_ = auxStack[auxStack.length - 1];
@@ -407,7 +413,7 @@ contract Batch {
         emit OpenPosition(args.recipeId, args.id, indexToken_, amount_, sizeDelta, acceptablePrice);
     }
 
-    function closePerpPosition(Function memory args) public onlySelf {
+    function withdrawFromShortLong(Function memory args) public onlySelf {
         (address[] memory path_,
         address indexToken_,
         bool isLong_,
@@ -422,13 +428,20 @@ contract Batch {
             auxStack.pop();
         }
 
-        (, uint256 amount_) = nodes.closePerpPosition(args.user, args.id, path_, indexToken_, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, amountOutMin_, provider_);
+        nodes.closePerpPosition(args.user, args.id, path_, indexToken_, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, amountOutMin_, provider_);
+
+        emit ClosePosition(args.recipeId, args.id, indexToken_, sizeDelta_);
+    }
+
+    function executeClosePerpPosition(Function memory args) external onlySelf {
+        (address user_, address token_, uint256 amount_, uint8 provider_) = abi.decode(args.arguments, (address, address, uint256, uint8));
+
+        nodes.executeClosePerpPosition(user_, token_, amount_, provider_);
 
         if (args.hasNext) {
             auxStack.push(amount_);
         }
-
-        emit ClosePosition(args.recipeId, args.id, indexToken_, amount_);
+        emit ExecuteClosePosition(user_, token_, amount_);
     }
 
     function sendToWallet(Function memory args) public onlySelf {
@@ -466,7 +479,7 @@ contract Batch {
             amount_ = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
-        
+
         BatchSwapStep[] memory batchSwapStep_;
         if(provider_ == 1) {
             batchSwapStep_ = createBatchSwapObject(batchSwapStruct_);

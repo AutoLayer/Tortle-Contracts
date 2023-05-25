@@ -18,6 +18,7 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
 
   const beetsVault = "0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce"
   const mummyFinance = "0x2d270f66fee6ac9e27ff6551af5a8cfb5c8a7493"
+  const routerContract = "0x41cD8CaFc24A771031B9eB9C57cFC94D86045eB6"
 
   const StringUtils = await (await (await hre.ethers.getContractFactory('StringUtils')).connect(deployer).deploy()).deployed()
   const AddressToUintIterableMap = await (
@@ -66,7 +67,7 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
 
    // FirstTypePerp Contract
    const FirstTypePerpetual = await (
-    await (await hre.ethers.getContractFactory('FirstTypePerpetual')).connect(deployer).deploy(deployer.getAddress(), mummyFinance)
+    await (await hre.ethers.getContractFactory('FirstTypePerpetual')).connect(deployer).deploy(deployer.getAddress(), mummyFinance, routerContract, wftm, /*'0x53b9ad09b82a313ec07040f6d8cb07bb6fd6e7ce'*/)
   ).deployed()
 
   // SelectNestedRoute Contract
@@ -111,7 +112,9 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
   const txSetContract6 = await SelectPerpRoute.setNodes(ProxyNodes.address)
   if (!noWait) await txSetContract6.wait(6)
   const txSetContract7 = await FirstTypePerpetual.setSelectPerpRoute(SelectPerpRoute.address)
-  if (!noWait) await txSetContract7.wait(7)
+  if (!noWait) await txSetContract7.wait(6)
+  const txSetContract8 = await FirstTypePerpetual.setNodes(ProxyNodes.address)
+  if (!noWait) await txSetContract8.wait(6)
 
   const contractsAddresses = {
     "ProxyNodes": ProxyNodes.address,
@@ -124,6 +127,7 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
     "SelectNestedRoute": SelectNestedRoute.address,
     "SelectPerpRoute": SelectPerpRoute.address,
     "FirstTypeNestedStrategies": FirstTypeNestedStrategies.address,
+    "FirstTypePerpetual": FirstTypePerpetual.address,
     "FarmsUni": FarmsUni.address,
     "Batch": Batch.address,
     "StringUtils": StringUtils.address,
