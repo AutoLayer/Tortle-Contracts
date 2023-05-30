@@ -3,9 +3,11 @@ const deployerAddress = '0x1a84F1f9CE6f4bF0FD2b1B4689Db53776e64bF1c'
 const userAddress = '0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199'
 const userWithFarmBug = '0xc0190C13c2B919c1A4Fb55473bedebee082d31aF'
 const javiAddress = '0xEA1D4A8Be3B2C60c20180Dcdc7c5286c00a53d2E'
+const chemaAddress = '0xc0190C13c2B919c1A4Fb55473bedebee082d31aF'
 
 // Contracts
-const nodeContractAddress = '0x21057479F447BE533d86854612e3D92de89c9E70'
+const batchContractAddress = '0x756F02D00FE5A205A442f4E5B342Bb0455B0F3C7'
+const nodeContractAddress = '0x59bC924F9D34aDd2d6B2e91bBbB1A8A01b0d3301'
 
 // Tokens
 const WFTM = '0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83'
@@ -51,6 +53,8 @@ module.exports = {
     userAddress,
     userWithFarmBug,
     javiAddress,
+    chemaAddress,
+    batchContractAddress,
     nodeContractAddress,
     WFTM,
     USDC,
