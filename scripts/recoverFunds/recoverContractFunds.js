@@ -9,6 +9,8 @@ const recoverContractFunds = async () => {
         const user = recoverData[index].user
         const token = recoverData[index].token
         const userAmount = recoverData[index].amount
+        // const amount = await nodesContract.getBalance(user, token)
+        // console.log('Balance: ', amount.toString())
 
         const sendToWallet = await nodesContract.sendToWallet(user, [token], userAmount, 0, userAmount, 0, [])
         await sendToWallet.wait(6)

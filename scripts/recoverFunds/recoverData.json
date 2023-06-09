@@ -2,6 +2,11 @@
     {
         "user": "0xc0190C13c2B919c1A4Fb55473bedebee082d31aF",
         "token": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
-        "amount": "0"
+        "amount": "112878917806078582469"
+    },
+    {
+        "user": "0xc0190C13c2B919c1A4Fb55473bedebee082d31aF",
+        "token": "0x04068da6c83afcfa0e13ba15a6696662335d5b75",
+        "amount": "76139779"
     }
 ]
