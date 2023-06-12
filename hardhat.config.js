@@ -67,6 +67,11 @@ module.exports = {
       allowUnlimitedContractSize: true,
       accounts: [process.env.PRIVATE_KEY],
     },
+    arb: {
+      url: 'https://arb1.arbitrum.io/rpc',
+      allowUnlimitedContractSize: true,
+      accounts: [process.env.PRIVATE_KEY],
+    },
   },
   etherscan: {
     apiKey: {
