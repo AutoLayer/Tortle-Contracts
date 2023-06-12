@@ -7,7 +7,7 @@ const javiAddress = '0xEA1D4A8Be3B2C60c20180Dcdc7c5286c00a53d2E'
 // Contracts
 const nodeContractAddress = '0x21057479F447BE533d86854612e3D92de89c9E70'
 
-// Tokens
+// Tokens - Fantom Network
 const WFTM = '0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83'
 const USDC = '0x04068da6c83afcfa0e13ba15a6696662335d5b75'
 const BOO = '0x841fad6eae12c286d1fd18d1d525dffa75c7effe'
@@ -16,6 +16,11 @@ const DEUS = '0xDE5ed76E7c05eC5e4572CfC88d1ACEA165109E44'
 const DAI = '0x8D11eC38a3EB5E956B052f67Da8Bdc9bef8Abf3E'
 const FUSDT = '0x049d68029688eAbF473097a2fC38ef61633A3C7A'
 const SOLID = '0x888EF71766ca594DED1F0FA3AE64eD2941740A20'
+
+// Tokens - Arbitrum Network
+const ARB_ARB = '0x912CE59144191C1204E64559FE8253a0e49E6548'
+const WETH_ARB = '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
+const USDC_ARB = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'
 
 // Spooky Vaults
 const WFTMDEUSLp = '0xaF918eF5b9f33231764A5557881E6D3e5277d456'
@@ -61,6 +66,9 @@ module.exports = {
     DAI,
     SOLID,
     FUSDT,
+    ARB_ARB,
+    WETH_ARB,
+    USDC_ARB,
     WFTMDEUSLp,
     WFTMDEUStortleVault,
     WFTMDAILp,
