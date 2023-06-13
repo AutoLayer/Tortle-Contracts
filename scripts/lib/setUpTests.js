@@ -5,6 +5,9 @@ const { TEST_AMOUNT } = require('../../test/utils')
 const { deployerAddress, userAddress } = require('../../config')
 
 const setUpTests = async () => {
+    const [account] = await ethers.getSigners()
+    await account.sendTransaction({ to: deployerAddress, value: ethers.utils.parseEther('100') })
+
     await impersonateAccount(deployerAddress)
     const deployer = await ethers.getSigner(deployerAddress)
 
