@@ -67,7 +67,12 @@ Smart contract environment for helping the develop, testing, and the deployment 
   
   - `PRIVATE_KEY`: A wallet private key to use as the main server wallet.
   - `VAULTS_PATH`: It is the path where you want to save the json file with the related information to the vaults that you have just created.
+  - `VAULTS_V3_PATH`: It is the path where you want to save the json file with the related information to the vaults for v3 farms that you have just created.
   - `CONTRACTS_PATH`: It is the path where you want to save the json file with the related information to the contracts that you have just created.
+  - `DOJOS_ADDRESS`: Dojos address.
+  - `TREASURY_ADDRESS`: Treasury address.
+  - `DEV_FUND_ADDRESS`: Dev funds address.
+  - `Network`: Network name you want to deploy (Fantom | Arbitrum).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
