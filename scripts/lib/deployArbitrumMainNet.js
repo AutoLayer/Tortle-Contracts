@@ -2,7 +2,7 @@ const hre = require('hardhat')
 const fs = require('fs')
 const { WETH_ARB, USDC_ARB }  = require('../../config')
 
-const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
+const deployArbitrumMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
   if (deployer === undefined) {
     const accounts = await hre.ethers.getSigners()
     deployer = accounts[0]
@@ -123,4 +123,4 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
   return contractsAddresses
 }
 
-module.exports = { deployMainNet }
+module.exports = { deployArbitrumMainNet }
