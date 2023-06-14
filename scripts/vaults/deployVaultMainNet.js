@@ -2,7 +2,7 @@ const { ethers } = require('hardhat')
 const fs = require('fs')
 require('dotenv').config()
 const { WEI } = require('../../test/utils')
-const farmsListJSON = require('./shortExampleFarmList.json')
+const farmsListJSON = require('./farmListFantom.json')
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
