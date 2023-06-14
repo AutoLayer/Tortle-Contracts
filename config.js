@@ -6,6 +6,9 @@ const javiAddress = '0xEA1D4A8Be3B2C60c20180Dcdc7c5286c00a53d2E'
 
 // Contracts - Fantom Network
 const nodeContractAddress = '0x21057479F447BE533d86854612e3D92de89c9E70'
+const spookyRouter = '0xF491e7B69E4244ad4002BC14e878a34207E38c29'
+const spookyFactory = '0x152eE697f2E276fA89E96742e9bB9aB1F2E61bE3'
+const masterChefV2Spooky = '0x18b4f774fdC7BF685daeeF66c2990b1dDd9ea6aD'
 
 // Contracts - Arbitrum Network
 const masterChefV2Sushiswap = '0xF4d73326C13a4Fc5FD7A064217e12780e9Bd62c3'
@@ -63,6 +66,9 @@ module.exports = {
     userWithFarmBug,
     javiAddress,
     nodeContractAddress,
+    spookyRouter,
+    spookyFactory,
+    masterChefV2Spooky,
     masterChefV2Sushiswap,
     masterChefV3Sushiswap,
     WFTM,
