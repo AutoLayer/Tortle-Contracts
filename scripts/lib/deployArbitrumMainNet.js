@@ -1,6 +1,6 @@
 const hre = require('hardhat')
 const fs = require('fs')
-const { WETH_ARB, USDC_ARB }  = require('../../config')
+const { WETH_ARB, USDT_ARB }  = require('../../config')
 
 const deployArbitrumMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
   if (deployer === undefined) {
@@ -43,7 +43,7 @@ const deployArbitrumMainNet = async ({ noWait = false, deployer = undefined } = 
 
   // SwapsUni Contract
   const SwapsUni = await (
-    await (await hre.ethers.getContractFactory('SwapsUni')).connect(deployer).deploy(deployer.getAddress(), USDC_ARB, WETH_ARB, [sushiSwapRouter, camelotRouter])
+    await (await hre.ethers.getContractFactory('SwapsUni')).connect(deployer).deploy(deployer.getAddress(), USDT_ARB, WETH_ARB, [sushiSwapRouter/*, camelotRouter*/])
   ).deployed()
 
   // SwapsBeets Contract
@@ -82,7 +82,7 @@ const deployArbitrumMainNet = async ({ noWait = false, deployer = undefined } = 
     await (await hre.ethers.getContractFactory('SelectLPRoute')).connect(deployer).deploy(FarmsUni.address, SwapsUni.address, DepositsBeets.address)
   ).deployed()
 
-  const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [await deployer.getAddress(), SwapsUni.address, SelectSwapRoute.address, SelectLPRoute.address, SelectNestedRoute.address, Batch.address, dojos, treasury, devFund, WETH_ARB, USDC_ARB], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
+  const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [await deployer.getAddress(), SwapsUni.address, SelectSwapRoute.address, SelectLPRoute.address, SelectNestedRoute.address, Batch.address, dojos, treasury, devFund, WETH_ARB, USDT_ARB], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
   await ProxyNodes.deployed()
   const txSetContract0 = await Batch.setNodeContract(ProxyNodes.address)
   if (!noWait) await txSetContract0.wait(6)
