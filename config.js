@@ -8,8 +8,8 @@ const javiAddress = '0xEA1D4A8Be3B2C60c20180Dcdc7c5286c00a53d2E'
 const nodeContractAddress = '0x21057479F447BE533d86854612e3D92de89c9E70'
 
 // Contracts - Arbitrum Network
-const masterChefV2Sushiswap = '0xc2EdaD668740f1aA35E4D8f227fB8E17dcA888Cd'
-const masterChefV3Sushiswap = '0xbE811A0D44E2553d25d11CB8DC0d3F0D0E6430E6'
+const masterChefV2Sushiswap = '0xF4d73326C13a4Fc5FD7A064217e12780e9Bd62c3'
+const masterChefV3Sushiswap = ''
 
 // Tokens - Fantom Network
 const WFTM = '0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83'
