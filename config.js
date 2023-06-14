@@ -4,8 +4,12 @@ const userAddress = '0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199'
 const userWithFarmBug = '0xc0190C13c2B919c1A4Fb55473bedebee082d31aF'
 const javiAddress = '0xEA1D4A8Be3B2C60c20180Dcdc7c5286c00a53d2E'
 
-// Contracts
+// Contracts - Fantom Network
 const nodeContractAddress = '0x21057479F447BE533d86854612e3D92de89c9E70'
+
+// Contracts - Arbitrum Network
+const masterChefV2Sushiswap = '0xc2EdaD668740f1aA35E4D8f227fB8E17dcA888Cd'
+const masterChefV3Sushiswap = '0xbE811A0D44E2553d25d11CB8DC0d3F0D0E6430E6'
 
 // Tokens - Fantom Network
 const WFTM = '0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83'
@@ -59,6 +63,8 @@ module.exports = {
     userWithFarmBug,
     javiAddress,
     nodeContractAddress,
+    masterChefV2Sushiswap,
+    masterChefV3Sushiswap,
     WFTM,
     USDC,
     BOO,
