@@ -11,15 +11,16 @@ const setUpTests = async () => {
     await impersonateAccount(deployerAddress)
     const deployer = await ethers.getSigner(deployerAddress)
 
+    const network = process.env.NETWORK
     let contractsAddresses
-    if (process.env.NETWORK === 'Fantom') contractsAddresses = await deployMainNet({noWait: true, deployer})
+    if (network === 'Fantom') contractsAddresses = await deployMainNet({noWait: true, deployer})
     else contractsAddresses = await deployArbitrumMainNet({noWait: true, deployer})
 
     nodes = await ethers.getContractAt('Nodes', contractsAddresses.ProxyNodes)
 
     await nodes.connect(deployer).addFundsForFTM(userAddress, "1", { value: TEST_AMOUNT })
 
-    return { nodes, deployer }
+    return { network, nodes, deployer }
 }
 
 module.exports = { setUpTests }
