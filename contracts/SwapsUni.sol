@@ -162,7 +162,7 @@ contract SwapsUni is ReentrancyGuard {
             usdcToWftmAmount_ = IUniswapV2Router02(_router).getAmountOut(reserveUsdc_, reservePairA1_, reservePairA2_);
         }
 
-        if(ethTokenLp != address(0)) {
+        if(ETH != FTM && ethTokenLp != address(0)) {
             uint256 reserveEth_;
             (reservePairA1_,reservePairA2_, ) = IUniswapV2Pair(ethTokenLp).getReserves();
             firstToken_ = IUniswapV2Pair(ethTokenLp).token0(); 
