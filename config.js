@@ -13,7 +13,6 @@ const masterChefV3Spooky = '0x9c9c920e51778c4abf727b8bb223e78132f00aa4'
 
 // Contracts - Arbitrum Network
 const masterChefV2Sushiswap = '0xF4d73326C13a4Fc5FD7A064217e12780e9Bd62c3'
-const masterChefV3Sushiswap = ''
 
 // Tokens - Fantom Network
 const WFTM = '0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83'
@@ -72,7 +71,6 @@ module.exports = {
     masterChefV2Spooky,
     masterChefV3Spooky,
     masterChefV2Sushiswap,
-    masterChefV3Sushiswap,
     WFTM,
     USDC,
     BOO,
