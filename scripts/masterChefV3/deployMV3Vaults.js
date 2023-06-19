@@ -2,15 +2,15 @@ const { ethers } = require('hardhat')
 const fs = require('fs')
 require('dotenv').config()
 const { WEI } = require('../../test/utils')
-const farmsListJSON = require('./farmsMV3.json')
-const { spookyRouter, WFTM, BOO, masterChefV3Spooky } = require('../../config')
+const farmsListFantomJSON = require('./farmsMV3.json')
+const farmsListArbitrumJSON = require('../vaults/farmListArbitrum.json')
+const { spookyRouter, WFTM, BOO, masterChefV3Spooky, sushiSwapRouter, WETH_ARB, SUSHI_ARB } = require('../../config')
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+const network = process.env.NETWORK
 
-const deployVaults = async (tokensList) => {
-    const uniswapRouter = spookyRouter
-    const wftm = WFTM
-    const masterChefV3 = await ethers.getContractAt('MasterChefV3', masterChefV3Spooky)
+const deployVaults = async (tokensList, deployConfig, path) => {
+    const masterChefV3 = await ethers.getContractAt('MasterChefV3', deployConfig.masterChefAddress)
     const tortleTreasury = process.env.TREASURY_ADDRESS
 
     const _TortleVault = await hre.ethers.getContractFactory('TortleVault')
@@ -26,12 +26,12 @@ const deployVaults = async (tokensList) => {
         ).deployed()
         console.log('TortleVault Address: ', TortleVault.address)
 
-        let rewardToken
+        // let rewardToken
         let TortleFarmingStrategy
         let _TortleFarmingsStrategy
         if (complexRewarderAddress !== "0x0000000000000000000000000000000000000000") {
             const complexRewarderContract = await ethers.getContractAt('ComplexRewarder', complexRewarderAddress)
-            rewardToken = await complexRewarderContract.rewardToken()
+            const rewardToken = await complexRewarderContract.rewardToken()
 
             _TortleFarmingsStrategy = await hre.ethers.getContractFactory('TortleFarmingStrategyV3')
             TortleFarmingStrategy = await (
@@ -40,16 +40,14 @@ const deployVaults = async (tokensList) => {
                     farm.poolId,
                     TortleVault.address,
                     tortleTreasury,
-                    uniswapRouter,
+                    deployConfig.uniswapRouter,
                     masterChefV3.address,
                     complexRewarderAddress,
                     rewardToken,
-                    wftm
+                    deployConfig.weth
                 )
             ).deployed()
         } else {
-            rewardToken = BOO
-
             _TortleFarmingsStrategy = await hre.ethers.getContractFactory('TortleFarmingStrategy')
             TortleFarmingStrategy = await (
                 await _TortleFarmingsStrategy.deploy(
@@ -57,10 +55,10 @@ const deployVaults = async (tokensList) => {
                     farm.poolId,
                     TortleVault.address,
                     tortleTreasury,
-                    uniswapRouter,
+                    deployConfig.uniswapRouter,
                     masterChefV3.address,
-                    rewardToken,
-                    wftm
+                    deployConfig.rewardToken,
+                    deployConfig.weth
                 )
             ).deployed()
         }
@@ -93,7 +91,7 @@ const deployVaults = async (tokensList) => {
     }
 
     const data = JSON.stringify(farmsList)
-    fs.writeFile(process.env.VAULTS_V3_PATH ? process.env.VAULTS_V3_PATH : '/tmp/vaultsV3.json', data, (err) => {
+    fs.writeFile(path, data, (err) => {
         if (err) throw err
 
         console.log('JSON data is saved.')
@@ -102,4 +100,34 @@ const deployVaults = async (tokensList) => {
     console.log('Final List: ', farmsList)
 }
 
-deployVaults(farmsListJSON)
+let farmsListJSON
+let deployConfig
+let path
+switch (network) {
+    case 'Fantom':
+        farmsListJSON = farmsListFantomJSON
+        deployConfig = {
+            uniswapRouter: spookyRouter,
+            weth: WFTM,
+            masterChefAddress: masterChefV2Sushiswap,
+            rewardToken: BOO
+        }
+        path = process.env.VAULTS_V3_PATH ? process.env.VAULTS_V3_PATH : '/tmp/vaultsV3.json'
+        break
+
+    case 'Arbitrum':
+        farmsListJSON = farmsListArbitrumJSON
+        deployConfig = {
+            uniswapRouter: sushiSwapRouter,
+            weth: WETH_ARB,
+            masterChefAddress: masterChefV3Spooky,
+            rewardToken: SUSHI_ARB
+        }
+        path = process.env.VAULTS_SUSHI_PATH ? process.env.VAULTS_SUSHI_PATH : '/tmp/vaultsSushi.json'
+        break
+
+    default:
+        break
+}
+
+deployVaults(farmsListJSON, deployConfig, path)
