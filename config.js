@@ -9,6 +9,7 @@ const nodeContractAddress = '0x21057479F447BE533d86854612e3D92de89c9E70'
 const spookyRouter = '0xF491e7B69E4244ad4002BC14e878a34207E38c29'
 const spookyFactory = '0x152eE697f2E276fA89E96742e9bB9aB1F2E61bE3'
 const masterChefV2Spooky = '0x18b4f774fdC7BF685daeeF66c2990b1dDd9ea6aD'
+const masterChefV3Spooky = '0x9c9c920e51778c4abf727b8bb223e78132f00aa4'
 
 // Contracts - Arbitrum Network
 const masterChefV2Sushiswap = '0xF4d73326C13a4Fc5FD7A064217e12780e9Bd62c3'
@@ -69,6 +70,7 @@ module.exports = {
     spookyRouter,
     spookyFactory,
     masterChefV2Spooky,
+    masterChefV3Spooky,
     masterChefV2Sushiswap,
     masterChefV3Sushiswap,
     WFTM,
