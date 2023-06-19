@@ -10,7 +10,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const network = process.env.NETWORK
 
 const deployVaults = async (tokensList, deployConfig, path) => {
-    const masterChefV3 = await ethers.getContractAt('MasterChefV3', deployConfig.masterChefAddress)
+    const masterChefV3 = await ethers.getContractAt(deployConfig.masterChefContractName, deployConfig.masterChefAddress)
     const tortleTreasury = process.env.TREASURY_ADDRESS
 
     const _TortleVault = await hre.ethers.getContractFactory('TortleVault')
@@ -108,6 +108,7 @@ switch (network) {
         deployConfig = {
             uniswapRouter: spookyRouter,
             weth: WFTM,
+            masterChefContractName: 'MasterChefV3',
             masterChefAddress: masterChefV3Spooky,
             rewardToken: BOO
         }
@@ -119,6 +120,7 @@ switch (network) {
         deployConfig = {
             uniswapRouter: sushiSwapRouter,
             weth: WETH_ARB,
+            masterChefContractName: 'MiniChefV2',
             masterChefAddress: masterChefV2Sushiswap,
             rewardToken: SUSHI_ARB
         }
