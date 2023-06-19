@@ -9,6 +9,7 @@
     "createContractsTestnet": "npx hardhat run ./scripts/deployBatch.js --network testnet",
     "createVaults": "npx hardhat run ./scripts/vaults/deployVaultMainNet.js --network ftm",
     "createVaultsV3": "npx hardhat run ./scripts/masterChefV3/deployMV3Vaults.js --network ftm",
+    "createSushiVaults": "npx hardhat run ./scripts/masterChefV3/deployMV3Vaults.js --network arb",
     "test": "echo \"Error: no test specified\" && exit 1",
     "recoverFunds": "npx hardhat run ./scripts/recoverFunds/recoverFunds.js --network ftm",
     "addOwners": "npx hardhat run ./scripts/owners/addOwners.js --network ftm",

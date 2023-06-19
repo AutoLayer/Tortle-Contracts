@@ -6,4 +6,5 @@ addresses.json
 contractsAddresses.json
 vaults.json
 vaultsV3.json
+vaultsSushi.json
 .openzeppelin
