@@ -3,14 +3,15 @@ const fs = require('fs')
 require('dotenv').config()
 const { WEI } = require('../../test/utils')
 const farmsListJSON = require('./farmsMV3.json')
+const { spookyRouter, WFTM, BOO, masterChefV3Spooky } = require('../../config')
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 const deployVaults = async (tokensList) => {
-    const uniswapRouter = "0xF491e7B69E4244ad4002BC14e878a34207E38c29"
-    const wftm = "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"
-    const masterChefV3 = await ethers.getContractAt('MasterChefV3', "0x9c9c920e51778c4abf727b8bb223e78132f00aa4")//"0x9c9c920e51778c4abf727b8bb223e78132f00aa4"
-    let tortleTreasury = process.env.TREASURY_ADDRESS
+    const uniswapRouter = spookyRouter
+    const wftm = WFTM
+    const masterChefV3 = await ethers.getContractAt('MasterChefV3', masterChefV3Spooky)
+    const tortleTreasury = process.env.TREASURY_ADDRESS
 
     const _TortleVault = await hre.ethers.getContractFactory('TortleVault')
 
@@ -18,11 +19,10 @@ const deployVaults = async (tokensList) => {
     let farmsList = []
 
     const createVault = async (farm) => {
-        const lpToken = farm.lp // token0/token1
         const complexRewarderAddress = await masterChefV3.rewarder(farm.poolId)
 
         let TortleVault = await (
-            await _TortleVault.deploy(lpToken, `${farm.token0}-${farm.token1} Spooky Vault`, `tt${farm.token0}${farm.token1}`, WEI(9999999))
+            await _TortleVault.deploy(farm.lp, `${farm.token0}-${farm.token1} Spooky Vault`, `tt${farm.token0}${farm.token1}`, WEI(9999999))
         ).deployed()
         console.log('TortleVault Address: ', TortleVault.address)
 
@@ -36,7 +36,7 @@ const deployVaults = async (tokensList) => {
             _TortleFarmingsStrategy = await hre.ethers.getContractFactory('TortleFarmingStrategyV3')
             TortleFarmingStrategy = await (
                 await _TortleFarmingsStrategy.deploy(
-                    lpToken,
+                    farm.lp,
                     farm.poolId,
                     TortleVault.address,
                     tortleTreasury,
@@ -48,13 +48,12 @@ const deployVaults = async (tokensList) => {
                 )
             ).deployed()
         } else {
-            const boo = "0x841FAD6EAe12c286d1Fd18d1d525DFfA75C7EFFE"
-            rewardToken = boo
+            rewardToken = BOO
 
             _TortleFarmingsStrategy = await hre.ethers.getContractFactory('TortleFarmingStrategy')
             TortleFarmingStrategy = await (
                 await _TortleFarmingsStrategy.deploy(
-                    lpToken,
+                    farm.lp,
                     farm.poolId,
                     TortleVault.address,
                     tortleTreasury,
