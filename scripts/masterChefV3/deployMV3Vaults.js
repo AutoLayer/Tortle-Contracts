@@ -4,7 +4,7 @@ require('dotenv').config()
 const { WEI } = require('../../test/utils')
 const farmsListFantomJSON = require('./farmsMV3.json')
 const farmsListArbitrumJSON = require('../vaults/farmListArbitrum.json')
-const { spookyRouter, WFTM, BOO, masterChefV3Spooky, sushiSwapRouter, WETH_ARB, SUSHI_ARB } = require('../../config')
+const { spookyRouter, WFTM, BOO, masterChefV3Spooky, sushiSwapRouter, masterChefV2Sushiswap, WETH_ARB, SUSHI_ARB } = require('../../config')
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const network = process.env.NETWORK
@@ -108,7 +108,7 @@ switch (network) {
         deployConfig = {
             uniswapRouter: spookyRouter,
             weth: WFTM,
-            masterChefAddress: masterChefV2Sushiswap,
+            masterChefAddress: masterChefV3Spooky,
             rewardToken: BOO
         }
         path = process.env.VAULTS_V3_PATH ? process.env.VAULTS_V3_PATH : '/tmp/vaultsV3.json'
@@ -119,7 +119,7 @@ switch (network) {
         deployConfig = {
             uniswapRouter: sushiSwapRouter,
             weth: WETH_ARB,
-            masterChefAddress: masterChefV3Spooky,
+            masterChefAddress: masterChefV2Sushiswap,
             rewardToken: SUSHI_ARB
         }
         path = process.env.VAULTS_SUSHI_PATH ? process.env.VAULTS_SUSHI_PATH : '/tmp/vaultsSushi.json'
