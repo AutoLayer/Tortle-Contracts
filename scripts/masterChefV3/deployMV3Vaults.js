@@ -26,7 +26,6 @@ const deployVaults = async (tokensList, deployConfig, path) => {
         ).deployed()
         console.log('TortleVault Address: ', TortleVault.address)
 
-        // let rewardToken
         let TortleFarmingStrategy
         let _TortleFarmingsStrategy
         if (complexRewarderAddress !== "0x0000000000000000000000000000000000000000") {
