@@ -33,7 +33,7 @@ const masterChefV2Data = async () => {
     }
 
     const data = JSON.stringify(farmsList)
-    fs.writeFile('scripts/masterChefV2/farmListV2Arbitrum.json', data, (err) => {
+    fs.writeFile('scripts/vaults/farmListArbitrum.json', data, (err) => {
         if (err) throw err
 
         console.log('JSON data is saved.')
