@@ -1,8 +1,8 @@
 const { TEST_AMOUNT, getEvent, calculateAmountWithoutFees } = require('./utils')
 const { loadFixture } = require('ethereum-waffle')
 const { setUpTests } = require('../scripts/lib/setUpTests')
-const { userAddress, WFTM, BEETS, FTMBEETSPoolId, FTMBEETSPair, FTMBEETSSpookyPool, WETH_ARB, SUSHI_ARB, BALWETHPoolId, BALWETHPair, WETHSUSHILp } = require('../config')
-const { splitFunction } = require('./functions')
+const { userAddress, WFTM, BEETS, FTMBEETSPoolId, FTMBEETSPair, FTMBEETSSpookyPool, WETH_ARB, BAL_ARB, BALWETHPoolId, BALWETHPair, BALWETHLp } = require('../config')
+const { splitFunction, swapFunction } = require('./functions')
 const { assert } = require('chai')
 
 describe('Deposit On LP', function () {
@@ -35,11 +35,11 @@ describe('Deposit On LP', function () {
 
             case 'Arbitrum':
                 weth = WETH_ARB
-                token0 = WETH_ARB
-                token1 = SUSHI_ARB
+                token0 = BAL_ARB
+                token1 = WETH_ARB
                 poolId = BALWETHPoolId
                 pair = BALWETHPair
-                pool = WETHSUSHILp
+                pool = BALWETHLp
                 break
         
             default:
@@ -49,7 +49,8 @@ describe('Deposit On LP', function () {
 
     it('Deposit on beets pool', async () => {
         const amountWithoutFeeInWei = calculateAmountWithoutFees(TEST_AMOUNT)
-        tx = await nodes.connect(deployer).depositOnLp(userAddress, poolId, pair, 1, [token0, token1], [amountWithoutFeeInWei, 0], 0, 0)
+        const swapAmount = swapFunction(deployer, userAddress, weth, amountWithoutFeeInWei, token0)
+        tx = await nodes.connect(deployer).depositOnLp(userAddress, poolId, pair, 1, [token0, token1], [swapAmount, 0], 0, 0)
         receipt = await tx.wait()
         const depositOnLp = getEvent(receipt, "DepositOnLP")
 
