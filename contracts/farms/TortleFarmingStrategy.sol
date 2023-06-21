@@ -241,7 +241,7 @@ contract TortleFarmingStrategy is Ownable, Pausable {
         profit += IERC20(wftm).balanceOf(address(this));
     }
 
-    function getBooPerFarmNode(uint256 shares_) public view returns(uint256 booAmount) {
+    function getRewardPerFarmNode(uint256 shares_) public view returns(uint256 booAmount) {
         uint256 totalBooAmount_ = IMasterChef(masterChef).pendingBOO(poolId, address(this)) + IERC20(rewardToken).balanceOf(address(this));
         booAmount = (totalBooAmount_ * shares_) / IERC20(vault).totalSupply();
     }

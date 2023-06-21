@@ -105,7 +105,7 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
         if (_shares <= 0) revert TortleVault__InvalidAmount();
         uint256 lpTokenBalStart = lpToken.balanceOf(address(this));
         lpAmountForSharesAmount = ((IStrategy(strategy).balanceOf() + lpTokenBalStart) * _shares) / totalSupply();
-        rewardAmount = IStrategy(strategy).getBooPerFarmNode(_shares);
+        rewardAmount = IStrategy(strategy).getRewardPerFarmNode(_shares);
         _burn(msg.sender, _shares);
         if (lpTokenBalStart < lpAmountForSharesAmount) {
             uint256 _withdraw = lpAmountForSharesAmount - lpTokenBalStart;
