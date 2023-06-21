@@ -22,7 +22,7 @@ const deployVaults = async (tokensList, deployConfig, path) => {
         const complexRewarderAddress = await masterChefV3.rewarder(farm.poolId)
 
         let TortleVault = await (
-            await _TortleVault.deploy(farm.lp, `${farm.token0}-${farm.token1} Spooky Vault`, `tt${farm.token0}${farm.token1}`, WEI(9999999))
+            await _TortleVault.deploy(farm.lp, `${farm.token0}-${farm.token1} ${deployConfig.vaultName}`, `tt${farm.token0}${farm.token1}`, WEI(9999999))
         ).deployed()
         console.log('TortleVault Address: ', TortleVault.address)
 
@@ -110,6 +110,7 @@ switch (network) {
             weth: WFTM,
             masterChefContractName: 'MasterChefV3',
             masterChefAddress: masterChefV3Spooky,
+            vaultName: 'Spooky Vault',
             rewardToken: BOO
         }
         path = process.env.VAULTS_V3_PATH ? process.env.VAULTS_V3_PATH : '/tmp/vaultsV3.json'
@@ -122,6 +123,7 @@ switch (network) {
             weth: WETH_ARB,
             masterChefContractName: 'MiniChefV2',
             masterChefAddress: masterChefV2Sushiswap,
+            vaultName: 'Sushi Vault',
             rewardToken: SUSHI_ARB
         }
         path = process.env.VAULTS_SUSHI_PATH ? process.env.VAULTS_SUSHI_PATH : '/tmp/vaultsSushi.json'
