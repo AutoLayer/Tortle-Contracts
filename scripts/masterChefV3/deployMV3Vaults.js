@@ -47,7 +47,7 @@ const deployVaults = async (tokensList, deployConfig, path) => {
                 )
             ).deployed()
         } else {
-            _TortleFarmingsStrategy = await hre.ethers.getContractFactory('TortleFarmingStrategy')
+            _TortleFarmingsStrategy = await hre.ethers.getContractFactory(deployConfig.strategyContractName)
             TortleFarmingStrategy = await (
                 await _TortleFarmingsStrategy.deploy(
                     farm.lp,
@@ -110,6 +110,7 @@ switch (network) {
             weth: WFTM,
             masterChefContractName: 'MasterChefV3',
             masterChefAddress: masterChefV3Spooky,
+            strategyContractName: 'TortleFarmingStrategy',
             vaultName: 'Spooky Vault',
             rewardToken: BOO
         }
@@ -123,6 +124,7 @@ switch (network) {
             weth: WETH_ARB,
             masterChefContractName: 'MiniChefV2',
             masterChefAddress: masterChefV2Sushiswap,
+            strategyContractName: 'TortleFarmingSushiStrategy',
             vaultName: 'Sushi Vault',
             rewardToken: SUSHI_ARB
         }
