@@ -512,16 +512,16 @@ contract Nodes is Initializable, ReentrancyGuard {
         uint256 amount_,
         bytes memory args_
     ) external nonReentrant onlyOwner returns (bytes32 data, uint256 sizeDelta, uint256 acceptablePrice) {
-        (, address indexToken_,,,,,,) = abi.decode(args_, (address[], address, bool, uint256, uint256, uint256, uint256, uint8));
-        if (amount_ > getBalance(user_, IERC20(indexToken_))) revert Nodes__OpenPerpPositionInsufficientFunds();
+        (address[] memory path,,,,,,,) = abi.decode(args_, (address[], address, bool, uint256, uint256, uint256, uint256, uint8));
+        if (amount_ > getBalance(user_, IERC20(path[0]))) revert Nodes__OpenPerpPositionInsufficientFunds();
 
-        _approve(indexToken_, address(selectPerpRoute), amount_);
+        _approve(path[0], address(selectPerpRoute), amount_);
         (data, sizeDelta, acceptablePrice) = selectPerpRoute.openPerpPosition(args_, amount_);
 
-        decreaseBalance(user_, indexToken_, amount_);
+        decreaseBalance(user_, path[0], amount_);
         perpPositions[user_][nodeId_] = sizeDelta;
 
-        emit OpenPosition(data, indexToken_, amount_, sizeDelta, acceptablePrice);
+        emit OpenPosition(data, path[0], amount_, sizeDelta, acceptablePrice);
     }
 
     function closePerpPosition(

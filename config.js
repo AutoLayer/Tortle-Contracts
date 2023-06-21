@@ -7,7 +7,7 @@ const chemaAddress = '0xc0190C13c2B919c1A4Fb55473bedebee082d31aF'
 
 // Contracts
 const batchContractAddress = '0x756F02D00FE5A205A442f4E5B342Bb0455B0F3C7'
-const nodeContractAddress = '0x59bC924F9D34aDd2d6B2e91bBbB1A8A01b0d3301'
+const nodeContractAddress = '0x7dCfe1938E1621cEA83f8f164Ff62B7cf32a2B43'
 
 // Tokens
 const WFTM = '0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83'

@@ -42,10 +42,10 @@ contract SelectPerpRoute {
         bytes memory args_,
         uint256 amount_
     ) public onlyAllowed returns (bytes32 data, uint256 sizeDelta, uint256 acceptablePrice) {
-        (,address indexToken_,,,,,,uint8 provider_) = abi.decode(args_, (address[], address, bool, uint256, uint256, uint256, uint256, uint8));
+        (address[] memory path ,,,,,,,uint8 provider_) = abi.decode(args_, (address[], address, bool, uint256, uint256, uint256, uint256, uint8));
 
         if (provider_ == 0) {
-            IERC20(indexToken_).safeTransferFrom(msg.sender, firstTypePerpContract, amount_);
+            IERC20(path[0]).safeTransferFrom(msg.sender, firstTypePerpContract, amount_);
             (data, sizeDelta, acceptablePrice) = IFirstTypePerpetual(firstTypePerpContract).openPerpPosition(args_, amount_);
         }
     }
