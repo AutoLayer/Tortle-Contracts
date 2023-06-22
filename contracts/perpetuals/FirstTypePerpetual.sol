@@ -20,6 +20,8 @@ contract FirstTypePerpetual is ReentrancyGuard {
     address public selectPerpRoute;
     address public nodes;
 
+    bool public freeContract;
+
     mapping(address => uint256) public wftBalance;
 
     modifier onlyAllowed() {
@@ -32,6 +34,7 @@ contract FirstTypePerpetual is ReentrancyGuard {
         mummyFinanceContract = mummyFinanceContract_;
         routerContract = routerContract_;
         WFTMAddress = tokenIndex_;
+        freeContract = true;
     }
 
     function setNodes(address nodes_) public onlyAllowed {
@@ -46,14 +49,14 @@ contract FirstTypePerpetual is ReentrancyGuard {
         IERC20(token_).safeApprove(spender_, 0);
         IERC20(token_).safeApprove(spender_, amount_);
     }
-
-    function openPerpPosition(bytes memory args_, uint256 amount_) external onlyAllowed payable returns (bytes32 data, uint256 sizeDelta, uint256 acceptablePrice) {
-        (address[] memory path_,
+    function openPerpPosition(bytes memory args_, uint256 amount_) external onlyAllowed payable returns (uint256 sizeDelta, uint256 acceptablePrice) {
+        (address[] memory path_,,
         address indexToken_,
         bool isLong_,,
         uint256 preSizeDelta_,
-        uint256 indexTokenPrice_,,) = abi.decode(args_, (address[], address, bool, uint256, uint256, uint256, uint256, uint8));
+        uint256 indexTokenPrice_,,) = abi.decode(args_, (address[], address, address, bool, uint256, uint256, uint256, uint256, uint8));
 
+        freeContract = false;
         IFirstTypePerpetual(routerContract).approvePlugin(mummyFinanceContract);
 
         uint256 executionFee = IFirstTypePerpetual(mummyFinanceContract).minExecutionFee();
@@ -62,7 +65,7 @@ contract FirstTypePerpetual is ReentrancyGuard {
         acceptablePrice = indexTokenPrice_;
         sizeDelta = preSizeDelta_ * amount_ / 1e18;
         IWETH(path_[0]).withdraw(depositAmount);
-        data = IGmx(mummyFinanceContract).createIncreasePositionETH{value: depositAmount}(path_, indexToken_, 0, sizeDelta, isLong_, acceptablePrice, executionFee, bytes32(0), address(0));
+        IGmx(mummyFinanceContract).createIncreasePositionETH{value: depositAmount}(path_, indexToken_, 0, sizeDelta, isLong_, acceptablePrice, executionFee, bytes32(0), address(0));
     }
 
     function closePerpPosition(
@@ -83,6 +86,7 @@ contract FirstTypePerpetual is ReentrancyGuard {
 
     function executeClosePerpPosition(address token_, uint256 amount_) public onlyAllowed {
         IERC20(token_).safeTransfer(nodes, amount_);
+        freeContract = true;
     }
 
     receive() external payable {}

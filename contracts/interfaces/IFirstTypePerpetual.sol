@@ -2,7 +2,7 @@
 pragma solidity ^0.8.6;
 
 interface IFirstTypePerpetual {
-    function openPerpPosition(bytes memory args_, uint256 amount_) external payable returns (bytes32 data, uint256 sizeDelta, uint256 acceptablePrice);
+    function openPerpPosition(bytes memory args_, uint256 amount_) external payable returns (uint256 sizeDelta, uint256 acceptablePrice);
     function closePerpPosition(
         /*address user_,*/
         address[] memory path_,

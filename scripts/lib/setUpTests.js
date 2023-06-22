@@ -9,10 +9,11 @@ const setUpTests = async () => {
 
     const contractsAddresses = await deployMainNet({noWait: true, deployer})
     nodes = await ethers.getContractAt('Nodes', contractsAddresses.ProxyNodes)
+    firstTypePerp = await ethers.getContractAt('FirstTypePerpetual', contractsAddresses.FirstTypePerpetual)
 
     await nodes.connect(deployer).addFundsForFTM(userAddress, "1", { value: TEST_AMOUNT })
 
-    return { nodes, deployer }
+    return { nodes, deployer, firstTypePerp }
 }
 
 module.exports = { setUpTests }

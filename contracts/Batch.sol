@@ -56,9 +56,9 @@ contract Batch {
     event WithdrawFromNestedStrategy(string indexed recipeId, string indexed id, address vaultAddress, uint256 amountShares, address tokenDesired, uint256 amountDesired);
     event lpWithdrawed(string indexed recipeId, string indexed id, address lpToken, uint256 amountLp, address tokenDesired, uint256 amountTokenDesired);
     event ttWithdrawed(string indexed recipeId, string indexed id, uint256 lpAmount, address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired, uint256 rewardAmount);
-    event OpenPosition(string indexed recipeId, string indexed id, address tokenInput, uint256 amountIn, uint256 sizeDelta, uint256 acceptablePrice);
-    event ClosePosition(string indexed recipeId, string indexed id, address tokenOut, uint256 amountOut);
-    event ExecuteClosePosition(address user, address tokenOut, uint256 amountOut);
+    event OpenPosition(string indexed recipeId, string indexed id, address firstTypePerpContract, address tokenInput, uint256 amountIn, uint256 sizeDelta, uint256 acceptablePrice);
+    event ClosePosition(string indexed recipeId, string indexed id, address firstTypePerpContract, address tokenOut, uint256 amountOut);
+    event ExecuteClosePosition(address firstTypePerpContract, address user, address tokenOut, uint256 amountOut);
 
     constructor(address masterOwner_) {
         masterOwner = masterOwner_;
@@ -397,51 +397,52 @@ contract Batch {
     }
 
     function depositOnShortLong(Function memory args) public onlySelf {
-        (, address indexToken_,, uint256 amount_,,,,) = abi.decode(args.arguments, (address[], address, bool, uint256, uint256, uint256, uint256, uint8));
+        (, address firstTypePerpContract, address indexToken_,, uint256 amount_,,,,) = abi.decode(args.arguments, (address[], address, address, bool, uint256, uint256, uint256, uint256, uint8));
 
         if (auxStack.length > 0) {
             amount_ = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
 
-        (, uint256 sizeDelta, uint256 acceptablePrice) = nodes.openPerpPosition(args.user, args.id, amount_, args.arguments);
+        (uint256 sizeDelta, uint256 acceptablePrice) = nodes.openPerpPosition(args.user, args.id, amount_, args.arguments);
 
         if (args.hasNext) {
             auxStack.push(sizeDelta);
         }
 
-        emit OpenPosition(args.recipeId, args.id, indexToken_, amount_, sizeDelta, acceptablePrice);
+        emit OpenPosition(args.recipeId, args.id, firstTypePerpContract, indexToken_, amount_, sizeDelta, acceptablePrice);
     }
 
     function withdrawFromShortLong(Function memory args) public onlySelf {
         (address[] memory path_,
+        address firstTypePerpContract,
         address indexToken_,
         bool isLong_,
         uint256 collateralDelta_,
         uint256 sizeDelta_,
         uint256 acceptablePrice_,
         uint256 amountOutMin_,
-        uint8 provider_) = abi.decode(args.arguments, (address[], address, bool, uint256, uint256, uint256, uint256, uint8));
+        uint8 provider_) = abi.decode(args.arguments, (address[], address, address, bool, uint256, uint256, uint256, uint256, uint8));
 
         if (auxStack.length > 0) {
             sizeDelta_ = auxStack[auxStack.length - 1];
             auxStack.pop();
         }
 
-        nodes.closePerpPosition(args.user, args.id, path_, indexToken_, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, amountOutMin_, provider_);
+        nodes.closePerpPosition(args.user, args.id, path_, firstTypePerpContract, indexToken_, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, amountOutMin_, provider_);
 
-        emit ClosePosition(args.recipeId, args.id, indexToken_, sizeDelta_);
+        emit ClosePosition(args.recipeId, args.id, firstTypePerpContract, indexToken_, sizeDelta_);
     }
 
     function executeClosePerpPosition(Function memory args) external onlySelf {
-        (address user_, address token_, uint256 amount_, uint8 provider_) = abi.decode(args.arguments, (address, address, uint256, uint8));
+        (address user_, address firstTypePerpContract, address token_, uint256 amount_, uint8 provider_) = abi.decode(args.arguments, (address, address, address, uint256, uint8));
 
-        nodes.executeClosePerpPosition(user_, token_, amount_, provider_);
+        nodes.executeClosePerpPosition(user_, firstTypePerpContract, token_, amount_, provider_);
 
         if (args.hasNext) {
             auxStack.push(amount_);
         }
-        emit ExecuteClosePosition(user_, token_, amount_);
+        emit ExecuteClosePosition(firstTypePerpContract, user_, token_, amount_);
     }
 
     function sendToWallet(Function memory args) public onlySelf {

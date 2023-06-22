@@ -92,7 +92,7 @@ const deployMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
 
   // SelectPerpRoute Contract
   const SelectPerpRoute = await (
-    await (await hre.ethers.getContractFactory('SelectPerpRoute')).connect(deployer).deploy(deployer.getAddress(), FirstTypePerpetual.address)
+    await (await hre.ethers.getContractFactory('SelectPerpRoute')).connect(deployer).deploy(deployer.getAddress())
   ).deployed()
 
   const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [await deployer.getAddress(), SwapsUni.address, SelectSwapRoute.address, SelectLPRoute.address, SelectNestedRoute.address, SelectPerpRoute.address,Batch.address, dojos, treasury, devFund, wftm, usdc], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })

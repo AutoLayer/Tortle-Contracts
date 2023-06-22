@@ -15,6 +15,7 @@ describe('Open Perpetual Position', function () {
         const setUp = await loadFixture(setUpTests)
         nodes = setUp.nodes
         deployer = setUp.deployer
+        firstTypePerp = setUp.firstTypePerp
     })
 
     it('Open Perpetual Position with FTM', async () => {
@@ -31,10 +32,10 @@ describe('Open Perpetual Position', function () {
         let amountOutMin_ = '0'
         let provider_ = 0
         console.log("Args sent", path_, indexToken_, isLong_, amount_.toString(), preSizeDelta, indexTokenPrice, amountOutMin_, provider_)
-        const args = ethers.utils.defaultAbiCoder.encode(['address[]', 'address', 'bool', 'uint256', 'uint256', 'uint256', 'uint256', 'uint8'], [path_, indexToken_, isLong_, amount_, preSizeDelta, indexTokenPrice, amountOutMin_, provider_]);
+        const args = ethers.utils.defaultAbiCoder.encode(['address[]', 'address', 'address', 'bool', 'uint256', 'uint256', 'uint256', 'uint256', 'uint8'], [path_, firstTypePerp.address, indexToken_, isLong_, amount_, preSizeDelta, indexTokenPrice, amountOutMin_, provider_]);
         tx = await nodes.connect(deployer).openPerpPosition(userAddress, "1", amount_, args)
         receipt = await tx.wait()
-        const CreateIncreasePosition = getEvent(receipt, "OpenPosition")
-        console.log("increasePositionEvent", CreateIncreasePosition.args.data.toString())
+       /* const CreateIncreasePosition = getEvent(receipt, "OpenPosition")
+        console.log("increasePositionEvent", CreateIncreasePosition.args.data.toString())*/
     })
 })

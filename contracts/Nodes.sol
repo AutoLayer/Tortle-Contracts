@@ -59,6 +59,7 @@ contract Nodes is Initializable, ReentrancyGuard {
 
     mapping(address => AddressToUintIterableMap.Map) private balance;
     mapping(address => mapping(string => uint256)) private perpPositions;
+    mapping(address => string) public perpetualContractForNode;
 
     event AddFunds(address tokenInput, uint256 amount);
     event AddFundsForFTM(string indexed recipeId, address tokenInput, uint256 amount);
@@ -70,9 +71,9 @@ contract Nodes is Initializable, ReentrancyGuard {
     event WithdrawFromNestedStrategy(address tokenOut, uint256 amountTokenDesired);
     event DepositOnFarm(uint256 ttAmount, uint256 lpBalance);
     event WithdrawFromFarm(address tokenDesired, uint256 amountTokenDesired, uint256 rewardAmount);
-    event OpenPosition(bytes32 data, address tokenInput, uint256 amountIn, uint256 sizeDelta, uint256 acceptablePrice);
-    event ClosePosition(address tokenOut, uint256 amountOut, bytes32 key);
-    event ExecuteClosePosition(address user, address tokenIndex, uint256 amount);
+    event OpenPosition(address tokenInput, address firstTypePerpContract, uint256 amountIn, uint256 sizeDelta, uint256 acceptablePrice);
+    event ClosePosition(address firstTypePerpContract, address tokenOut, uint256 amountOut, bytes32 key);
+    event ExecuteClosePosition(address firstTypePerpContract, address user, address tokenIndex, uint256 amount);
     event Liquidate(address tokenOutput, uint256 amountOut);
     event SendToWallet(address tokenOutput, uint256 amountOut);
     event RecoverAll(address tokenOut, uint256 amountOut);
@@ -511,23 +512,25 @@ contract Nodes is Initializable, ReentrancyGuard {
         string memory nodeId_,
         uint256 amount_,
         bytes memory args_
-    ) external nonReentrant onlyOwner returns (bytes32 data, uint256 sizeDelta, uint256 acceptablePrice) {
-        (address[] memory path,,,,,,,) = abi.decode(args_, (address[], address, bool, uint256, uint256, uint256, uint256, uint8));
+    ) external nonReentrant onlyOwner returns (uint256 sizeDelta, uint256 acceptablePrice) {
+        (address[] memory path, address firstTypePerpContract,,,,,,,) = abi.decode(args_, (address[], address, address, bool, uint256, uint256, uint256, uint256, uint8));
         if (amount_ > getBalance(user_, IERC20(path[0]))) revert Nodes__OpenPerpPositionInsufficientFunds();
 
         _approve(path[0], address(selectPerpRoute), amount_);
-        (data, sizeDelta, acceptablePrice) = selectPerpRoute.openPerpPosition(args_, amount_);
+        (sizeDelta, acceptablePrice) = selectPerpRoute.openPerpPosition(args_, amount_);
 
         decreaseBalance(user_, path[0], amount_);
         perpPositions[user_][nodeId_] = sizeDelta;
+        perpetualContractForNode[firstTypePerpContract] = nodeId_;
 
-        emit OpenPosition(data, path[0], amount_, sizeDelta, acceptablePrice);
+        emit OpenPosition(path[0], firstTypePerpContract, amount_, sizeDelta, acceptablePrice);
     }
 
     function closePerpPosition(
         address user_,
         string memory nodeId_,
         address[] memory path_,
+        address firstTypePerpContract,
         address indexToken_,
         uint256 collateralDelta_,
         uint256 sizeDelta_,
@@ -538,18 +541,18 @@ contract Nodes is Initializable, ReentrancyGuard {
     ) external nonReentrant onlyOwner returns (bytes32 data) {
         if (sizeDelta_ != perpPositions[user_][nodeId_]) revert Nodes__ClosePerpPositionSizePositionError();
 
-        data= selectPerpRoute.closePerpPosition(path_, indexToken_, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, amountOutMin_, provider_);
+        data= selectPerpRoute.closePerpPosition(path_, firstTypePerpContract, indexToken_, collateralDelta_, sizeDelta_, isLong_, acceptablePrice_, amountOutMin_, provider_);
 
         perpPositions[user_][nodeId_] -= sizeDelta_;
 
-        emit ClosePosition(WFTM, sizeDelta_, data);
+        emit ClosePosition(firstTypePerpContract, WFTM, sizeDelta_, data);
     }
 
-    function executeClosePerpPosition(address user_, address token_, uint256 amount_, uint8 provider_) external nonReentrant onlyOwner {
-        selectPerpRoute.executeClosePerpPosition(token_, amount_, provider_);
+    function executeClosePerpPosition(address user_, address firstTypePerpContract, address token_, uint256 amount_, uint8 provider_) external nonReentrant onlyOwner {
+        selectPerpRoute.executeClosePerpPosition(token_, firstTypePerpContract, amount_, provider_);
         increaseBalance(user_, token_, amount_);
 
-        emit ExecuteClosePosition(user_, token_, amount_);
+        emit ExecuteClosePosition(firstTypePerpContract, user_, token_, amount_);
     }
 
     /**
