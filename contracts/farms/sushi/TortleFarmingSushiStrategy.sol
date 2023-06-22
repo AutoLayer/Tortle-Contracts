@@ -111,6 +111,7 @@ contract TortleFarmingSushiStrategy is Ownable, Pausable {
 
         if (lpTokenBalance < _amount) {
             IMasterChefV2(masterChef).withdraw(poolId, _amount - lpTokenBalance, address(this));
+            IMasterChefV2(masterChef).harvest(poolId, address(this));
         }
         IERC20(lpToken).safeTransfer(vault, _amount);
         IERC20(rewardToken).safeTransfer(user_, rewardAmount_);
