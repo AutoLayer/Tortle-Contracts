@@ -10,6 +10,7 @@
     "createVaultsV3": "npx hardhat run ./scripts/masterChefV3/deployMV3Vaults.js --network ftm",
     "test": "echo \"Error: no test specified\" && exit 1",
     "recoverFunds": "npx hardhat run ./scripts/recoverFunds/recoverContractFunds.js --network ftm",
+    "createPerps": "npx hardhat run ./scripts/perps/deployFirstTypePerpetual.js --network ftm",
     "addOwners": "npx hardhat run ./scripts/owners/addOwners.js --network ftm",
     "removeOwners": "npx hardhat run ./scripts/owners/removeOwners.js --network ftm",
     "startLocalNode": "npx hardhat node --fork https://rpcapi.fantom.network/"
