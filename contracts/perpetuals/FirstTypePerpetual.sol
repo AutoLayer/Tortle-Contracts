@@ -64,7 +64,7 @@ contract FirstTypePerpetual is ReentrancyGuard {
 
         acceptablePrice = indexTokenPrice_;
         sizeDelta = preSizeDelta_ * amount_ / 1e18;
-        IWETH(path_[0]).withdraw(depositAmount);
+        IWETH(WFTMAddress).withdraw(depositAmount);
         IGmx(mummyFinanceContract).createIncreasePositionETH{value: depositAmount}(path_, indexToken_, 0, sizeDelta, isLong_, acceptablePrice, executionFee, bytes32(0), address(0));
     }
 
@@ -79,7 +79,7 @@ contract FirstTypePerpetual is ReentrancyGuard {
     ) public onlyAllowed payable returns (bytes32 data) {
 
         uint256 fee = IFirstTypePerpetual(mummyFinanceContract).minExecutionFee();
-        IWETH(path_[0]).withdraw(fee);
+        IWETH(WFTMAddress).withdraw(fee);
 
         (data) = IGmx(mummyFinanceContract).createDecreasePosition{value: fee}(path_, indexToken_, collateralDelta_, sizeDelta_, isLong_, address(this), acceptablePrice_, amountOutMin_, fee, false, address(0));
     }

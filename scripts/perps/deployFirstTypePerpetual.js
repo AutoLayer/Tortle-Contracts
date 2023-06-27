@@ -12,7 +12,7 @@ const deployFirstTypePerpetual = async () => {
     const mummyFinance = "0x2d270f66fee6ac9e27ff6551af5a8cfb5c8a7493"
     const routerContract = "0x41cD8CaFc24A771031B9eB9C57cFC94D86045eB6"
 
-    let numContracts = 2
+    let numContracts = 7
     let contractsAddresses = []
     for (let i = 0; i < numContracts; i++) {
         // FirstTypePerp Contract
