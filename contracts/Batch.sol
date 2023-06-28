@@ -58,7 +58,7 @@ contract Batch {
     event ttWithdrawed(string indexed recipeId, string indexed id, uint256 lpAmount, address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired, uint256 rewardAmount);
     event OpenPosition(string indexed recipeId, string indexed id, address firstTypePerpContract, address tokenInput, uint256 amountIn, uint256 sizeDelta, uint256 acceptablePrice);
     event ClosePosition(string indexed recipeId, string indexed id, address firstTypePerpContract, address tokenOut, uint256 amountOut);
-    event ExecuteClosePosition(address firstTypePerpContract, address user, address tokenOut, uint256 amountOut);
+    event ExecuteClosePosition(string indexed id, address firstTypePerpContract, address user, address tokenOut, uint256 amountOut);
 
     constructor(address masterOwner_) {
         masterOwner = masterOwner_;
@@ -442,7 +442,7 @@ contract Batch {
         if (args.hasNext) {
             auxStack.push(amount_);
         }
-        emit ExecuteClosePosition(firstTypePerpContract, user_, token_, amount_);
+        emit ExecuteClosePosition(args.id ,firstTypePerpContract, user_, token_, amount_);
     }
 
     function sendToWallet(Function memory args) public onlySelf {
