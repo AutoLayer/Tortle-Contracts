@@ -8,6 +8,8 @@ const chemaAddress = '0xc0190C13c2B919c1A4Fb55473bedebee082d31aF'
 // Contracts
 const batchContractAddress = '0x756F02D00FE5A205A442f4E5B342Bb0455B0F3C7'
 const nodeContractAddress = '0x7dCfe1938E1621cEA83f8f164Ff62B7cf32a2B43'
+const firstTypePerpetualAddress = '0x464B8e137F2034A9bb9c93B921f13BD4Ee45632c'
+const nodesFantomDevAddress = '0x8D1691524E4a25734aC3c7caa96A2B77D8Ea61d7'
 
 // Tokens
 const WFTM = '0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83'
@@ -79,4 +81,6 @@ module.exports = {
     FUSTWFTMtortleVault,
     USDCWFTMLp,
     USDCWFTMtortleVault,
+    firstTypePerpetualAddress,
+    nodesFantomDevAddress
 }
