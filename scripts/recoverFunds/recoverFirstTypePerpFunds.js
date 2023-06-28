@@ -10,14 +10,14 @@ const recoverFirstTypePerpContractFunds = async () => {
     const userAmount = '32000000000000000000' // 32 WFTM
 
     const owner = await nodesContract.owner()
-    const executeClosePerp = await nodesContract.executeClosePerpPosition(user, firstTypePerpetualAddress, WFTM, userAmount, '0')
+    const executeClosePerp = await nodesContract.executeClosePerpPosition(user, firstTypePerpetualAddress, token, userAmount, '0')
     await executeClosePerp.wait(6)
 
     userAmount = await nodesContract.getBalance(user, token)
     const sendToWallet = await nodesContract.sendToWallet(user, [token], userAmount, 0, userAmount, 0, [])
     await sendToWallet.wait(6)
 
-    console.log(`SendToWallet ${index} done!`)
+    console.log('SendToWallet done!')
 }
 
 console.log('Successful')
