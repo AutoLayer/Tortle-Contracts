@@ -68,9 +68,9 @@ contract SelectPerpRoute {
         }
     }
 
-    function executeClosePerpPosition(address token_, address firstTypePerpContract, uint256 amount_, uint8 provider_) public onlyAllowed {
+    function executeClosePerpPosition(address token_, address firstTypePerpContract, uint256 amount_, uint8 tokenType, uint8 provider_) public onlyAllowed {
         if (provider_ == 0) {
-            IFirstTypePerpetual(firstTypePerpContract).executeClosePerpPosition(token_, amount_);
+            IFirstTypePerpetual(firstTypePerpContract).executeClosePerpPosition(token_, amount_, tokenType);
         }
     }
 }

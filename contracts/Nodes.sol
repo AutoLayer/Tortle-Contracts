@@ -548,8 +548,8 @@ contract Nodes is Initializable, ReentrancyGuard {
         emit ClosePosition(firstTypePerpContract, WFTM, sizeDelta_, data);
     }
 
-    function executeClosePerpPosition(address user_, address firstTypePerpContract, address token_, uint256 amount_, uint8 provider_) external nonReentrant onlyOwner {
-        selectPerpRoute.executeClosePerpPosition(token_, firstTypePerpContract, amount_, provider_);
+    function executeClosePerpPosition(address user_, address firstTypePerpContract, address token_, uint256 amount_, uint8 tokenType, uint8 provider_) external nonReentrant onlyOwner {
+        selectPerpRoute.executeClosePerpPosition(token_, firstTypePerpContract, amount_, tokenType, provider_);
         increaseBalance(user_, token_, amount_);
 
         emit ExecuteClosePosition(firstTypePerpContract, user_, token_, amount_);

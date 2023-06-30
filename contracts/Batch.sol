@@ -435,9 +435,9 @@ contract Batch {
     }
 
     function executeClosePerpPosition(Function memory args) external onlySelf {
-        (address user_, address firstTypePerpContract, address token_, uint256 amount_, uint8 provider_) = abi.decode(args.arguments, (address, address, address, uint256, uint8));
+        (address user_, address firstTypePerpContract, address token_, uint256 amount_, uint8 tokenType, uint8 provider_) = abi.decode(args.arguments, (address, address, address, uint256, uint8, uint8));
 
-        nodes.executeClosePerpPosition(user_, firstTypePerpContract, token_, amount_, provider_);
+        nodes.executeClosePerpPosition(user_, firstTypePerpContract, token_, amount_, tokenType, provider_);
 
         if (args.hasNext) {
             auxStack.push(amount_);

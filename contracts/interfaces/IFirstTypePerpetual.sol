@@ -14,7 +14,7 @@ interface IFirstTypePerpetual {
         uint256 amountOutMin_
     ) external payable returns (bytes32 data);
 
-    function executeClosePerpPosition(address token_, uint256 amount_) external;
+    function executeClosePerpPosition(address token_, uint256 amount_, uint8 tokenType) external;
 
     function approvePlugin(address _plugin) external;
 

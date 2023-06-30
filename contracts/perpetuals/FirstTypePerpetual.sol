@@ -84,7 +84,10 @@ contract FirstTypePerpetual is ReentrancyGuard {
         (data) = IGmx(mummyFinanceContract).createDecreasePosition{value: fee}(path_, indexToken_, collateralDelta_, sizeDelta_, isLong_, address(this), acceptablePrice_, amountOutMin_, fee, false, address(0));
     }
 
-    function executeClosePerpPosition(address token_, uint256 amount_) public onlyAllowed {
+    function executeClosePerpPosition(address token_, uint256 amount_, uint8 tokenType) public onlyAllowed {
+        if (tokenType == 0) {
+            IWETH(WFTMAddress).deposit{value: amount_}();
+        }
         IERC20(token_).safeTransfer(nodes, amount_);
         freeContract = true;
     }
