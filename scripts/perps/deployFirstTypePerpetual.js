@@ -12,7 +12,7 @@ const deployFirstTypePerpetual = async () => {
     const mummyFinance = "0x2d270f66fee6ac9e27ff6551af5a8cfb5c8a7493"
     const routerContract = "0x41cD8CaFc24A771031B9eB9C57cFC94D86045eB6"
 
-    let numContracts = 7
+    let numContracts = 10
     let contractsAddresses = []
     for (let i = 0; i < numContracts; i++) {
         // FirstTypePerp Contract
@@ -20,13 +20,12 @@ const deployFirstTypePerpetual = async () => {
             await (await hre.ethers.getContractFactory('FirstTypePerpetual')).connect(deployer).deploy(deployer.getAddress(), mummyFinance, routerContract, wftm)
         ).deployed()
 
-        console.log("Set", addresses.SelectPerpRoute)
         const tx0 = await FirstTypePerpetual.setSelectPerpRoute(addresses.SelectPerpRoute)
         await tx0.wait(2)
-        console.log("Here")
         const tx1 = await FirstTypePerpetual.setNodes(addresses.ProxyNodes)
         contractsAddresses.push(FirstTypePerpetual.address)
         await tx1.wait(2)
+        console.log("Deployed: ", FirstTypePerpetual.address)
     }
 
 
