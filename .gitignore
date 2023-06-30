@@ -4,6 +4,7 @@ cache
 .env
 addresses.json
 contractsAddresses.json
+contractsAddressesArbitrum.json
 vaults.json
 vaultsV3.json
 vaultsSushi.json
