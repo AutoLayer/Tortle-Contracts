@@ -113,7 +113,7 @@ const deployArbitrumMainNet = async ({ noWait = false, deployer = undefined } = 
   }
 
   const data = JSON.stringify(contractsAddresses)
-  fs.writeFile(process.env.CONTRACTS_PATH ? process.env.CONTRACTS_PATH : '/tmp/contractsAddresses.json', data, (err) => {
+  fs.writeFile(process.env.ARBITRUM_CONTRACTS_PATH ? process.env.ARBITRUM_CONTRACTS_PATH : '/tmp/contractsAddressesArbitrum.json', data, (err) => {
     if (err) throw err
 
     console.log('JSON data is saved.')
