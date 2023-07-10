@@ -6,5 +6,61 @@
         "address1": "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83",
         "lp": "0xcD13614b29420C04be0620057bccB719d966AD0c",
         "poolId": "5"
+    },
+    {
+        "token0": "WFTM",
+        "token1": "JEFE",
+        "address0": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
+        "address1": "0x5b2af7fd27e2ea14945c82dd254c79d3ed34685e",
+        "lp": "0xd7F1dd1b6edbAfd9A2Bd7Fc3CAF39a13b8307375",
+        "poolId": "6"
+    },
+    {
+        "token0": "axlUSDC",
+        "token1": "WFTM",
+        "address0": "0x1b6382dbdea11d97f24495c9a90b7c88469134a4",
+        "address1": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
+        "lp": "0xA196C7754f4ec79dE55bB5Db82187bBE82275f7f",
+        "poolId": "7"
+    },
+    {
+        "token0": "axlUSDC",
+        "token1": "BOO",
+        "address0": "0x1b6382dbdea11d97f24495c9a90b7c88469134a4",
+        "address1": "0x841fad6eae12c286d1fd18d1d525dffa75c7effe",
+        "lp": "0x564F85DB8Ba3DbA1F4edEef69EE333f6cf4F79Cd",
+        "poolId": "8"
+    },
+    {
+        "token0": "axlUSDC",
+        "token1": "axlWBTC",
+        "address0": "0x1b6382dbdea11d97f24495c9a90b7c88469134a4",
+        "address1": "0x448d59b4302ab5d2dadf9611bed9457491926c8e",
+        "lp": "0xD107791bE6d1d4519808b34291e6590a516C39e9",
+        "poolId": "9"
+    },
+    {
+        "token0": "axlUSDC",
+        "token1": "axlETH",
+        "address0": "0x1b6382dbdea11d97f24495c9a90b7c88469134a4",
+        "address1": "0xfe7eda5f2c56160d406869a8aa4b2f365d544c7b",
+        "lp": "0x6130080FF8Fa9332151E1Cf3BB1818612Fb9424a",
+        "poolId": "10"
+    },
+    {
+        "token0": "WFTM",
+        "token1": "lzUSDC",
+        "address0": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
+        "address1": "0x28a92dde19D9989F39A49905d7C9C2FAc7799bDf",
+        "lp": "0x90469ACbC4b6d877873CD4f1CCA54fDE8075A998",
+        "poolId": "11"
+    },
+    {
+        "token0": "lzUSDC",
+        "token1": "BOO",
+        "address0": "0x28a92dde19d9989f39a49905d7c9c2fac7799bdf",
+        "address1": "0x841fad6eae12c286d1fd18d1d525dffa75c7effe",
+        "lp": "0x6B3b19213856f0CcEdd0e8368DDb98058d270513",
+        "poolId": "12"
     }
 ]
