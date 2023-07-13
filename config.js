@@ -6,6 +6,7 @@ const javiAddress = '0xEA1D4A8Be3B2C60c20180Dcdc7c5286c00a53d2E'
 const chemaAddress = '0xc0190C13c2B919c1A4Fb55473bedebee082d31aF'
 
 // Contracts - Fantom Network
+const batchContractAddress = ''
 const nodeContractAddress = '0x21057479F447BE533d86854612e3D92de89c9E70'
 const spookyRouter = '0xF491e7B69E4244ad4002BC14e878a34207E38c29'
 const spookyFactory = '0x152eE697f2E276fA89E96742e9bB9aB1F2E61bE3'
