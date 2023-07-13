@@ -11,11 +11,13 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 error TortleVault__ContractAlreadyInitialized();
 error TortleVault__InvalidAmount();
 error TortleVault__VaultIsFull();
+error TortleVault__NoZeroShares();
 
 contract TortleVault is ERC20, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     address public strategy;
+    uint public constant MINIMUM_LIQUIDITY = 10**3;
 
     uint256 public constant PERCENT_DIVISOR = 10000;
     uint256 public tvlCap;
@@ -83,8 +85,10 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
         if (totalSupply() != 0) { 
             shares = ((_amount * 100000) * totalSupply()) / lpTokenTotalAmount_;
             shares /= 100000;
+            if (shares == 0) revert TortleVault__NoZeroShares();
             _mint(msg.sender, shares);
         } else {
+            _mint(address(1), MINIMUM_LIQUIDITY);
             shares = _amount;
             _mint(msg.sender, shares);
         }
@@ -101,7 +105,7 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
         if (_shares <= 0) revert TortleVault__InvalidAmount();
         uint256 lpTokenBalStart = lpToken.balanceOf(address(this));
         lpAmountForSharesAmount = ((IStrategy(strategy).balanceOf() + lpTokenBalStart) * _shares) / totalSupply();
-        rewardAmount = IStrategy(strategy).getBooPerFarmNode(_shares);
+        rewardAmount = IStrategy(strategy).getRewardPerFarmNode(_shares);
         _burn(msg.sender, _shares);
         if (lpTokenBalStart < lpAmountForSharesAmount) {
             uint256 _withdraw = lpAmountForSharesAmount - lpTokenBalStart;

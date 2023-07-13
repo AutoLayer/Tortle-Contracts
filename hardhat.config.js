@@ -2,6 +2,7 @@ require('hardhat-contract-sizer');
 require('@nomiclabs/hardhat-waffle')
 require('@nomiclabs/hardhat-ethers')
 require('@openzeppelin/hardhat-upgrades')
+require("@nomicfoundation/hardhat-verify");
 require('dotenv').config()
 
 task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
@@ -45,8 +46,9 @@ module.exports = {
     hardhat: {
       forking: {
         enabled: true,
-        url: 'https://rpc.ftm.tools/',
-        blockNumber: 64777831,
+        // url: 'https://rpc.ftm.tools/',
+        url: 'https://arb1.arbitrum.io/rpc',
+        // blockNumber: 57558604,
         allowUnlimitedContractSize: true,
         accounts: [process.env.PRIVATE_KEY],
       }
@@ -66,5 +68,16 @@ module.exports = {
       allowUnlimitedContractSize: true,
       accounts: [process.env.PRIVATE_KEY],
     },
+    arb: {
+      url: 'https://arb1.arbitrum.io/rpc',
+      allowUnlimitedContractSize: true,
+      accounts: [process.env.PRIVATE_KEY],
+    },
   },
+  etherscan: {
+    apiKey: {
+      opera: `${process.env.FTMSCAN_API_KEY}`,
+      arbitrumOne: `${process.env.ARBISCAN_API_KEY}`
+    }
+  }
 }

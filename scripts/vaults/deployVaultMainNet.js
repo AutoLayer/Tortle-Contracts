@@ -2,16 +2,13 @@ const { ethers } = require('hardhat')
 const fs = require('fs')
 require('dotenv').config()
 const { WEI } = require('../../test/utils')
-const farmsListJSON = require('./shortExampleFarmList.json')
+const farmsListJSON = require('./farmListFantom.json')
+const { spookyRouter, spookyFactory, WFTM, BOO, masterChefV2Spooky } = require('../../config')
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 const deployVaults = async (tokensList) => {
-    const uniswapRouter = "0xF491e7B69E4244ad4002BC14e878a34207E38c29"
-    const uniswapFactory = await ethers.getContractAt('UniswapV2Factory', "0x152eE697f2E276fA89E96742e9bB9aB1F2E61bE3")
-    let wftm = "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"
-    let boo = "0x841FAD6EAe12c286d1Fd18d1d525DFfA75C7EFFE"
-    let masterChefV2 = "0x18b4f774fdC7BF685daeeF66c2990b1dDd9ea6aD"
+    const uniswapFactory = await ethers.getContractAt('UniswapV2Factory', spookyFactory)
     let tortleTreasury = process.env.TREASURY_ADDRESS
 
     const _TortleVault = await hre.ethers.getContractFactory('TortleVault')
@@ -22,9 +19,8 @@ const deployVaults = async (tokensList) => {
 
     const createVault = async (farm) => {
         const lpToken = await uniswapFactory.getPair(farm.address0, farm.address1) // token0/token1
-
         let TortleVault = await (
-            await _TortleVault.deploy(lpToken, `${farm.token0}-${farm.token1} Spooky Vault`, `tt${farm.token0}${farm.token1}`, WEI(9999999))
+            await _TortleVault.deploy(lpToken, `${farm.token0}-${farm.token1} Spooky Vault`, `tt${farm.token0}${farm.token1}`, WEI(9999999).toString())
         ).deployed()
         console.log('TortleVault Address: ', TortleVault.address)
 
@@ -34,10 +30,10 @@ const deployVaults = async (tokensList) => {
                 farm.poolId,
                 TortleVault.address,
                 tortleTreasury,
-                uniswapRouter,
-                masterChefV2,
-                boo,
-                wftm
+                spookyRouter,
+                masterChefV2Spooky,
+                BOO,
+                WFTM
             )
         ).deployed()
         console.log('TortleFarmingStrategy Address: ', TortleFarmingStrategy.address)

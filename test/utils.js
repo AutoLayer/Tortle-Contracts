@@ -15,10 +15,15 @@ const calculateAmountWithoutFees = (amount) => {
   return ethers.utils.parseEther(amountWithoutFeeInEthers.toString())
 }
 
+const WEI = (etherAmount) => {
+  return ethers.utils.parseUnits(etherAmount.toString(), "ether")
+}
+
 module.exports = {
   TEST_AMOUNT,
   FEE_AMOUNT,
   BN,
+  WEI,
   getEvent,
   calculateAmountWithoutFees
 }

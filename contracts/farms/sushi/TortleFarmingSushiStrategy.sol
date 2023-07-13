@@ -8,18 +8,17 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 
-import "../interfaces/IMasterChef.sol";
-import "../interfaces/IRewarder.sol";
-import "../interfaces/ITortleVault.sol";
+import "../../interfaces/IMasterChef.sol";
+import "../../interfaces/ITortleVault.sol";
 
 error TortleFarmingStrategy__SenderIsNotVault();
 error TortleFarmingStrategy__InvalidAmount();
 error TortleFarmingStrategy__InsufficientLPAmount();
 
-contract TortleFarmingStrategyV3 is Ownable, Pausable {
+contract TortleFarmingSushiStrategy is Ownable, Pausable {
     using SafeERC20 for IERC20;
 
-    address public immutable wftm;
+    address public immutable weth;
     address public immutable rewardToken;
     address public immutable lpToken;
     address public immutable lpToken0;
@@ -27,7 +26,6 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
 
     address public immutable uniRouter;
     address public immutable masterChef;
-    address public immutable complexrewarder;
     uint8 public immutable poolId;
     uint256 public lastAutocompoundTime;
 
@@ -36,7 +34,7 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
 
     uint256 public slippageFactorMin = 950;
 
-    address[] public rewardTokenToWftmRoute;
+    address[] public rewardTokenToWethRoute;
     address[] public rewardTokenToLp0Route;
     address[] public rewardTokenToLp1Route;
     struct Harvest {
@@ -56,15 +54,13 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
         address _treasury,
         address _uniRouter,
         address _masterChef,
-        address _complexrewarder,
         address _rewardToken,
-        address _wftm
+        address _weth
     ) {
         uniRouter = _uniRouter;
         masterChef = _masterChef;
-        complexrewarder = _complexrewarder;
         rewardToken = _rewardToken;
-        wftm = _wftm;
+        weth = _weth;
 
         lpToken = _lpToken;
         poolId = _poolId;
@@ -75,19 +71,19 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
         lpToken0 = IUniswapV2Pair(lpToken).token0();
         lpToken1 = IUniswapV2Pair(lpToken).token1();
 
-        if (lpToken0 == wftm) {
-            rewardTokenToLp0Route = [rewardToken, wftm];
+        if (lpToken0 == weth) {
+            rewardTokenToLp0Route = [rewardToken, weth];
         } else if (lpToken0 != rewardToken) {
-            rewardTokenToLp0Route = [rewardToken, wftm, lpToken0];
+            rewardTokenToLp0Route = [rewardToken, weth, lpToken0];
         }
 
-        if (lpToken1 == wftm) {
-            rewardTokenToLp1Route = [rewardToken, wftm];
+        if (lpToken1 == weth) {
+            rewardTokenToLp1Route = [rewardToken, weth];
         } else if (lpToken1 != rewardToken) {
-            rewardTokenToLp1Route = [rewardToken, wftm, lpToken1];
+            rewardTokenToLp1Route = [rewardToken, weth, lpToken1];
         }
 
-        rewardTokenToWftmRoute = [rewardToken, wftm];
+        rewardTokenToWethRoute = [rewardToken, weth];
 
         harvestLog.push(
             Harvest({
@@ -114,7 +110,8 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
         if (_amount == 0 || _amount > (balanceOfPool() + lpTokenBalance)) revert TortleFarmingStrategy__InvalidAmount();
 
         if (lpTokenBalance < _amount) {
-            IMasterChef(masterChef).withdraw(poolId, _amount - lpTokenBalance);
+            IMasterChefV2(masterChef).withdraw(poolId, _amount - lpTokenBalance, address(this));
+            IMasterChefV2(masterChef).harvest(poolId, address(this));
         }
         IERC20(lpToken).safeTransfer(vault, _amount);
         IERC20(rewardToken).safeTransfer(user_, rewardAmount_);
@@ -171,7 +168,7 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
     function retireStrat() external {
         if (msg.sender != vault) revert TortleFarmingStrategy__SenderIsNotVault();
 
-        IMasterChef(masterChef).emergencyWithdraw(poolId);
+        IMasterChefV2(masterChef).emergencyWithdraw(poolId, address(this));
 
         uint256 lpBalance = IERC20(lpToken).balanceOf(address(this));
         IERC20(lpToken).transfer(vault, lpBalance);
@@ -179,7 +176,7 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
 
     function panic() public onlyOwner {
         pause();
-        IMasterChef(masterChef).withdraw(poolId, balanceOfPool());
+        IMasterChefV2(masterChef).withdraw(poolId, balanceOfPool(), address(this));
     }
 
     function pause() public onlyOwner {
@@ -228,7 +225,7 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
         view
         returns (uint256 profit)
     {
-        uint256 pendingReward = IRewarder(complexrewarder).pendingToken(
+        uint256 pendingReward = IMiniChef(masterChef).pendingSushi(
             poolId,
             address(this)
         );
@@ -238,16 +235,16 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
         if (totalRewards != 0) {
             profit += IUniswapV2Router02(uniRouter).getAmountsOut(
                 totalRewards,
-                rewardTokenToWftmRoute
+                rewardTokenToWethRoute
             )[1];
         }
 
-        profit += IERC20(wftm).balanceOf(address(this));
+        profit += IERC20(weth).balanceOf(address(this));
     }
 
     function getRewardPerFarmNode(uint256 shares_) public view returns(uint256 booAmount) {
-        uint256 totalBooAmount_ = IRewarder(complexrewarder).pendingToken(poolId, address(this)) + IERC20(rewardToken).balanceOf(address(this));
-        booAmount = (totalBooAmount_ * shares_) / IERC20(vault).totalSupply();
+        uint256 totalRewardAmount_ = IMiniChef(masterChef).pendingSushi(poolId, address(this)) + IERC20(rewardToken).balanceOf(address(this));
+        booAmount = (totalRewardAmount_ * shares_) / IERC20(vault).totalSupply();
     }
 
     function setSlippageFactorMin(uint256 _slippageFactorMin) public onlyOwner {

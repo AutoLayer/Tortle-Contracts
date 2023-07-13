@@ -5,21 +5,25 @@
   "main": "index.js",
   "scripts": {
     "createContracts": "npx hardhat run ./scripts/deployMainNet.js --network ftm",
+    "createContractsArbitrum": "npx hardhat run ./scripts/deployMainNet.js --network arb",
     "createContractsTestnet": "npx hardhat run ./scripts/deployBatch.js --network testnet",
     "createVaults": "npx hardhat run ./scripts/vaults/deployVaultMainNet.js --network ftm",
     "createVaultsV3": "npx hardhat run ./scripts/masterChefV3/deployMV3Vaults.js --network ftm",
+    "createSushiVaults": "npx hardhat run ./scripts/masterChefV3/deployMV3Vaults.js --network arb",
     "test": "echo \"Error: no test specified\" && exit 1",
     "recoverFunds": "npx hardhat run ./scripts/recoverFunds/recoverContractFunds.js --network ftm",
     "recoverPerpFunds": "npx hardhat run ./scripts/recoverFunds/recoverFirstTypePerpFunds.js --network ftm",
     "createPerps": "npx hardhat run ./scripts/perps/deployFirstTypePerpetual.js --network ftm",
     "addOwners": "npx hardhat run ./scripts/owners/addOwners.js --network ftm",
     "removeOwners": "npx hardhat run ./scripts/owners/removeOwners.js --network ftm",
-    "startLocalNode": "npx hardhat node --fork https://rpcapi.fantom.network/"
+    "startLocalNode": "npx hardhat node --fork https://rpcapi.fantom.network/",
+    "startArbLocalNode": "npx hardhat node --fork https://arb1.arbitrum.io/rpc"
   },
   "author": "Tortle Ninja",
   "license": "ISC",
   "dependencies": {
     "@nomicfoundation/hardhat-network-helpers": "^1.0.8",
+    "@nomicfoundation/hardhat-verify": "^1.0.0",
     "@nomiclabs/hardhat-ethers": "^2.0.6",
     "@nomiclabs/hardhat-ganache": "^2.0.1",
     "@nomiclabs/hardhat-waffle": "^2.0.3",
