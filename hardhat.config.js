@@ -46,9 +46,9 @@ module.exports = {
     hardhat: {
       forking: {
         enabled: true,
-        // url: 'https://rpc.ftm.tools/',
-        url: 'https://arb1.arbitrum.io/rpc',
-        // blockNumber: 57558604,
+        url: 'https://rpc.ftm.tools/',
+        // url: 'https://arb1.arbitrum.io/rpc',
+        blockNumber: 65763320,
         allowUnlimitedContractSize: true,
         accounts: [process.env.PRIVATE_KEY],
       }
