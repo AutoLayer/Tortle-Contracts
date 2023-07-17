@@ -44,6 +44,7 @@ module.exports = {
   defaultNetwork: 'hardhat',
   networks: {
     hardhat: {
+      chainId: 1337,
       forking: {
         enabled: true,
         url: 'https://rpc.ftm.tools/',
