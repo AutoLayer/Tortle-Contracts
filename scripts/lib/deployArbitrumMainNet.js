@@ -81,7 +81,14 @@ const deployArbitrumMainNet = async ({ noWait = false, deployer = undefined } = 
     await (await hre.ethers.getContractFactory('SelectLPRoute')).connect(deployer).deploy(FarmsUni.address, SwapsUni.address, DepositsBeets.address)
   ).deployed()
 
-  const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [await deployer.getAddress(), SwapsUni.address, SelectSwapRoute.address, SelectLPRoute.address, SelectNestedRoute.address, Batch.address, dojos, treasury, devFund, WETH_ARB, USDT_ARB], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
+
+  // SelectPerpRoute Contract
+  const SelectPerpRoute = await (
+    await (await hre.ethers.getContractFactory('SelectPerpRoute')).connect(deployer).deploy(deployer.getAddress())
+  ).deployed()
+
+
+  const ProxyNodes = await hre.upgrades.deployProxy(Nodes, [await deployer.getAddress(), SwapsUni.address, SelectSwapRoute.address, SelectLPRoute.address, SelectNestedRoute.address, SelectPerpRoute.address, Batch.address, dojos, treasury, devFund, WETH_ARB, USDT_ARB], { deployer, initializer: 'initializeConstructor', unsafeAllow: ['external-library-linking', 'delegatecall'] })
   await ProxyNodes.deployed()
   const txSetContract0 = await Batch.setNodeContract(ProxyNodes.address)
   if (!noWait) await txSetContract0.wait(6)
