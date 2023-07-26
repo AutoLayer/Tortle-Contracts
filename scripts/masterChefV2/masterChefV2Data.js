@@ -20,8 +20,8 @@ const masterChefV2Data = async () => {
         const address1 = await uniswapV2Pair.token1()
         const token0Contract = await ethers.getContractAt('contracts/_contracts/MasterChef.sol:ERC20', address0)
         const token1Contract = await ethers.getContractAt('contracts/_contracts/MasterChef.sol:ERC20', address1)
-        const token0Name = await token0Contract.name()
-        const token1Name = await token1Contract.name()
+        const token0Name = await token0Contract.symbol()
+        const token1Name = await token1Contract.symbol()
 
         farmObj.token0 = token0Name
         farmObj.token1 = token1Name
