@@ -14,6 +14,7 @@
     "recoverFunds": "npx hardhat run ./scripts/recoverFunds/recoverContractFunds.js --network ftm",
     "recoverPerpFunds": "npx hardhat run ./scripts/recoverFunds/recoverFirstTypePerpFunds.js --network ftm",
     "createPerps": "npx hardhat run ./scripts/perps/deployFirstTypePerpetual.js --network ftm",
+    "createPerpsArbitrum":  "npx hardhat run ./scripts/perps/deployFirstTypePerpetualArbitrum.js --network arb",
     "addOwners": "npx hardhat run ./scripts/owners/addOwners.js --network ftm",
     "removeOwners": "npx hardhat run ./scripts/owners/removeOwners.js --network ftm",
     "startLocalNode": "npx hardhat node --fork https://rpcapi.fantom.network/",
