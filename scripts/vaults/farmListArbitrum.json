@@ -8,30 +8,6 @@
         "poolId": "0"
     },
     {
-        "token0": "Wrapped Ether",
-        "token1": "SushiToken",
-        "address0": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-        "address1": "0xd4d42F0b6DEF4CE0383636770eF773390d85c61A",
-        "lp": "0x3221022e37029923aCe4235D812273C5A42C322d",
-        "poolId": "2"
-    },
-    {
-        "token0": "Wrapped BTC",
-        "token1": "Wrapped Ether",
-        "address0": "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
-        "address1": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-        "lp": "0x515e252b2b5c22b4b2b6Df66c2eBeeA871AA4d69",
-        "poolId": "3"
-    },
-    {
-        "token0": "Wrapped Ether",
-        "token1": "Tether USD",
-        "address0": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-        "address1": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
-        "lp": "0xCB0E5bFa72bBb4d16AB5aA0c60601c438F04b4ad",
-        "poolId": "4"
-    },
-    {
         "token0": "MAGIC",
         "token1": "Wrapped Ether",
         "address0": "0x539bdE0d7Dbd336b79148AA742883198BBF60342",
@@ -48,52 +24,12 @@
         "poolId": "15"
     },
     {
-        "token0": "Axelar Wrapped USDC",
-        "token1": "USD Coin (Arb1)",
-        "address0": "0xEB466342C4d449BC9f53A865D5Cb90586f405215",
-        "address1": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
-        "lp": "0x863EeD6056918258626b653065588105C54FF2AC",
-        "poolId": "16"
-    },
-    {
         "token0": "Dopex Governance Token",
         "token1": "Wrapped Ether",
         "address0": "0x6C2C06790b3E3E3c38e12Ee22F8183b37a13EE55",
         "address1": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
         "lp": "0x0C1Cf6883efA1B496B01f654E247B9b419873054",
         "poolId": "17"
-    },
-    {
-        "token0": "Silo Governance Token",
-        "token1": "Wrapped Ether",
-        "address0": "0x0341C0C0ec423328621788d4854119B97f44E391",
-        "address1": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-        "lp": "0xcCC2084bF31C53868871e416547140ABF9C3fD39",
-        "poolId": "18"
-    },
-    {
-        "token0": "NitroShiba",
-        "token1": "USD Coin (Arb1)",
-        "address0": "0x4DAD357726b41bb8932764340ee9108cC5AD33a0",
-        "address1": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
-        "lp": "0x32Ef0f8aF29F7b67bE6B48A12Ca0E09f1f302035",
-        "poolId": "19"
-    },
-    {
-        "token0": "Tether USD",
-        "token1": "USD Coin (Arb1)",
-        "address0": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
-        "address1": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
-        "lp": "0x79bf7147eBCd0d55e83Cb42ed3Ba1bB2Bb23eF20",
-        "poolId": "21"
-    },
-    {
-        "token0": "Dai Stablecoin",
-        "token1": "USD Coin (Arb1)",
-        "address0": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
-        "address1": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
-        "lp": "0x6DBE389142E40b01aA10Fb069ae448Fc4460DaE4",
-        "poolId": "22"
     },
     {
         "token0": "Dopex Rebate Token",
@@ -105,42 +41,10 @@
     },
     {
         "token0": "Wrapped Ether",
-        "token1": "Ferrum Network Token",
-        "address0": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-        "address1": "0x9f6AbbF0Ba6B5bfa27f4deb6597CC6Ec20573FDA",
-        "lp": "0x3FEC70f319A4145eba17765Ae0C64b2232fe5BAe",
-        "poolId": "25"
-    },
-    {
-        "token0": "NUON",
-        "token1": "Tether USD",
-        "address0": "0xfb9Fed8cB962548A11fE7F6F282949061395c7F5",
-        "address1": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
-        "lp": "0x480EcF204f510404a720AE9715713A6E682117f9",
-        "poolId": "26"
-    },
-    {
-        "token0": "Wrapped Ether",
         "token1": "Arbitrum",
         "address0": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
         "address1": "0x912CE59144191C1204E64559FE8253a0e49E6548",
         "lp": "0xBF6CBb1F40a542aF50839CaD01b0dc1747F11e18",
         "poolId": "28"
-    },
-    {
-        "token0": "Radiant",
-        "token1": "Wrapped Ether",
-        "address0": "0x3082CC23568eA640225c2467653dB90e9250AaA0",
-        "address1": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-        "lp": "0x3BFB1ac033ff0aE278Be0583FCCc900FBD9382c6",
-        "poolId": "29"
-    },
-    {
-        "token0": "Wrapped Ether",
-        "token1": "Pepe",
-        "address0": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-        "address1": "0xA54B8e178A49F8e5405A4d44Bb31F496e5564A05",
-        "lp": "0xf5bf7843955eBd86edCc9F6c82427f71f05FD823",
-        "poolId": "30"
     }
 ]
