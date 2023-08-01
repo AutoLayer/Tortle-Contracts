@@ -15,6 +15,11 @@ const deployArbitrumMainNet = async ({ noWait = false, deployer = undefined } = 
   const camelotRouter = '0xc873fEcbd354f5A56E00E710B90EF4201db2448d'
   const balancerVault = '0xBA12222222228d8Ba445958a75a0704d566BF2C8'
 
+  // GMX
+  const GMX = "0xb87a436B93fFE9D75c5cFA7bAcFff96430b09868"
+  const routerContract = "0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064"
+  const weth = "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+
   const StringUtils = await (await (await hre.ethers.getContractFactory('StringUtils')).connect(deployer).deploy()).deployed()
   const AddressToUintIterableMap = await (
     await (await hre.ethers.getContractFactory('AddressToUintIterableMap')).connect(deployer).deploy()
@@ -60,6 +65,11 @@ const deployArbitrumMainNet = async ({ noWait = false, deployer = undefined } = 
     await (await hre.ethers.getContractFactory('FirstTypeNestedStrategies')).connect(deployer).deploy()
   ).deployed()
 
+  // FirstTypePerp Contract
+  const FirstTypePerpetual = await (
+    await (await hre.ethers.getContractFactory('FirstTypePerpetual')).connect(deployer).deploy(deployer.getAddress(), GMX, routerContract, weth, /*'0x53b9ad09b82a313ec07040f6d8cb07bb6fd6e7ce'*/)
+  ).deployed()
+
   // SelectNestedRoute Contract
   const SelectNestedRoute = await (
     await (await hre.ethers.getContractFactory('SelectNestedRoute')).connect(deployer).deploy(FirstTypeNestedStrategies.address)
@@ -102,6 +112,12 @@ const deployArbitrumMainNet = async ({ noWait = false, deployer = undefined } = 
   if (!noWait) await txSetContract4.wait(6)
   const txSetContract5 = await SelectSwapRoute.setNodes(ProxyNodes.address)
   if (!noWait) await txSetContract5.wait(6)
+  const txSetContract6 = await SelectPerpRoute.setNodes(ProxyNodes.address)
+  if (!noWait) await txSetContract6.wait(6)
+  const txSetContract7 = await FirstTypePerpetual.setSelectPerpRoute(SelectPerpRoute.address)
+  if (!noWait) await txSetContract7.wait(6)
+  const txSetContract8 = await FirstTypePerpetual.setNodes(ProxyNodes.address)
+  if (!noWait) await txSetContract8.wait(6)
 
   const contractsAddresses = {
     "ProxyNodes": ProxyNodes.address,
@@ -112,7 +128,9 @@ const deployArbitrumMainNet = async ({ noWait = false, deployer = undefined } = 
     "SelectSwapRoute": SelectSwapRoute.address,
     "SelectLPRoute": SelectLPRoute.address,
     "SelectNestedRoute": SelectNestedRoute.address,
+    "SelectPerpRoute": SelectPerpRoute.address,
     "FirstTypeNestedStrategies": FirstTypeNestedStrategies.address,
+    "FirstTypePerpetual": FirstTypePerpetual.address,
     "FarmsUni": FarmsUni.address,
     "Batch": Batch.address,
     "StringUtils": StringUtils.address,
