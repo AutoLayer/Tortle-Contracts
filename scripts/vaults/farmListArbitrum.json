@@ -1,7 +1,7 @@
 [
     {
         "token0": "WETH",
-        "token1": "USDC",
+        "token1": "USDC.e",
         "address0": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
         "address1": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
         "lp": "0x905dfCD5649217c42684f23958568e533C711Aa3",
