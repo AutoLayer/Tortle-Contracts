@@ -12,11 +12,11 @@ import "../../interfaces/IMasterChef.sol";
 import "../../interfaces/IRewarderSushiSwap.sol";
 import "../../interfaces/ITortleVault.sol";
 
-error TortleFarmingStrategy__SenderIsNotVault();
-error TortleFarmingStrategy__InvalidAmount();
-error TortleFarmingStrategy__InsufficientLPAmount();
+error TortleFarmingSushiStrategy__SenderIsNotVault();
+error TortleFarmingSushiStrategy__InvalidAmount();
+error TortleFarmingSushiStrategy__InsufficientLPAmount();
 
-contract TortleFarmingStrategyV3 is Ownable, Pausable {
+contract TortleFarmingSushiStrategyV3 is Ownable, Pausable {
     using SafeERC20 for IERC20;
 
     address public immutable weth;
@@ -104,7 +104,7 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
         if(IERC20(rewardToken).balanceOf(address(this)) >= 10**15) convertRewardToLP();
         
         uint256 lpBalance = IERC20(lpToken).balanceOf(address(this));
-        if(lpBalance <= 0) revert TortleFarmingStrategy__InsufficientLPAmount();
+        if(lpBalance <= 0) revert TortleFarmingSushiStrategy__InsufficientLPAmount();
         
         IERC20(lpToken).safeApprove(masterChef, 0);
         IERC20(lpToken).safeApprove(masterChef, lpBalance);
@@ -112,9 +112,9 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
     }
 
     function withdraw(address user_, uint256 rewardAmount_, uint256 _amount) external {
-        if (msg.sender != vault) revert TortleFarmingStrategy__SenderIsNotVault();
+        if (msg.sender != vault) revert TortleFarmingSushiStrategy__SenderIsNotVault();
         uint256 lpTokenBalance = IERC20(lpToken).balanceOf(address(this));
-        if (_amount == 0 || _amount > (balanceOfPool() + lpTokenBalance)) revert TortleFarmingStrategy__InvalidAmount();
+        if (_amount == 0 || _amount > (balanceOfPool() + lpTokenBalance)) revert TortleFarmingSushiStrategy__InvalidAmount();
 
         if (lpTokenBalance < _amount) {
             IMasterChef(masterChef).withdraw(poolId, _amount - lpTokenBalance);
@@ -173,7 +173,7 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
     }
 
     function retireStrat() external {
-        if (msg.sender != vault) revert TortleFarmingStrategy__SenderIsNotVault();
+        if (msg.sender != vault) revert TortleFarmingSushiStrategy__SenderIsNotVault();
 
         IMasterChef(masterChef).emergencyWithdraw(poolId);
 
