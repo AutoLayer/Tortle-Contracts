@@ -2,7 +2,7 @@ const { TEST_AMOUNT, getEvent, calculateAmountWithoutFees } = require('./utils')
 const { loadFixture } = require('ethereum-waffle')
 const { assert } = require('chai')
 const { setUpTests } = require('../scripts/lib/setUpTests')
-const { userAddress, WFTM, DEUS, WFTMDEUSLp, WFTMDEUStortleVault, WETH_ARB, SUSHI_ARB, WETHSUSHILp, WETHSUSHITortleVault } = require('../config')
+const { userAddress, WFTM, DEUS, WFTMDEUSLp, WFTMDEUStortleVault, WETH_ARB, MAGIC_ARB, WETHMAGICLp, WETHMAGICTortleVault } = require('../config')
 const { splitFunction } = require('./functions')
 
 describe('Withdraw From Farm', function () {
@@ -31,9 +31,9 @@ describe('Withdraw From Farm', function () {
             case 'Arbitrum':
                 weth = WETH_ARB
                 token0 = WETH_ARB
-                token1 = SUSHI_ARB
-                lp = WETHSUSHILp
-                tortleVault = WETHSUSHITortleVault
+                token1 = MAGIC_ARB
+                lp = WETHMAGICLp
+                tortleVault = WETHMAGICTortleVault
                 break
         
             default:
