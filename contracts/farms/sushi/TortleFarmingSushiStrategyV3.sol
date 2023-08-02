@@ -118,6 +118,7 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
 
         if (lpTokenBalance < _amount) {
             IMasterChef(masterChef).withdraw(poolId, _amount - lpTokenBalance);
+            IMasterChefV2(masterChef).harvest(poolId, address(this));
         }
         IERC20(lpToken).safeTransfer(vault, _amount);
         IERC20(rewardToken).safeTransfer(user_, rewardAmount_);
