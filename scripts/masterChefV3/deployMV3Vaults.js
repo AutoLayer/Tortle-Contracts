@@ -32,7 +32,7 @@ const deployVaults = async (tokensList, deployConfig, path) => {
             const complexRewarderContract = await ethers.getContractAt('ComplexRewarder', complexRewarderAddress)
             const rewardToken = await complexRewarderContract.rewardToken()
 
-            _TortleFarmingsStrategy = await hre.ethers.getContractFactory('TortleFarmingStrategyV3')
+            _TortleFarmingsStrategy = await hre.ethers.getContractFactory(`${deployConfig.strategyContractName}V3`)
             TortleFarmingStrategy = await (
                 await _TortleFarmingsStrategy.deploy(
                     farm.lp,
