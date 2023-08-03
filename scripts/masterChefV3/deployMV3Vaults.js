@@ -30,7 +30,7 @@ const deployVaults = async (tokensList, deployConfig, path) => {
         let _TortleFarmingsStrategy
         if (complexRewarderAddress !== "0x0000000000000000000000000000000000000000") {
             const complexRewarderContract = await ethers.getContractAt('ComplexRewarder', complexRewarderAddress)
-            const rewardToken = await complexRewarderContract.rewardToken()
+            const complexRewardToken = await complexRewarderContract.rewardToken()
 
             _TortleFarmingsStrategy = await hre.ethers.getContractFactory(`${deployConfig.strategyContractName}V3`)
             TortleFarmingStrategy = await (
@@ -42,7 +42,8 @@ const deployVaults = async (tokensList, deployConfig, path) => {
                     deployConfig.uniswapRouter,
                     masterChefV3.address,
                     complexRewarderAddress,
-                    rewardToken,
+                    complexRewardToken,
+                    deployConfig.rewardToken,
                     deployConfig.weth
                 )
             ).deployed()

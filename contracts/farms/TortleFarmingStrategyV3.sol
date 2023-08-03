@@ -20,6 +20,7 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
     using SafeERC20 for IERC20;
 
     address public immutable wftm;
+    address public immutable complexRewardToken;
     address public immutable rewardToken;
     address public immutable lpToken;
     address public immutable lpToken0;
@@ -57,12 +58,14 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
         address _uniRouter,
         address _masterChef,
         address _complexrewarder,
+        address _complexRewardToken,
         address _rewardToken,
         address _wftm
     ) {
         uniRouter = _uniRouter;
         masterChef = _masterChef;
         complexrewarder = _complexrewarder;
+        complexRewardToken = _complexRewardToken;
         rewardToken = _rewardToken;
         wftm = _wftm;
 
@@ -76,18 +79,18 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
         lpToken1 = IUniswapV2Pair(lpToken).token1();
 
         if (lpToken0 == wftm) {
-            rewardTokenToLp0Route = [rewardToken, wftm];
-        } else if (lpToken0 != rewardToken) {
-            rewardTokenToLp0Route = [rewardToken, wftm, lpToken0];
+            rewardTokenToLp0Route = [complexRewardToken, wftm];
+        } else if (lpToken0 != complexRewardToken) {
+            rewardTokenToLp0Route = [complexRewardToken, wftm, lpToken0];
         }
 
         if (lpToken1 == wftm) {
-            rewardTokenToLp1Route = [rewardToken, wftm];
-        } else if (lpToken1 != rewardToken) {
-            rewardTokenToLp1Route = [rewardToken, wftm, lpToken1];
+            rewardTokenToLp1Route = [complexRewardToken, wftm];
+        } else if (lpToken1 != complexRewardToken) {
+            rewardTokenToLp1Route = [complexRewardToken, wftm, lpToken1];
         }
 
-        rewardTokenToWftmRoute = [rewardToken, wftm];
+        rewardTokenToWftmRoute = [complexRewardToken, wftm];
 
         harvestLog.push(
             Harvest({
@@ -98,7 +101,7 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
     }
 
     function deposit() public whenNotPaused {
-        if(IERC20(rewardToken).balanceOf(address(this)) >= 10**15) convertRewardToLP();
+        if(IERC20(complexRewardToken).balanceOf(address(this)) >= 10**15) convertRewardToLP();
         
         uint256 lpBalance = IERC20(lpToken).balanceOf(address(this));
         if(lpBalance <= 0) revert TortleFarmingStrategy__InsufficientLPAmount();
@@ -117,7 +120,7 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
             IMasterChef(masterChef).withdraw(poolId, _amount - lpTokenBalance);
         }
         IERC20(lpToken).safeTransfer(vault, _amount);
-        IERC20(rewardToken).safeTransfer(user_, rewardAmount_);
+        IERC20(complexRewardToken).safeTransfer(user_, rewardAmount_);
     }
 
     function harvest() external whenNotPaused {
@@ -132,13 +135,13 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
     }
 
     function convertRewardToLP() internal {
-        uint256 rewardTokenHalf_ = IERC20(rewardToken).balanceOf(address(this)) / 2;
+        uint256 rewardTokenHalf_ = IERC20(complexRewardToken).balanceOf(address(this)) / 2;
 
-        if (lpToken0 != rewardToken) {
+        if (lpToken0 != complexRewardToken) {
             swap(rewardTokenHalf_, rewardTokenToLp0Route);
         }
 
-        if (lpToken1 != rewardToken) {
+        if (lpToken1 != complexRewardToken) {
             swap(rewardTokenHalf_, rewardTokenToLp1Route);
         }
 
@@ -233,7 +236,7 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
             address(this)
         );
         uint256 totalRewards = pendingReward +
-            IERC20(rewardToken).balanceOf(address(this));
+            IERC20(complexRewardToken).balanceOf(address(this));
 
         if (totalRewards != 0) {
             profit += IUniswapV2Router02(uniRouter).getAmountsOut(
@@ -246,7 +249,7 @@ contract TortleFarmingStrategyV3 is Ownable, Pausable {
     }
 
     function getRewardPerFarmNode(uint256 shares_) public view returns(uint256 booAmount) {
-        uint256 totalBooAmount_ = IRewarder(complexrewarder).pendingToken(poolId, address(this)) + IERC20(rewardToken).balanceOf(address(this));
+        uint256 totalBooAmount_ = IRewarder(complexrewarder).pendingToken(poolId, address(this)) + IERC20(complexRewardToken).balanceOf(address(this));
         booAmount = (totalBooAmount_ * shares_) / IERC20(vault).totalSupply();
     }
 
