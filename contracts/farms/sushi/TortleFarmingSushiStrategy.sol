@@ -242,9 +242,9 @@ contract TortleFarmingSushiStrategy is Ownable, Pausable {
         profit += IERC20(weth).balanceOf(address(this));
     }
 
-    function getRewardPerFarmNode(uint256 shares_) public view returns(uint256 rewardAmount) {
+    function getRewardsPerFarmNode(uint256 shares_) public view returns(uint256[2] memory rewardsAmount) {
         uint256 totalRewardAmount_ = IMiniChef(masterChef).pendingSushi(poolId, address(this)) + IERC20(rewardToken).balanceOf(address(this));
-        rewardAmount = (totalRewardAmount_ * shares_) / IERC20(vault).totalSupply();
+        rewardsAmount[0] = (totalRewardAmount_ * shares_) / IERC20(vault).totalSupply();
     }
 
     function setSlippageFactorMin(uint256 _slippageFactorMin) public onlyOwner {
