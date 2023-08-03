@@ -13,7 +13,7 @@ interface IStrategy {
     function harvest() external;
 
    //calculates the amount of rewards per farm node
-    function getRewardPerFarmNode(uint256 shares_) external view returns (uint256 booAmount);
+    function getRewardsPerFarmNode(uint256 shares_) external view returns (uint256 complexRewardAmount, uint256 rewardAmount);
 
     //returns the balance of all tokens managed by the strategy
     function balanceOf() external view returns (uint256);
