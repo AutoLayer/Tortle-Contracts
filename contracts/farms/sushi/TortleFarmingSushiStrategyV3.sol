@@ -259,9 +259,9 @@ contract TortleFarmingSushiStrategyV3 is Ownable, Pausable {
         profit += IERC20(weth).balanceOf(address(this));
     }
 
-    function getRewardPerFarmNode(uint256 shares_) public view returns(uint256 booAmount) {
-        uint256 totalBooAmount_ = IRewarderSushiSwap(complexrewarder).pendingToken(poolId, address(this)) + IERC20(complexRewardToken).balanceOf(address(this));
-        booAmount = (totalBooAmount_ * shares_) / IERC20(vault).totalSupply();
+    function getRewardPerFarmNode(uint256 shares_) public view returns(uint256 complexRewardAmount) {
+        uint256 totalcomplexRewardAmount_ = IRewarderSushiSwap(complexrewarder).pendingToken(poolId, address(this)) + IERC20(complexRewardToken).balanceOf(address(this));
+        complexRewardAmount = (totalcomplexRewardAmount_ * shares_) / IERC20(vault).totalSupply();
     }
 
     function setSlippageFactorMin(uint256 _slippageFactorMin) public onlyOwner {
