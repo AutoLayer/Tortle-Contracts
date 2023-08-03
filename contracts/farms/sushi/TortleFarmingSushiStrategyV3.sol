@@ -37,6 +37,9 @@ contract TortleFarmingSushiStrategyV3 is Ownable, Pausable {
 
     uint256 public slippageFactorMin = 950;
 
+    address[] public complexRewardTokenToWethRoute;
+    address[] public complexRewardTokenToLp0Route;
+    address[] public complexRewardTokenToLp1Route;
     address[] public rewardTokenToWethRoute;
     address[] public rewardTokenToLp0Route;
     address[] public rewardTokenToLp1Route;
@@ -82,18 +85,23 @@ contract TortleFarmingSushiStrategyV3 is Ownable, Pausable {
         lpToken1 = IUniswapV2Pair(lpToken).token1();
 
         if (lpToken0 == weth) {
-            rewardTokenToLp0Route = [complexRewardToken, weth];
-        } else if (lpToken0 != complexRewardToken) {
-            rewardTokenToLp0Route = [complexRewardToken, weth, lpToken0];
+            complexRewardTokenToLp0Route = [complexRewardToken, weth];
+            rewardTokenToLp0Route = [rewardToken, weth];
+        } else {
+            if (lpToken0 != complexRewardToken) complexRewardTokenToLp0Route = [complexRewardToken, weth, lpToken0];
+            if (lpToken0 != rewardToken) rewardTokenToLp0Route = [rewardToken, weth, lpToken0];
         }
 
         if (lpToken1 == weth) {
-            rewardTokenToLp1Route = [complexRewardToken, weth];
-        } else if (lpToken1 != complexRewardToken) {
-            rewardTokenToLp1Route = [complexRewardToken, weth, lpToken1];
+            complexRewardTokenToLp1Route = [complexRewardToken, weth];
+            rewardTokenToLp1Route = [rewardToken, weth];
+        } else {
+            if (lpToken1 != complexRewardToken) complexRewardTokenToLp1Route = [complexRewardToken, weth, lpToken1];
+            if (lpToken1 != rewardToken) rewardTokenToLp1Route = [rewardToken, weth, lpToken1];
         }
 
-        rewardTokenToWethRoute = [complexRewardToken, weth];
+        complexRewardTokenToWethRoute = [complexRewardToken, weth];
+        rewardTokenToWethRoute = [rewardToken, weth];
 
         harvestLog.push(
             Harvest({
@@ -141,11 +149,11 @@ contract TortleFarmingSushiStrategyV3 is Ownable, Pausable {
         uint256 rewardTokenHalf_ = IERC20(complexRewardToken).balanceOf(address(this)) / 2;
 
         if (lpToken0 != complexRewardToken) {
-            swap(rewardTokenHalf_, rewardTokenToLp0Route);
+            swap(rewardTokenHalf_, complexRewardTokenToLp0Route);
         }
 
         if (lpToken1 != complexRewardToken) {
-            swap(rewardTokenHalf_, rewardTokenToLp1Route);
+            swap(rewardTokenHalf_, complexRewardTokenToLp1Route);
         }
 
         uint256 lp0Bal_ = IERC20(lpToken0).balanceOf(address(this));
@@ -244,7 +252,7 @@ contract TortleFarmingSushiStrategyV3 is Ownable, Pausable {
         if (totalRewards != 0) {
             profit += IUniswapV2Router02(uniRouter).getAmountsOut(
                 totalRewards,
-                rewardTokenToWethRoute
+                complexRewardTokenToWethRoute
             )[1];
         }
 
