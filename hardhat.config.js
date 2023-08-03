@@ -44,12 +44,12 @@ module.exports = {
   defaultNetwork: 'hardhat',
   networks: {
     hardhat: {
-      chainId: 1337,
+      chainId: 42161,
       forking: {
         enabled: true,
-        url: 'https://rpc.ftm.tools/',
-        // url: 'https://arb1.arbitrum.io/rpc',
-        blockNumber: 65993146,
+        // url: 'https://rpc.ftm.tools/',
+        url: 'https://arb1.arbitrum.io/rpc',
+        // blockNumber: 65993146,
         allowUnlimitedContractSize: true,
         accounts: [process.env.PRIVATE_KEY],
       }
