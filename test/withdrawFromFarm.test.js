@@ -44,7 +44,7 @@ describe('Withdraw From Farm', function () {
     it('Withdraw from Spooky Farm', async () => {
         const amountWithoutFeeInWei = calculateAmountWithoutFees(TEST_AMOUNT)
 
-        const [amountOutToken1, amountOutToken2] = await splitFunction(deployer, userAddress, weth, amountWithoutFeeInWei, token0, token1)
+        const [amountOutToken1, amountOutToken2] = await splitFunction(nodes, deployer, userAddress, weth, amountWithoutFeeInWei, token0, token1)
 
         const provider = 0
         tx = await nodes.connect(deployer).depositOnFarmTokens(userAddress, lp, tortleVault, [token0, token1], amountOutToken1, amountOutToken2, [], provider)
