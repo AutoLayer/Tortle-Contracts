@@ -36,6 +36,7 @@ interface IMasterChefV2 {
     function withdraw(uint256 _pid, uint256 _amount, address _to) external;
     function emergencyWithdraw(uint256 _pid, address _to) external;
     function harvest(uint256 _pid, address _to) external;
+    function withdrawAndHarvest(uint256 pid, uint256 amount, address to) external;
 }
 
 interface IMiniChef {
