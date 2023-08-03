@@ -101,15 +101,15 @@ contract TortleVault is ERC20, Ownable, ReentrancyGuard {
         IStrategy(strategy).deposit();
     }
 
-    function withdraw(address _user, uint256 _shares) public nonReentrant returns (uint256 rewardAmount, uint256 lpAmountForSharesAmount) {
+    function withdraw(address _user, uint256 _shares) public nonReentrant returns (uint256 complexRewardAmount, uint256 rewardAmount, uint256 lpAmountForSharesAmount) {
         if (_shares <= 0) revert TortleVault__InvalidAmount();
         uint256 lpTokenBalStart = lpToken.balanceOf(address(this));
         lpAmountForSharesAmount = ((IStrategy(strategy).balanceOf() + lpTokenBalStart) * _shares) / totalSupply();
-        rewardAmount = IStrategy(strategy).getRewardPerFarmNode(_shares);
+        (complexRewardAmount, rewardAmount) = IStrategy(strategy).getRewardsPerFarmNode(_shares);
         _burn(msg.sender, _shares);
         if (lpTokenBalStart < lpAmountForSharesAmount) {
             uint256 _withdraw = lpAmountForSharesAmount - lpTokenBalStart;
-            IStrategy(strategy).withdraw(_user, rewardAmount, _withdraw);
+            IStrategy(strategy).withdraw(_user, complexRewardAmount, _withdraw);
             uint256 _diff = lpToken.balanceOf(address(this)) - lpTokenBalStart;
             if (_diff < _withdraw) {
                 lpAmountForSharesAmount = lpTokenBalStart + _diff;
