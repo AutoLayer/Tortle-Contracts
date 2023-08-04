@@ -494,8 +494,8 @@ contract Nodes is Initializable, ReentrancyGuard {
     ) external nonReentrant onlyOwner returns (uint256 amountLp, uint256 rewardAmount, uint256 amountTokenDesired) {
         if (amount_ > getBalance(user, IERC20(tortleVault_))) revert Nodes__WithdrawFromFarmInsufficientFunds();
 
-        (uint256 rewardAmount_, uint256 amountLp_) = ITortleVault(tortleVault_).withdraw(user, amount_);
-        rewardAmount = rewardAmount_;
+        (uint256 complexRewardAmount_, uint256 rewardAmount_, uint256 amountLp_) = ITortleVault(tortleVault_).withdraw(user, amount_);
+        rewardAmount = complexRewardAmount_;
         amountLp = amountLp_;
         decreaseBalance(user, tortleVault_, amount_);
 
