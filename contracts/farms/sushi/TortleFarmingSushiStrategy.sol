@@ -104,7 +104,7 @@ contract TortleFarmingSushiStrategy is Ownable, Pausable {
         IMasterChefV2(masterChef).deposit(poolId, lpBalance, address(this));
     }
 
-    function withdraw(address user_, uint256 rewardAmount_, uint256 _amount) external {
+    function withdraw(address user_, uint256[2] memory rewardsAmount_, uint256 _amount) external {
         if (msg.sender != vault) revert TortleFarmingStrategy__SenderIsNotVault();
         uint256 lpTokenBalance = IERC20(lpToken).balanceOf(address(this));
         if (_amount == 0 || _amount > (balanceOfPool() + lpTokenBalance)) revert TortleFarmingStrategy__InvalidAmount();
@@ -114,7 +114,7 @@ contract TortleFarmingSushiStrategy is Ownable, Pausable {
             IMasterChefV2(masterChef).harvest(poolId, address(this));
         }
         IERC20(lpToken).safeTransfer(vault, _amount);
-        IERC20(rewardToken).safeTransfer(user_, rewardAmount_);
+        IERC20(rewardToken).safeTransfer(user_, rewardsAmount_[0]);
     }
 
     function harvest() external whenNotPaused {
