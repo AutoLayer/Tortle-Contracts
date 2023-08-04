@@ -30,8 +30,8 @@ describe('Withdraw From Farm', function () {
 
             case 'Arbitrum':
                 weth = WETH_ARB
-                token0 = WETH_ARB
-                token1 = MAGIC_ARB
+                token0 = MAGIC_ARB
+                token1 = WETH_ARB
                 lp = WETHMAGICLp
                 tortleVault = WETHMAGICTortleVault
                 break
