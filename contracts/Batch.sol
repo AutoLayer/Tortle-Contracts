@@ -378,7 +378,7 @@ contract Batch {
             auxStack.pop();
         }
 
-        (uint256 amountLp, uint256 rewardAmount, uint256 amountTokenDesired) = nodes.withdrawFromFarm(args.user, lpToken_, tortleVault_, tokens_, amountOutMin_, amount_, provider_);
+        (uint256 amountLp, uint256 complexRewardAmount, uint256 rewardAmount, uint256 amountTokenDesired) = nodes.withdrawFromFarm(args.user, lpToken_, tortleVault_, tokens_, amountOutMin_, amount_, provider_);
 
         if (args.hasNext) {
             auxStack.push(amountTokenDesired);
@@ -392,7 +392,7 @@ contract Batch {
             amount_,
             tokens_[2],
             amountTokenDesired,
-            rewardAmount
+            complexRewardAmount
         );
     }
 
