@@ -16,7 +16,6 @@ import './selectRoute/SelectLPRoute.sol';
 import './selectRoute/SelectNestedRoute.sol';
 import './selectRoute/SelectPerpRoute.sol';
 import './Batch.sol';
-import "hardhat/console.sol";
 
 error Nodes__InsufficientBalance();
 error Nodes__EmptyArray();
