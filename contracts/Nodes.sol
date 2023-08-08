@@ -69,7 +69,7 @@ contract Nodes is Initializable, ReentrancyGuard {
     event DepositOnNestedStrategy(address vaultAddress, uint256 sharesAmount);
     event WithdrawFromNestedStrategy(address tokenOut, uint256 amountTokenDesired);
     event DepositOnFarm(uint256 ttAmount, uint256 lpBalance);
-    event WithdrawFromFarm(address tokenDesired, uint256 amountTokenDesired, uint256 rewardAmount);
+    event WithdrawFromFarm(address tokenDesired, uint256 amountTokenDesired, uint256 complexRewardAmount, uint256 rewardAmount);
     event OpenPosition(address tokenInput, address firstTypePerpContract, uint256 amountIn, uint256 sizeDelta, uint256 acceptablePrice);
     event ClosePosition(address firstTypePerpContract, address tokenOut, uint256 amountOut, bytes32 key);
     event ExecuteClosePosition(address firstTypePerpContract, address user, address tokenIndex, uint256 amount);
@@ -504,7 +504,7 @@ contract Nodes is Initializable, ReentrancyGuard {
 
         increaseBalance(user, tokens_[2], amountTokenDesired);
 
-        emit WithdrawFromFarm(tokens_[2], amountTokenDesired, rewardAmount);
+        emit WithdrawFromFarm(tokens_[2], amountTokenDesired, complexRewardAmount, rewardAmount);
     }
 
     function openPerpPosition(
