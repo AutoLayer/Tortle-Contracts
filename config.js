@@ -97,6 +97,7 @@ module.exports = {
     masterChefV3Spooky,
     sushiSwapRouter,
     masterChefV2Sushiswap,
+    camelotRouter,
     WFTM,
     USDC,
     BOO,
