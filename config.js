@@ -18,6 +18,7 @@ const nodesFantomDevAddress = '0x8D1691524E4a25734aC3c7caa96A2B77D8Ea61d7' // no
 // Contracts - Arbitrum Network
 const sushiSwapRouter = '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
 const masterChefV2Sushiswap = '0xF4d73326C13a4Fc5FD7A064217e12780e9Bd62c3'
+const camelotRouter = '0xc873fEcbd354f5A56E00E710B90EF4201db2448d'
 
 // Tokens - Fantom Network
 const WFTM = '0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83'
