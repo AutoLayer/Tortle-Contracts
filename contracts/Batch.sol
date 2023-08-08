@@ -55,7 +55,7 @@ contract Batch {
     event DepositOnNestedStrategy(string indexed recipeId, string indexed id, address vaultAddress, uint256 amount);
     event WithdrawFromNestedStrategy(string indexed recipeId, string indexed id, address vaultAddress, uint256 amountShares, address tokenDesired, uint256 amountDesired);
     event lpWithdrawed(string indexed recipeId, string indexed id, address lpToken, uint256 amountLp, address tokenDesired, uint256 amountTokenDesired);
-    event ttWithdrawed(string indexed recipeId, string indexed id, uint256 lpAmount, address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired, uint256 rewardAmount);
+    event ttWithdrawed(string indexed recipeId, string indexed id, uint256 lpAmount, address ttVault, uint256 amountTt, address tokenDesired, uint256 amountTokenDesired, uint256 complexRewardAmount, uint256 rewardAmount);
     event OpenPosition(string indexed recipeId, string indexed id, address firstTypePerpContract, address tokenInput, uint256 amountIn, uint256 sizeDelta, uint256 acceptablePrice);
     event ClosePosition(string indexed recipeId, string indexed id, address firstTypePerpContract, address tokenOut, uint256 amountOut);
     event ExecuteClosePosition(string indexed id, address firstTypePerpContract, address user, address tokenOut, uint256 amountOut);
@@ -392,7 +392,8 @@ contract Batch {
             amount_,
             tokens_[2],
             amountTokenDesired,
-            complexRewardAmount
+            complexRewardAmount,
+            rewardAmount
         );
     }
 
