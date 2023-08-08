@@ -1,6 +1,6 @@
 const hre = require('hardhat')
 const fs = require('fs')
-const { sushiSwapRouter, WETH_ARB, USDT_ARB }  = require('../../config')
+const { sushiSwapRouter, camelotRouter, WETH_ARB, USDT_ARB }  = require('../../config')
 
 const deployArbitrumMainNet = async ({ noWait = false, deployer = undefined } = {}) => {
   if (deployer === undefined) {
@@ -12,7 +12,6 @@ const deployArbitrumMainNet = async ({ noWait = false, deployer = undefined } = 
   const treasury = process.env.TREASURY_ADDRESS
   const devFund = process.env.DEV_FUND_ADDRESS
 
-  const camelotRouter = '0xc873fEcbd354f5A56E00E710B90EF4201db2448d'
   const balancerVault = '0xBA12222222228d8Ba445958a75a0704d566BF2C8'
 
   // GMX
