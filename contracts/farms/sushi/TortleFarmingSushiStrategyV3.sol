@@ -147,14 +147,18 @@ contract TortleFarmingSushiStrategyV3 is Ownable, Pausable {
     }
 
     function convertRewardToLP() internal {
-        uint256 rewardTokenHalf_ = IERC20(complexRewardToken).balanceOf(address(this)) / 2;
+        uint256 complexRewardTokenHalf_ = IERC20(complexRewardToken).balanceOf(address(this)) / 2;
+        uint256 rewardTokenHalf_ = IERC20(rewardToken).balanceOf(address(this)) / 2;
 
-        if (lpToken0 != complexRewardToken) {
-            swap(rewardTokenHalf_, complexRewardTokenToLp0Route);
-        }
+        if (lpToken0 != complexRewardToken) swap(complexRewardTokenHalf_, complexRewardTokenToLp0Route);
 
-        if (lpToken1 != complexRewardToken) {
-            swap(rewardTokenHalf_, complexRewardTokenToLp1Route);
+        if (lpToken1 != complexRewardToken) swap(complexRewardTokenHalf_, complexRewardTokenToLp1Route);
+
+        uint256 rewardsBalance = IERC20(rewardToken).balanceOf(address(this));
+        if (rewardsBalance > 0) {
+            if (lpToken0 != rewardToken) swap(rewardTokenHalf_, complexRewardTokenToLp0Route);
+
+            if (lpToken1 != rewardToken) swap(rewardTokenHalf_, complexRewardTokenToLp1Route);
         }
 
         uint256 lp0Bal_ = IERC20(lpToken0).balanceOf(address(this));
