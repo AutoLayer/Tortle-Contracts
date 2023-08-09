@@ -132,7 +132,7 @@ contract TortleFarmingSushiStrategyV3 is Ownable, Pausable {
         }
         IERC20(lpToken).safeTransfer(vault, _amount);
         IERC20(complexRewardToken).safeTransfer(user_, rewardsAmount_[0]);
-        IERC20(rewardToken).safeTransfer(user_, rewardsAmount_[1]);
+        if (rewardsAmount_[1] > 0) IERC20(rewardToken).safeTransfer(user_, rewardsAmount_[1]);
     }
 
     function harvest() external whenNotPaused {
