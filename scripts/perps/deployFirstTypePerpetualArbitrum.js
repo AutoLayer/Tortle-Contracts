@@ -30,7 +30,7 @@ const deployFirstTypePerpetual = async () => {
 
 
     const data = JSON.stringify(contractsAddresses)
-    fs.writeFile(process.env.PERPS_PATH ? process.env.PERPS_PATH : '/tmp/FirstTypeArbitrumPerpetualAddresses.json', data, (err) => {
+    fs.writeFile(process.env.PERPS_PATH ? process.env.PERPS_ARBITRUM_PATH : '/tmp/FirstTypeArbitrumPerpetualAddresses.json', data, (err) => {
         if (err) throw err
     })
     console.log('JSON data is saved.')
