@@ -36,6 +36,7 @@ contract TortleFarmingSushiStrategyV3 is Ownable, Pausable {
     address public immutable vault;
 
     uint256 public slippageFactorMin = 950;
+    uint256 private constant ACC_SUSHI_PRECISION = 1e12;
 
     address[] public complexRewardTokenToWethRoute;
     address[] public complexRewardTokenToLp0Route;
@@ -265,11 +266,33 @@ contract TortleFarmingSushiStrategyV3 is Ownable, Pausable {
         profit += IERC20(weth).balanceOf(address(this));
     }
 
+    function toUInt256(int256 a) internal pure returns (uint256) {
+        require(a >= 0, "Integer < 0");
+        return uint256(a);
+    }
+
+    function _pendingSushi() private view returns (uint256 pending) {
+        IMiniChef.PoolInfo memory pool = IMiniChef(masterChef).poolInfo(poolId);
+        IMasterChef.UserInfo memory user = IMiniChef(masterChef).userInfo(poolId, address(this));
+        uint256 accSushiPerShare = pool.accSushiPerShare;
+        uint256 lpSupply = IERC20(lpToken).balanceOf(masterChef);
+
+        if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
+            uint256 time = block.timestamp - pool.lastRewardTime;
+            uint256 sushiReward = time * (IMiniChef(masterChef).sushiPerSecond() * pool.allocPoint) / IMasterChef(masterChef).totalAllocPoint();
+            accSushiPerShare = (accSushiPerShare + (sushiReward * ACC_SUSHI_PRECISION)) / lpSupply;
+        }
+
+        int256 pendingResult_ = int256((user.amount * accSushiPerShare) / ACC_SUSHI_PRECISION) - int256(user.rewardDebt);
+        if (pending > 0) pending = toUInt256(pendingResult_);
+        else pending = 0;
+    }
+
     function getRewardsPerFarmNode(uint256 shares_) public view returns(uint256[2] memory rewardsAmount) {
         uint256 totalcomplexRewardAmount_ = IRewarderSushiSwap(complexrewarder).pendingToken(poolId, address(this)) + IERC20(complexRewardToken).balanceOf(address(this));
         rewardsAmount[0] = (totalcomplexRewardAmount_ * shares_) / IERC20(vault).totalSupply();
 
-        uint256 totalRewardAmount_ = IMiniChef(masterChef).pendingSushi(poolId, address(this)) + IERC20(rewardToken).balanceOf(address(this));
+        uint256 totalRewardAmount_ = _pendingSushi() + IERC20(rewardToken).balanceOf(address(this));
         rewardsAmount[1] = (totalRewardAmount_ * shares_) / IERC20(vault).totalSupply();
     }
 
