@@ -40,5 +40,14 @@ interface IMasterChefV2 {
 }
 
 interface IMiniChef {
+    struct PoolInfo {
+        uint128 accSushiPerShare;
+        uint64 lastRewardTime;
+        uint64 allocPoint;
+    }
+    function poolInfo(uint256 pid) external view returns (IMiniChef.PoolInfo memory);
+    function userInfo(uint256, address) external view returns (IMasterChef.UserInfo memory);
+    function sushiPerSecond() external view returns(uint256 sushiPerSecond);
+    function totalAllocPoint() external view returns(uint256 totalAllocPoint);
     function pendingSushi(uint256 _pid, address _user) external view returns (uint256);
 }
