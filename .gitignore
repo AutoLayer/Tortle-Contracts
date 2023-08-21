@@ -10,3 +10,5 @@ vaultsV3.json
 FirstTypePerpetualAddresses.json
 vaultsSushi.json
 .openzeppelin
+scripts
+test
